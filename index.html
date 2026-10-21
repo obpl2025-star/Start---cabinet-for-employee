@@ -318,6 +318,7 @@ var app = document.getElementById('app');
 var playerEl = document.getElementById('player');
 /* ---------- Supabase data layer: same doc/collection API the app was written against ---------- */
 var CFG = window.START_CONFIG || {};
+(function(){ try{ if(CFG.url){ var u = String(CFG.url).trim(); if(!/^https?:\/\//i.test(u)) u = 'https://' + u; CFG.url = new URL(u).origin; } }catch(e){} CFG.anonKey = String(CFG.anonKey||'').trim(); })();
 var EMAIL_DOMAIN = '@' + String(CFG.emailDomain || 'start.local').replace(/^@/, '');
 var sb = null, CACHE = {}, LST = [];
 function colOf(p){ return String(p).split('/')[0]; }
@@ -362,7 +363,7 @@ var ASSETS = {
   delete: function(id){ return sb.storage.from('slides').remove([id]).then(function(r){ return {deleted:!r.error}; }); }
 };
 function assetUrl(id){ return String(CFG.url||'').replace(/\/$/,'') + '/storage/v1/object/public/slides/' + encodeURIComponent(id); }
-function emailOf(login){ return String(login).trim().toLowerCase() + EMAIL_DOMAIN; }
+function emailOf(login){ var l = String(login).trim().toLowerCase(); return l.indexOf('@') >= 0 ? l : l + EMAIL_DOMAIN; }
 function authErrText(e){ var m = (e && e.message) || ''; if(/invalid login credentials/i.test(m)) return 'Неверный логин или пароль.'; if(/banned/i.test(m)) return 'Доступ приостановлен тренером. Обратитесь к тренеру.'; if(/email not confirmed/i.test(m)) return 'Аккаунт не подтверждён. Тренеру нужно отключить подтверждение почты в Supabase.'; if(/fetch|network/i.test(m)) return 'Нет связи с сервером. Проверьте интернет.'; return 'Не удалось войти: '+m; }
 
 
