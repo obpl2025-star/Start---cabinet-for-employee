@@ -1,0 +1,1646 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ЛК стажёра «Старт»</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;600&display=swap">
+<style>
+/* Layout: dark side rail (role-tinted) + fluid content column, stacks to a top bar on phones */
+:root{
+  --bg:#F3F2EE;--surface:#FFFFFF;--surface2:#F8F7F3;--line:#E2E1DB;--line2:#EEEDE8;
+  --fg:#17211D;--muted:#5B6660;--faint:#6B746F;
+  --accent:#0E5A4C;--accent-fg:#FFFFFF;--accent-soft:#DCEBE6;--accent-ink:#0E5A4C;
+  --amber:#E9A23B;--amber-soft:#F7E8D6;--amber-ink:#8A4A0B;
+  --danger:#B42318;--danger-soft:#FBE4E1;
+  --side:#14201C;--side-fg:#E9EEEB;--side-muted:#9AA8A2;--side-active:#24352F;--side-line:#2C3D37;
+  --slide-bg:#0E5A4C;--slide-fg:#FFFFFF;--slide-muted:#CFE3DC;
+  --shadow:0 12px 40px rgba(20,32,28,.18);
+  --f-display:'Unbounded','Golos Text',system-ui,sans-serif;
+  --f-body:'Golos Text',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1513;--surface:#172120;--surface2:#1B2725;--line:#2A3834;--line2:#22302C;
+  --fg:#E6ECE9;--muted:#A3B0AA;--faint:#8D9A94;
+  --accent:#4FB39A;--accent-fg:#08201A;--accent-soft:#183A32;--accent-ink:#7DD3BC;
+  --amber:#E9A23B;--amber-soft:#3A2A14;--amber-ink:#F0BD6E;
+  --danger:#F07A6E;--danger-soft:#3A1C19;
+  --side:#0A0F0E;--side-fg:#E6ECE9;--side-muted:#94A39C;--side-active:#1C2A26;--side-line:#1F2C28;
+  --slide-bg:#123F36;--slide-fg:#F2F7F5;--slide-muted:#B9D6CD;
+  --shadow:0 12px 40px rgba(0,0,0,.5);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1513;--surface:#172120;--surface2:#1B2725;--line:#2A3834;--line2:#22302C;
+  --fg:#E6ECE9;--muted:#A3B0AA;--faint:#8D9A94;
+  --accent:#4FB39A;--accent-fg:#08201A;--accent-soft:#183A32;--accent-ink:#7DD3BC;
+  --amber:#E9A23B;--amber-soft:#3A2A14;--amber-ink:#F0BD6E;
+  --danger:#F07A6E;--danger-soft:#3A1C19;
+  --side:#0A0F0E;--side-fg:#E6ECE9;--side-muted:#94A39C;--side-active:#1C2A26;--side-line:#1F2C28;
+  --slide-bg:#123F36;--slide-fg:#F2F7F5;--slide-muted:#B9D6CD;
+  --shadow:0 12px 40px rgba(0,0,0,.5);color-scheme:dark}
+body.trainer{--side:#1C1A16;--side-fg:#EEEAE2;--side-muted:#B0A99B;--side-active:#302C25;--side-line:#3A352D}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+h1,h2,h3{text-wrap:balance;margin:0}
+.num{font-variant-numeric:tabular-nums}
+
+.shell{display:flex;flex-wrap:wrap;min-height:100vh}
+.side{flex:1 1 248px;max-width:100%;background:var(--side);color:var(--side-fg);padding-block:28px;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:18px;display:flex;flex-direction:column;gap:26px}
+.brand{display:flex;align-items:center;gap:12px;padding:0 10px}
+.brand .mark{width:38px;height:38px;border-radius:11px;background:var(--amber);color:#14201C;font-family:var(--f-display);font-weight:600;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brand b{font-family:var(--f-display);font-weight:600;font-size:16px;display:block}
+.brand small{font-size:12px;color:var(--side-muted)}
+.nav{display:flex;flex-direction:column;gap:3px}
+.navlink{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 12px;border-radius:10px;border:0;background:transparent;color:var(--side-muted);text-align:left;cursor:pointer;font-size:15px;width:100%}
+.navlink:hover{color:var(--side-fg);background:rgba(255,255,255,.04)}
+.navlink.on{background:var(--side-active);color:#fff;font-weight:600}
+.navlink .dot{width:7px;height:7px;border-radius:50%;background:var(--amber)}
+.live-tag{font-size:11px;font-weight:700;color:#14201C;background:var(--amber);border-radius:6px;padding:2px 6px}
+.me{margin-top:auto;display:flex;align-items:center;gap:12px;padding:14px 10px 0;border-top:1px solid var(--side-line)}
+.me .who{flex:1;min-width:0}
+.me .who b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me .who small{font-size:12px;color:var(--side-muted)}
+.me button{background:transparent;border:1px solid var(--side-line);color:var(--side-fg);border-radius:8px;min-height:36px;padding:0 10px;cursor:pointer;font-size:13px}
+.ava{width:40px;height:40px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ava.amber{background:var(--amber-soft);color:var(--amber-ink)}
+.ava.gray{background:var(--line2);color:var(--muted)}
+
+.main{flex:999 1 560px;min-width:0;padding-block:40px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:24px;padding-inline:clamp(0px,3vw,32px)}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+.head .t{display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-size:14px;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(24px,3.2vw,32px);letter-spacing:-.01em;line-height:1.15}
+h2{font-size:19px;font-weight:600}
+h3{font-size:16px;font-weight:600}
+.lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 24px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card.tight{padding:16px 18px;gap:10px}
+.card.dashed{background:var(--surface2);border-style:dashed}
+.card.focus{border:2px solid var(--amber)}
+.cols{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.cols>.wide{flex:999 1 520px;min-width:0}
+.cols>.narrow{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--min,240px),1fr));gap:16px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.between{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:10px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:4px 10px;border-radius:8px;background:var(--line2);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--accent-soft);color:var(--accent-ink)}
+.chip.warn{background:var(--amber-soft);color:var(--amber-ink)}
+.chip.bad{background:var(--danger-soft);color:var(--danger)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-weight:600;font-size:15px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.amber{background:var(--amber);border-color:var(--amber);color:#14201C}
+.btn.outline{border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--danger)}
+.btn.sm{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent-ink);font-weight:600;cursor:pointer;font-size:14px}
+
+.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+.field input,.field select,.field textarea,.input{min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);font-size:15px;font-weight:400;width:100%}
+.field textarea,textarea.input{padding:12px;resize:vertical;min-height:88px;line-height:1.45}
+.err{color:var(--danger);font-size:14px;font-weight:500}
+
+.hero{background:var(--accent);color:var(--accent-fg);border-radius:20px;padding:26px 30px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
+:root[data-theme="dark"] .hero{background:#123F36;color:#F2F7F5}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .hero{background:#123F36;color:#F2F7F5}}
+.hero .big{font-family:var(--f-display);font-weight:600;font-size:clamp(32px,4vw,44px)}
+.hero .sub{opacity:.82}
+.bars{display:flex;gap:6px}
+.bars span{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.18)}
+.bars span.done{background:var(--amber)}
+.bars span.cur{background:rgba(255,255,255,.55)}
+.next{flex:0 1 340px;background:rgba(0,0,0,.18);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+
+.list{display:flex;flex-direction:column}
+.li{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--line2)}
+.li:first-child{border-top:0}
+.li .type{width:96px;flex-shrink:0}
+.li .ttl{flex:1;min-width:0}
+.li .ttl b{font-weight:500;display:block}
+.li.locked{color:var(--faint)}
+.banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;background:var(--amber-soft);color:var(--amber-ink);border-radius:16px;padding:16px 20px;font-weight:600}
+.pulse{width:9px;height:9px;border-radius:50%;background:#C2410C;display:inline-block;margin-right:8px}
+@media (prefers-reduced-motion:no-preference){.pulse{animation:p 1.6s infinite}@keyframes p{50%{opacity:.35}}}
+
+.day{display:flex;flex-direction:column;gap:14px}
+.dayhead{display:flex;flex-wrap:wrap;align-items:center;gap:18px}
+.daynum{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:600;font-size:18px;background:var(--line2);color:var(--muted);flex-shrink:0}
+.daynum.done{background:var(--accent-soft);color:var(--accent-ink)}
+.daynum.cur{background:var(--amber);color:#14201C}
+.itemgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.itemcard{border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--surface);text-align:left;cursor:pointer;color:var(--fg)}
+.itemcard:hover{border-color:var(--accent)}
+.itemcard.locked{cursor:default;background:var(--surface2);border-style:dashed;color:var(--faint)}
+.itemcard.locked:hover{border-color:var(--line)}
+
+.stat{display:flex;flex-direction:column;gap:6px}
+.stat .v{font-family:var(--f-display);font-weight:600;font-size:28px}
+.meter{height:6px;border-radius:3px;background:var(--line2)}
+.meter i{display:block;height:6px;border-radius:3px;background:var(--accent)}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:10px;text-transform:uppercase;letter-spacing:.04em}
+td{padding:12px 10px;border-top:1px solid var(--line2);vertical-align:middle}
+td:first-child,th:first-child{padding-left:0}
+
+.toggle{flex-shrink:0;width:44px;height:26px;padding:3px;border:0;border-radius:13px;background:var(--line);display:flex;justify-content:flex-start;cursor:pointer}
+.toggle i{width:20px;height:20px;border-radius:50%;background:#fff;display:block;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.toggle.on{background:var(--accent);justify-content:flex-end}
+.accessday{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.accessday.all{background:var(--accent-soft)}
+.accessday.some{background:var(--amber-soft)}
+.accessrow{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;border-top:1px solid var(--line2);font-size:13px}
+.accessrow .ov{font-size:11px;color:var(--amber-ink);font-weight:700}
+.seg{display:inline-flex;background:var(--line2);border-radius:12px;padding:4px;gap:2px;flex-wrap:wrap}
+.seg button{min-height:38px;padding:0 14px;border:0;border-radius:9px;background:transparent;cursor:pointer;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+.slide{aspect-ratio:16/9;max-width:100%;background:var(--slide-bg);color:var(--slide-fg);border-radius:20px;padding:clamp(20px,5%,56px) clamp(20px,6%,64px);display:flex;flex-direction:column;gap:clamp(10px,2.4vw,26px);overflow:hidden}
+.slide .k{font-size:clamp(11px,1.3vw,15px);font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.06em}
+.slide .n{font-family:var(--f-display);font-size:clamp(11px,1.3vw,15px);color:var(--slide-muted)}
+.slide h2{font-family:var(--f-display);font-weight:600;font-size:clamp(20px,3.6vw,44px);line-height:1.15;max-width:820px}
+.slide ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:clamp(6px,1.4vw,16px);font-size:clamp(14px,1.9vw,22px)}
+.slide li{display:flex;gap:14px;align-items:baseline}
+.slide li::before{content:"";flex-shrink:0;width:.45em;height:.45em;border-radius:3px;background:var(--amber);transform:translateY(-.1em)}
+.slide.locked{background:var(--surface2);color:var(--faint);border:1px dashed var(--line);align-items:center;justify-content:center;text-align:center}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.thumb{min-height:74px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);text-align:left;display:flex;flex-direction:column;gap:4px;cursor:pointer;color:var(--fg)}
+.thumb.sel{border:2px solid var(--accent);background:var(--accent-soft)}
+.thumb.live{border:2px solid var(--amber)}
+.thumb.locked{border-style:dashed;background:var(--surface2);color:var(--faint);cursor:default}
+.thumb small{font-size:12px;font-weight:600;color:var(--muted)}
+.thumb span{font-size:14px;font-weight:500;line-height:1.3}
+
+.q-opt{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 16px;border:1px solid var(--line);border-radius:12px;cursor:pointer;font-size:15px}
+.q-opt.sel{border:2px solid var(--accent);background:var(--accent-soft)}
+.q-opt input{width:18px;height:18px;accent-color:var(--accent);flex-shrink:0}
+.qbar{display:flex;gap:4px}
+.qbar span{flex:1;height:6px;border-radius:3px;background:var(--line2)}
+.qbar span.done{background:var(--accent)}
+.qbar span.cur{background:var(--amber)}
+.rating{display:flex;gap:6px;flex-wrap:wrap}
+.rating label{width:44px;height:44px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:600}
+.rating input{position:absolute;opacity:0;pointer-events:none}
+.rating label.sel{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+
+.kb{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.kb aside{flex:1 1 230px;padding:10px;gap:2px}
+.kb .cat{display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:0 14px;border-radius:10px;border:0;background:transparent;cursor:pointer;text-align:left;width:100%;font-size:15px}
+.kb .cat.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.cheat{background:var(--side);color:#fff;border-radius:18px;padding:22px 24px;display:flex;flex-direction:column;gap:14px}
+body.trainer .cheat{background:#14201C}
+.cheat .cell{background:rgba(255,255,255,.07);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.cheat .cell .lbl{color:#A9B6B0}
+.article{max-width:70ch;display:flex;flex-direction:column;gap:14px}
+.article p{margin:0;line-height:1.6}
+
+.tree{overflow-x:auto}
+.tree-in{min-width:640px;display:flex;flex-direction:column;align-items:stretch}
+.node{border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;text-align:center;background:var(--surface)}
+.node.root{align-self:center;width:300px;background:var(--side);color:#fff;border-color:var(--side)}
+.node.root .lbl{color:var(--side-muted)}
+.node.mine{border:2px solid var(--amber);background:var(--amber-soft)}
+.vline{align-self:center;width:2px;height:26px;background:var(--line)}
+.kids{display:grid;gap:16px}
+.kid{display:flex;flex-direction:column;align-items:center}
+.kid .vline{height:22px}
+.hline{height:2px;background:var(--line)}
+
+.modal-back{position:fixed;inset:0;background:rgba(10,15,14,.55);display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));overflow-y:auto;z-index:20}
+.modal{background:var(--surface);color:var(--fg);border-radius:20px;box-shadow:var(--shadow);max-width:720px;width:100%;padding:26px 28px;display:flex;flex-direction:column;gap:16px;margin:auto 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:12px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
+.empty{border:1px dashed var(--line);border-radius:16px;padding:26px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:8px;align-items:center}
+.creds{background:var(--amber-soft);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;color:var(--fg)}
+.creds code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:600;user-select:all}
+
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding-block:32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:radial-gradient(120% 80% at 0% 0%,var(--accent-soft),transparent 60%),var(--bg)}
+.login-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:32px;display:flex;flex-direction:column;gap:18px;box-shadow:var(--shadow)}
+.login-card .brand{padding:0}
+.login-card .brand small{color:var(--muted)}
+.divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+
+@media (max-width:820px){
+  .side{flex-basis:100%;padding-block:16px;gap:14px}
+  .nav{flex-direction:row;overflow-x:auto;padding-bottom:4px}
+  .navlink{width:auto;flex-shrink:0}
+  .navlink .dot{display:none}
+  .me{margin-top:0;padding-top:12px}
+  .main{padding-block:24px 48px}
+  .li .type{width:auto}
+  .li{flex-wrap:wrap}
+  .card{padding:18px}
+}
+
+/* ---- v2: plan list, simulator player, trainer settings ---- */
+[hidden]{display:none!important}
+.slide.img{padding:0;background:#0B0F0E;position:relative;align-items:center;justify-content:center}
+.slide.img img{width:100%;height:100%;object-fit:contain;display:block}
+.slide.img .badge{position:absolute;right:12px;bottom:10px;background:rgba(0,0,0,.55);color:#fff;border-radius:8px;padding:3px 8px;font-size:12px}
+.thumb .timg{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:#0B0F0E;display:block;margin-bottom:4px}
+.thumb.locked .timg{opacity:.35}
+.dropzone{border:2px dashed var(--line);border-radius:16px;padding:26px 20px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:var(--surface2)}
+.dropzone.over{border-color:var(--accent);background:var(--accent-soft)}
+.slidegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.slidecard{border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--surface);display:flex;flex-direction:column;gap:8px;min-width:0}
+.slidecard .shot{aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#0B0F0E;display:flex;align-items:center;justify-content:center}
+.slidecard .shot img{width:100%;height:100%;object-fit:contain;display:block}
+.slidecard .shot.text{background:var(--slide-bg);color:var(--slide-fg);flex-direction:column;gap:4px;padding:10px;text-align:center;font-size:13px}
+.slidecard textarea.input{min-height:60px}
+label.iconbtn.file{position:relative}
+details.day>summary{list-style:none;cursor:pointer;display:block}
+details.day>summary::-webkit-details-marker{display:none}
+.chev{display:inline-block;transition:transform .15s;color:var(--muted)}
+details[open] .chev{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.chev{transition:none}}
+.mat{font-size:12.5px;color:var(--muted)}
+.mat.link{color:var(--accent-ink)}
+.player{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column}
+.player-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--side);color:var(--side-fg)}
+.player-bar b{font-size:16px;flex:1 1 200px;min-width:0}
+.player-bar .btn{min-height:40px}
+.player-frame{flex:1;width:100%;border:0;background:#fff;display:block}
+.subnav{display:flex;flex-wrap:wrap;gap:6px}
+.subnav button{min-height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:14px;color:var(--fg)}
+.subnav button.on{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600}
+.savebar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--amber-soft);color:var(--amber-ink);border-radius:14px;padding:10px 14px;font-weight:600;box-shadow:var(--shadow)}
+.ed{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--surface)}
+.ed.open{border-color:var(--accent)}
+.ed-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ed-row .n{width:26px;flex-shrink:0;font-size:13px;color:var(--muted);text-align:right}
+.ed-row .t{flex:3 1 240px;min-width:0}
+.ed-row .ty{flex:0 1 170px;min-width:130px}
+.ed-row .m{flex:2 1 170px;min-width:0}
+.ed-row .acts{display:flex;gap:4px;flex-shrink:0}
+.ed-more{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;padding:6px 0 4px 34px}
+.ed-more .wide{grid-column:1/-1}
+.input.sm,.ed select.input,.ed input.input{min-height:40px;font-size:14px}
+.iconbtn{width:36px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--fg);font-size:15px;padding:0}
+.iconbtn:hover{border-color:var(--muted)}
+.iconbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+.iconbtn.danger{color:var(--danger)}
+.iconbtn:disabled{opacity:.35;cursor:default}
+.hint{font-size:13px;color:var(--muted);margin:0;line-height:1.5}
+.simrow{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.simrow .meta{flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.simrow .side2{flex:0 1 260px;display:flex;flex-direction:column;gap:8px}
+.file{position:relative;overflow:hidden}
+.file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.check{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+</style>
+
+<style>body{margin:0}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<div id="player"></div>
+
+<script>
+(function(){
+"use strict";
+var app = document.getElementById('app');
+var playerEl = document.getElementById('player');
+/* ---------- Supabase data layer: same doc/collection API the app was written against ---------- */
+var CFG = window.START_CONFIG || {};
+var EMAIL_DOMAIN = '@' + String(CFG.emailDomain || 'start.local').replace(/^@/, '');
+var sb = null, CACHE = {}, LST = [];
+function colOf(p){ return String(p).split('/')[0]; }
+function idOf(p){ return String(p).split('/')[1]; }
+function snapDoc(p){ var v = CACHE[p]; return {id:idOf(p), exists:v!==undefined, data:function(){ return v; }, metadata:{}}; }
+function notify(p){ LST.forEach(function(l){ if(l.path===p || (l.col && l.col===colOf(p))) l.fire(); }); }
+function setLocal(p, v){ if(v===undefined) delete CACHE[p]; else CACHE[p] = v; notify(p); }
+function deepMerge(t, s){ Object.keys(s).forEach(function(k){ var v = s[k]; if(v && typeof v==='object' && !Array.isArray(v)){ if(!t[k] || typeof t[k]!=='object' || Array.isArray(t[k])) t[k] = {}; deepMerge(t[k], v); } else t[k] = v; }); return t; }
+function dbErr(e){ var m = (e && e.message) || ''; return {code: /row-level security|permission|violates/i.test(m) ? 'invalid_argument' : 'unavailable', message:m}; }
+function docRef(p){
+  var ref = {
+    id: idOf(p), path: p,
+    get: function(){ return Promise.resolve(snapDoc(p)); },
+    set: function(d){ var v = JSON.parse(JSON.stringify(d)); var prev = CACHE[p]; setLocal(p, v);
+      return sb.from('docs').upsert({path:p, data:v, updated_at:new Date().toISOString()}).then(function(r){ if(r.error){ setLocal(p, prev); throw dbErr(r.error); } }); },
+    update: function(d){ if(CACHE[p]===undefined) return Promise.reject({code:'invalid_argument', message:'missing'}); return ref.set(deepMerge(JSON.parse(JSON.stringify(CACHE[p])), JSON.parse(JSON.stringify(d)))); },
+    delete: function(){ var prev = CACHE[p]; setLocal(p, undefined);
+      return sb.from('docs').delete().eq('path', p).then(function(r){ if(r.error){ setLocal(p, prev); throw dbErr(r.error); } }); },
+    onSnapshot: function(n){ var l = {path:p, fire:function(){ try{ n(snapDoc(p)); }catch(e){ console.error(e); } }}; LST.push(l); l.fire(); return function(){ LST = LST.filter(function(x){ return x!==l; }); }; }
+  };
+  return ref;
+}
+var DB = {
+  doc: docRef,
+  collection: function(c){ return {
+    doc: function(id){ return docRef(c+'/'+(id||uid('x'))); },
+    add: function(d){ var p = c+'/'+uid('x'); var v = JSON.parse(JSON.stringify(d));
+      return sb.from('docs').insert({path:p, data:v}).then(function(r){ if(r.error) throw dbErr(r.error); return docRef(p); }); },
+    onSnapshot: function(n){ var l = {col:c, fire:function(){ var docs = Object.keys(CACHE).filter(function(k){ return colOf(k)===c; }).map(snapDoc); try{ n({docs:docs, size:docs.length, empty:!docs.length, docChanges:function(){ return []; }, metadata:{}}); }catch(e){ console.error(e); } }}; LST.push(l); l.fire(); return function(){ LST = LST.filter(function(x){ return x!==l; }); }; }
+  }; }
+};
+function loadAll(){
+  var out = {};
+  function page(from){ return sb.from('docs').select('path,data').order('path').range(from, from+499).then(function(r){ if(r.error) throw r.error; r.data.forEach(function(row){ out[row.path] = row.data; }); if(r.data.length===500) return page(from+500); }); }
+  return page(0).then(function(){ CACHE = out; LST.forEach(function(l){ l.fire(); }); });
+}
+var ASSETS = {
+  upload: function(file){
+    var ext = (String(file.type).split('/')[1]||'png').replace('jpeg','jpg'); var path = uid('s')+'.'+ext;
+    return sb.storage.from('slides').upload(path, file, {contentType:file.type, upsert:false}).then(function(r){ if(r.error) throw {code: /too large|exceed|payload/i.test(r.error.message||'') ? 'too_large' : 'upstream_error', message:r.error.message}; return {id:path, url:assetUrl(path)}; });
+  },
+  delete: function(id){ return sb.storage.from('slides').remove([id]).then(function(r){ return {deleted:!r.error}; }); }
+};
+function assetUrl(id){ return String(CFG.url||'').replace(/\/$/,'') + '/storage/v1/object/public/slides/' + encodeURIComponent(id); }
+function emailOf(login){ return String(login).trim().toLowerCase() + EMAIL_DOMAIN; }
+function authErrText(e){ var m = (e && e.message) || ''; if(/invalid login credentials/i.test(m)) return 'Неверный логин или пароль.'; if(/banned/i.test(m)) return 'Доступ приостановлен тренером. Обратитесь к тренеру.'; if(/email not confirmed/i.test(m)) return 'Аккаунт не подтверждён. Тренеру нужно отключить подтверждение почты в Supabase.'; if(/fetch|network/i.test(m)) return 'Нет связи с сервером. Проверьте интернет.'; return 'Не удалось войти: '+m; }
+
+
+var S = {
+  db:null, user:null, canEdit:false, canEditKnown:false, dbState:'loading',
+  content:{program:null, slides:null, tests:null, knowledge:null, org:null, settings:null},
+  loaded:{},
+  groups:{}, interns:{}, progress:{}, feedback:{}, live:{}, surveys:[], sims:{},
+  role:null, iid:null, view:'home', ui:{dayOpen:{}, edOpen:{}}, form:{}, draft:{}, dirty:{}, player:null, assets:null, pendingDel:[], requests:{}
+};
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function f(id, def){ return (S.form[id] != null) ? S.form[id] : (def == null ? '' : def); }
+function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function initials(n){ var p = String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'').toUpperCase() + ((p[1]||'')[0]||'').toUpperCase(); }
+function fmtDay(ts){ try{ return new Date(ts).toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); }catch(e){ return ''; } }
+function fmtTime(ts){ try{ return new Date(ts).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+function ago(ts){ if(!ts) return 'не входил'; var m = Math.round((Date.now()-ts)/60000); if(m<2) return 'онлайн'; if(m<60) return m+' мин назад'; var h=Math.round(m/60); if(h<24) return h+' ч назад'; return fmtDay(ts); }
+function toast(t){ S.ui.toast = t; render(); clearTimeout(toast.t); toast.t = setTimeout(function(){ S.ui.toast=null; render(); }, 2800); }
+var TR = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'};
+function tr(s){ return String(s).toLowerCase().split('').map(function(c){ return TR[c] != null ? TR[c] : c; }).join('').replace(/[^a-z0-9]/g,''); }
+function makeLogin(name){ var p = String(name).trim().split(/\s+/); if(p.length < 2) return tr(p[0]||''); return tr(p[1])[0] + '.' + tr(p[0]); }
+function genPw(){ var a='abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'; var out=''; var arr = new Uint32Array(8); try{ crypto.getRandomValues(arr); }catch(e){ for(var i=0;i<8;i++) arr[i]=Math.floor(Math.random()*1e9); } for(var j=0;j<8;j++){ out += a[arr[j]%a.length]; if(j===2||j===5) out += '-'; } return out; }
+function hash(salt, pw){
+  var txt = salt + '::' + pw;
+  try{
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)).then(function(b){
+      return Array.prototype.map.call(new Uint8Array(b), function(x){ return ('0'+x.toString(16)).slice(-2); }).join('');
+    }).catch(function(){ return weak(txt); });
+  }catch(e){ return Promise.resolve(weak(txt)); }
+}
+function weak(t){ var h=5381; for(var i=0;i<t.length;i++){ h=((h<<5)+h+t.charCodeAt(i))|0; } return 'w'+(h>>>0).toString(16); }
+function copy(text, el){
+  try{ navigator.clipboard.writeText(text).then(function(){ toast('Скопировано'); }, function(){ selectEl(el); }); }catch(e){ selectEl(el); }
+}
+function selectEl(el){ try{ var t = el && el.closest('[data-copybox]'); var c = t ? t.querySelector('code,pre') : null; if(c){ var r=document.createRange(); r.selectNodeContents(c); var s=window.getSelection(); s.removeAllRanges(); s.addRange(r); toast('Выделено — скопируйте вручную'); } }catch(e){} }
+function lsGet(){ try{ return JSON.parse(localStorage.getItem('start-lk-session')||'null'); }catch(e){ return null; } }
+function lsSet(v){ try{ if(v) localStorage.setItem('start-lk-session', JSON.stringify(v)); else localStorage.removeItem('start-lk-session'); }catch(e){} }
+function clone(o){ return JSON.parse(JSON.stringify(o==null?{}:o)); }
+function kb(n){ return Math.round(n/1024)+' КБ'; }
+
+var TYPE = {theory:'Теория', practice:'Практика', listen:'Прослушка', test:'Тест', survey:'Опрос', sim:'Тренажёр', tool:'Инструмент', meeting:'Встреча', org:'Организационное', presentation:'Презентация'};
+var TYPE_ORDER = ['theory','practice','listen','sim','test','survey','tool','meeting','org'];
+var TABS = [['home','Главная'],['plan','План обучения'],['sims','Тренажёры'],['tests','Тесты и опросы'],['pres','Презентация'],['kb','База знаний'],['org','Структура компании'],['progress','Мой прогресс']];
+
+/* ---------- content accessors ---------- */
+function days(){ return (S.content.program && S.content.program.days) || []; }
+function allItems(){ var out=[]; days().forEach(function(d, di){ (d.items||[]).forEach(function(it){ out.push(Object.assign({day:d.id, dayIdx:di}, it)); }); }); return out; }
+function itemById(id){ return allItems().filter(function(i){ return i.id===id; })[0]; }
+function decksMap(){ return (S.content.slides && S.content.slides.decks) || {}; }
+function deck(id){ return decksMap()[id] || null; }
+function test(id){ var t = S.content.tests && S.content.tests.tests; return t ? t[id] : null; }
+function article(id){ return ((S.content.knowledge && S.content.knowledge.articles)||[]).filter(function(a){ return a.id===id; })[0]; }
+function people(){ return (S.content.org && S.content.org.people) || []; }
+function personByKind(k){ return people().filter(function(p){ return p.kind===k; })[0]; }
+function settings(){ return S.content.settings || {}; }
+function brand(){ var b = settings().brand || {}; return {name: b.name || 'Старт', sub: b.sub || 'ЛК стажёра · взыскание'}; }
+function tabTitle(k){ var t = settings().tabs && settings().tabs[k]; var d = TABS.filter(function(x){ return x[0]===k; })[0]; return (t && t.title) || (d ? d[1] : k); }
+function tabHidden(k){ if(k==='home') return false; var t = settings().tabs && settings().tabs[k]; return !!(t && t.hidden); }
+
+function me(){ return S.interns[S.iid]; }
+function P(iid){ return S.progress[iid || S.iid] || {}; }
+function isOpen(it, iid){
+  var intern = S.interns[iid || S.iid]; if(!intern) return false;
+  var o = intern.overrides && intern.overrides[it.id];
+  if(o === true || o === false) return o;
+  var g = S.groups[intern.groupId];
+  return !!(g && g.access && g.access[it.id]);
+}
+function isDone(it, iid){
+  var p = P(iid);
+  if(it.type==='test' && it.test){ var r = p.tests && p.tests[it.test]; return !!(r && r.passed); }
+  return !!(p.items && p.items[it.id] && p.items[it.id].status==='done');
+}
+function dayState(d, iid){
+  var items = d.items||[]; var open = items.filter(function(i){ return isOpen(i, iid); });
+  if(!open.length) return 'locked';
+  if(items.every(function(i){ return isDone(i, iid); })) return 'done';
+  return 'cur';
+}
+function currentDayIdx(iid){ var idx = 0; days().forEach(function(d,i){ if(dayState(d, iid)!=='locked') idx = i; }); return idx; }
+function groupOf(iid){ var it = S.interns[iid||S.iid]; return it ? S.groups[it.groupId] : null; }
+function liveOf(gid){ return S.live[gid] || {}; }
+function openedSlides(deckId, gid){ var lv = liveOf(gid); var o = lv.opened && lv.opened[deckId]; var dk = deck(deckId); var total = dk ? dk.slides.length : 0; return (typeof o === 'number') ? Math.min(o, total) : 0; }
+function deckOk(deckId){
+  var m = me(); if(!m || !deck(deckId)) return false; var lv = liveOf(m.groupId);
+  if(lv.active && lv.deck===deckId) return true;
+  return allItems().some(function(i){ return i.deck===deckId && isOpen(i); });
+}
+
+/* ---------- db writes ---------- */
+function upsert(path, cached, patch){
+  if(!S.db) return Promise.reject({message:'нет подключения'});
+  var ref = S.db.doc(path);
+  return (cached ? ref.update(patch) : ref.set(patch)).catch(function(e){
+    if(e && e.code==='invalid_argument') return ref.set(Object.assign(clone(cached), patch));
+    throw e;
+  });
+}
+function saveProgress(patch){
+  var iid = S.iid; var cur = S.progress[iid];
+  var p = cur ? patch : Object.assign({items:{}, tests:{}, notes:{}}, patch);
+  return upsert('progress/'+iid, cur, p).catch(function(){ toast('Не удалось сохранить. Проверьте соединение.'); });
+}
+function writeErr(e){
+  if(e && e.code==='quota_exceeded') toast('Хранилище заполнено — удалите старые записи.');
+  else toast('Не удалось сохранить. Попробуйте ещё раз.');
+}
+
+/* ---------- render ---------- */
+var rq = false;
+function schedule(){ if(rq) return; rq = true; requestAnimationFrame(function(){ rq=false; render(); }); }
+function render(){
+  var a = document.activeElement; var aid = a && a.id; var ss=null, se=null;
+  try{ ss = a.selectionStart; se = a.selectionEnd; }catch(e){}
+  document.body.classList.toggle('trainer', S.role==='trainer');
+  var html = S.role==='applicant' ? viewApplicant() : (S.role ? viewShell() : viewLogin());
+  if(S.ui.modal) html += viewModal();
+  if(S.ui.toast) html += '<div class="toast" role="status">'+esc(S.ui.toast)+'</div>';
+  app.innerHTML = html;
+  if(aid){ var n = document.getElementById(aid); if(n && n !== document.body){ try{ n.focus({preventScroll:true}); if(ss!=null && n.setSelectionRange) n.setSelectionRange(ss,se); }catch(e){} } }
+}
+
+function viewLogin(){
+  if(S.ui.applyForm) return viewApply();
+  var b = brand();
+  var dbMsg = S.dbState==='loading' ? '<p class="muted small">Подключаемся к данным…</p>' :
+    (S.dbState==='none' ? '<p class="err">Кабинет не подключён к базе: заполните файл config.js (адрес и ключ Supabase).</p>' : (S.ui.busy ? '<p class="muted small">Входим…</p>' : ''));
+  var trainer = !S.canEdit ? '' : (S.ui.trainerForm ?
+    '<div class="divider">вход тренера</div><form data-form="trainer" class="stack" style="gap:14px" novalidate>'+
+      '<label class="field">Логин тренера<input id="tr-login" data-keep autocomplete="off" value="'+esc(f('tr-login'))+'"></label>'+
+      '<label class="field">Пароль тренера<input id="tr-pw" data-keep type="password" autocomplete="off" value="'+esc(f('tr-pw'))+'"></label>'+
+      (S.ui.trErr ? '<p class="err" role="alert" style="margin:0">'+esc(S.ui.trErr)+'</p>' : '')+
+      '<div class="row"><button class="btn primary" type="submit" style="flex:1"'+(S.ui.busy?' disabled':'')+'>Войти как тренер</button><button class="btn" type="button" data-act="tr-cancel">Отмена</button></div></form>'
+    : '<div class="divider">или</div><button class="btn outline" data-act="as-trainer" type="button">Войти как тренер</button>');
+  return '<div class="login"><div class="login-card">'+
+    '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>'+esc(b.sub)+'</small></div></div>'+
+    '<div class="stack" style="gap:6px"><h1>Вход в кабинет</h1><p class="muted" style="margin:0">Логин и пароль выдаёт ваш тренер в первый день стажировки.</p></div>'+
+    '<form data-form="login" class="stack" style="gap:14px" novalidate>'+
+      '<label class="field">Логин<input id="f-login" data-keep autocomplete="username" value="'+esc(f('f-login'))+'" placeholder="например, a.melnik"></label>'+
+      '<label class="field">Пароль<input id="f-pw" data-keep type="password" autocomplete="current-password" value="'+esc(f('f-pw'))+'"></label>'+
+      (S.ui.loginErr ? '<p class="err" role="alert" style="margin:0">'+esc(S.ui.loginErr)+'</p>' : '')+
+      '<button class="btn primary" type="submit"'+(S.dbState!=='ok'||S.ui.busy?' disabled':'')+'>Войти</button>'+
+    '</form>'+ dbMsg + (allowApply() && S.dbState==='ok' ? '<p class="small muted" style="margin:0;text-align:center">Нет логина? <button type="button" class="linkbtn" data-act="apply-open">Подать заявку на доступ</button></p>' : '') + trainer +
+  '</div></div>';
+}
+function allowApply(){ return settings().allowApply !== false; }
+function viewApply(){
+  var b = brand(); var nameV = f('ap-name'); var loginV = S.form['ap-login'] != null ? S.form['ap-login'] : makeLogin(nameV);
+  return '<div class="login"><div class="login-card">'+
+    '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>'+esc(b.sub)+'</small></div></div>'+
+    '<div class="stack" style="gap:6px"><h1>Заявка на доступ</h1><p class="muted" style="margin:0">Заполните данные и придумайте пароль. Тренер проверит заявку, и после одобрения вы войдёте с этим логином и паролем.</p></div>'+
+    '<form data-form="apply" class="stack" style="gap:14px" novalidate>'+
+      '<label class="field">ФИО<input id="ap-name" data-keep data-live="ni" autocomplete="name" placeholder="Фамилия Имя" value="'+esc(nameV)+'"></label>'+
+      '<label class="field">Логин<input id="ap-login" data-keep autocomplete="username" value="'+esc(loginV)+'" placeholder="создастся из ФИО"></label>'+
+      '<label class="field">Пароль — не короче 6 символов<input id="ap-pw" data-keep type="password" autocomplete="new-password" value="'+esc(f('ap-pw'))+'"></label>'+
+      '<label class="field">Пароль ещё раз<input id="ap-pw2" data-keep type="password" autocomplete="new-password" value="'+esc(f('ap-pw2'))+'"></label>'+
+      '<label class="field">Телефон или Telegram<input id="ap-contact" data-keep autocomplete="tel" value="'+esc(f('ap-contact'))+'" placeholder="+373… или @username"></label>'+
+      '<label class="field">Комментарий для тренера (необязательно)<input id="ap-note" data-keep value="'+esc(f('ap-note'))+'" placeholder="например, направление Софт, старт с 27.10"></label>'+
+      (S.ui.apErr ? '<p class="err" role="alert" style="margin:0">'+esc(S.ui.apErr)+'</p>' : '')+
+      '<div class="row"><button class="btn primary" type="submit" style="flex:1"'+(S.ui.busy?' disabled':'')+'>Отправить заявку</button><button class="btn" type="button" data-act="apply-cancel">Назад ко входу</button></div>'+
+    '</form></div></div>';
+}
+function viewApplicant(){
+  var b = brand(); var r = (S.requests && S.requests[S.uid]) || CACHE['requests/'+S.uid] || {};
+  var body;
+  if(r.status==='rejected') body = '<h1>Заявка отклонена</h1><p style="margin:0">'+(r.reason?'Причина: '+esc(r.reason):'Тренер отклонил заявку.')+'</p><p class="muted small" style="margin:0">Если это ошибка, свяжитесь с тренером.</p>';
+  else if(r.status==='approved') body = '<h1>Заявка одобрена</h1><p class="muted" style="margin:0">Открываем кабинет…</p>';
+  else body = '<h1>Заявка отправлена</h1><p style="margin:0">'+esc(r.name||'')+', тренер рассмотрит вашу заявку. Кабинет откроется сам, как только её одобрят: страницу можно не закрывать или войти позже с логином <b>'+esc(r.login||'')+'</b> и вашим паролем.</p><span class="chip warn" style="align-self:flex-start">На рассмотрении</span>';
+  return '<div class="login"><div class="login-card">'+
+    '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>'+esc(b.sub)+'</small></div></div>'+
+    '<div class="stack" style="gap:10px">'+body+'</div>'+
+    '<div class="row">'+(r.status==='rejected'?'':'<button class="btn" type="button" data-act="app-refresh">Проверить статус</button>')+'<button class="btn" type="button" data-act="logout">Выйти</button></div>'+
+  '</div></div>';
+}
+function checkSuspended(){
+  if(S.role==='intern' && me() && me().suspended){ closePlayer(); S.role=null; S.iid=null; S.ui={dayOpen:{}, edOpen:{}, loginErr:'Доступ приостановлен тренером. Обратитесь к тренеру.'}; if(sb) sb.auth.signOut(); CACHE={}; LST.forEach(function(l){ l.fire(); }); }
+}
+function checkApproved(){
+  if(S.role==='applicant' && S.interns[S.uid]){ S.role='intern'; S.iid=S.uid; S.view='home'; saveProgress({seen:Date.now()}); toast('Заявка одобрена — добро пожаловать!'); }
+}
+function pendingCount(){ return Object.keys(S.requests||{}).filter(function(k){ return S.requests[k].status==='pending'; }).length; }
+function requestsBlock(){
+  var reqs = Object.keys(S.requests||{}).map(function(id){ return Object.assign({id:id}, S.requests[id]); });
+  var pend = reqs.filter(function(r){ return r.status==='pending'; }).sort(function(a,b){ return (a.at||0)-(b.at||0); });
+  var rej = reqs.filter(function(r){ return r.status==='rejected'; }).sort(function(a,b){ return (b.decidedAt||0)-(a.decidedAt||0); });
+  if(!pend.length && !rej.length) return '';
+  var gl = groupList();
+  var rows = pend.map(function(r){
+    var gsel = gl.length ? '<select id="rq-g-'+esc(r.id)+'" data-keep class="input" style="width:auto;min-width:200px" aria-label="Группа для '+esc(r.name)+'">'+gl.map(function(g){ return '<option value="'+esc(g.id)+'"'+(f('rq-g-'+r.id, curGid())===g.id?' selected':'')+'>'+esc(g.name)+'</option>'; }).join('')+'</select>' : '<span class="small err">Сначала создайте группу</span>';
+    var rejOpen = S.ui.rejOpen===r.id;
+    return '<div class="ed" style="gap:10px"><div class="row between" style="align-items:flex-start"><div class="stack" style="gap:2px;min-width:0;flex:1 1 260px"><b>'+esc(r.name)+'</b><span class="small muted">Логин '+esc(r.login)+(r.contact?' · '+esc(r.contact):'')+' · '+fmtTime(r.at)+'</span>'+(r.note?'<span class="small">'+esc(r.note)+'</span>':'')+'</div>'+
+      (rejOpen ? '<div class="row" style="flex:1 1 320px"><input id="rq-r-'+esc(r.id)+'" data-keep class="input" style="flex:1;min-width:0" placeholder="Причина (увидит заявитель)" value="'+esc(f('rq-r-'+r.id))+'"><button class="btn sm danger" type="button" data-act="req-reject" data-id="'+esc(r.id)+'">Отклонить</button><button class="btn sm" type="button" data-act="req-reject-cancel">Отмена</button></div>'
+        : '<div class="row">'+gsel+'<button class="btn sm primary" type="button" data-act="req-approve" data-id="'+esc(r.id)+'"'+(gl.length?'':' disabled')+'>Одобрить</button><button class="btn sm" type="button" data-act="req-reject-open" data-id="'+esc(r.id)+'">Отклонить</button></div>')+
+    '</div></div>';
+  }).join('');
+  var rejList = rej.length ? '<details><summary class="small muted" style="cursor:pointer">Отклонённые · '+rej.length+'</summary><div class="stack" style="gap:8px;margin-top:8px">'+rej.map(function(r){ var conf = S.ui.confirm==='req:'+r.id; return '<div class="row between"><span class="small"><b>'+esc(r.name)+'</b> · '+esc(r.login)+(r.reason?' · '+esc(r.reason):'')+'</span>'+(conf?'<span class="row"><button class="btn sm danger" type="button" data-act="req-del" data-id="'+esc(r.id)+'">Удалить</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button></span>':'<button class="btn sm" type="button" data-act="confirm" data-c="req:'+esc(r.id)+'">Удалить заявку</button>')+'</div>'; }).join('')+'<p class="hint">Удаление освобождает логин: человек сможет подать заявку заново.</p></div></details>' : '';
+  return '<section class="card" aria-labelledby="h-req" style="border-color:'+(pend.length?'var(--amber)':'var(--line)')+'"><div class="row between"><h2 id="h-req">Заявки на доступ'+(pend.length?' · '+pend.length:'')+'</h2></div>'+(pend.length?rows:'<p class="muted" style="margin:0">Новых заявок нет.</p>')+rejList+'</section>';
+}
+
+function navItem(id, label, extra){
+  var on = S.view===id;
+  return '<button type="button" class="navlink'+(on?' on':'')+'" data-act="nav" data-v="'+id+'"'+(on?' aria-current="page"':'')+'><span>'+esc(label)+'</span>'+(extra||(on?'<span class="dot" aria-hidden="true"></span>':''))+'</button>';
+}
+function viewShell(){
+  var side, body, b = brand();
+  if(S.role==='intern'){
+    var m = me();
+    if(!m){ return '<div class="login"><div class="login-card"><h1>Аккаунт не найден</h1><p class="muted">Тренер мог удалить этот доступ. Обратитесь к тренеру.</p><button class="btn" data-act="logout">Выйти</button></div></div>'; }
+    if(tabHidden(S.view)) S.view = 'home';
+    var lv = liveOf(m.groupId);
+    var liveTag = lv.active ? '<span class="live-tag">идёт</span>' : null;
+    var dIdx = currentDayIdx();
+    side = '<nav class="side" aria-label="Разделы">'+
+      '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>'+esc(b.sub)+'</small></div></div>'+
+      '<div class="nav">'+TABS.filter(function(t){ return !tabHidden(t[0]); }).map(function(t){ return navItem(t[0], tabTitle(t[0]), t[0]==='pres'?liveTag:null); }).join('')+'</div>'+
+      '<div class="me"><div class="ava">'+esc(initials(m.name))+'</div><div class="who"><b>'+esc(m.name)+'</b><small>Стажёр · день '+(dIdx+1)+' из '+days().length+'</small></div><button type="button" data-act="logout">Выйти</button></div>'+
+    '</nav>';
+    body = ({home:vHome, plan:vPlan, sims:vSims, tests:vTests, pres:vPres, kb:vKb, org:vOrg, progress:vProgress}[S.view] || vHome)();
+  } else {
+    var anyLive = Object.keys(S.live).some(function(k){ return S.live[k] && S.live[k].active; });
+    var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
+    side = '<nav class="side" aria-label="Разделы тренера">'+
+      '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+
+      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
+      '<div class="me"><div class="ava amber">Т</div><div class="who"><b>Тренер</b><small>Управление стажировкой</small></div><button type="button" data-act="logout">Выйти</button></div>'+
+    '</nav>';
+    body = ({'t-access':tAccess, 't-pres':tPres, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
+  }
+  return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>';
+}
+
+function noContent(){ return '<div class="empty"><h2>Материалы ещё не загружены</h2><p style="margin:0">Как только тренер заполнит программу стажировки, здесь появятся дни, темы и тесты.</p></div>'; }
+function head(t, eyebrow, right){ return '<header class="head"><div class="t">'+(eyebrow?'<span class="eyebrow">'+eyebrow+'</span>':'')+'<h1>'+esc(t)+'</h1></div>'+(right||'')+'</header>'; }
+function firstName(n){ var p = String(n||'').trim().split(/\s+/); return p.length>1 ? p[1] : (p[0]||''); }
+function personMini(p){ return '<div class="row" style="gap:12px;flex-wrap:nowrap"><div class="ava'+(p.kind==='mentor'?' amber':(p.kind==='head'?' gray':''))+'">'+esc(initials(p.name))+'</div><div style="min-width:0"><b style="display:block">'+esc(p.name)+'</b><span class="small muted">'+esc(p.role)+'</span></div></div>'; }
+
+/* ---------- intern views ---------- */
+function statusChip(it){
+  if(!isOpen(it)) return '<span class="chip">Закрыто</span>';
+  if(it.type==='test' && it.test){
+    var r = P().tests && P().tests[it.test];
+    if(r && r.passed) return '<span class="chip ok num">'+r.best+'%</span>';
+    if(r) return '<span class="chip bad num">'+r.best+'% · не сдан</span>';
+    return '<span class="chip">Не начат</span>';
+  }
+  if(isDone(it)) return '<span class="chip ok">Пройдено</span>';
+  return '<span class="chip warn">Доступно</span>';
+}
+function matLine(it){
+  if(!it.material) return '';
+  var isLink = it.url != null;
+  return '<span class="mat'+(isLink?' link':'')+'">'+esc(it.material)+(isLink?' ↗':'')+'</span>';
+}
+function itemRow(it){
+  var open = isOpen(it);
+  return '<div class="li'+(open?'':' locked')+'"><span class="type lbl">'+esc(TYPE[it.type]||'')+'</span>'+
+    '<span class="ttl"><b>'+esc(it.title)+'</b>'+matLine(it)+'</span>'+
+    statusChip(it)+
+    (open ? '<button class="btn sm" type="button" data-act="open-item" data-id="'+esc(it.id)+'">Открыть</button>' : '<span class="small muted" style="min-width:86px;text-align:right">Откроет тренер</span>')+
+  '</div>';
+}
+function liveBanner(){
+  var m = me(); var lv = liveOf(m.groupId);
+  if(!lv.active || S.view==='pres' || tabHidden('pres')) return '';
+  var dk = deck(lv.deck);
+  return '<div class="banner" role="status"><span><span class="pulse" aria-hidden="true"></span>Тренер ведёт презентацию'+(dk?' «'+esc(dk.title)+'»':'')+' — слайд '+(lv.slide||1)+'</span><button class="btn amber" type="button" data-act="nav" data-v="pres">Подключиться</button></div>';
+}
+function vHome(){
+  var m = me(); if(!days().length) return head('Добрый день, '+firstName(m.name), '')+noContent();
+  var di = currentDayIdx(); var d = days()[di];
+  var bars = days().map(function(x){ var s = dayState(x); return '<span class="'+(s==='done'?'done':(s==='cur'?'cur':''))+'"></span>'; }).join('');
+  var doneDays = days().filter(function(x){ return dayState(x)==='done'; }).length;
+  var next = allItems().filter(function(i){ return isOpen(i) && !isDone(i); })[0];
+  var fb = (S.feedback[S.iid] && S.feedback[S.iid].entries) || [];
+  var lastFb = fb.slice().sort(function(a,b){ return b.at-a.at; })[0];
+  var res = allItems().filter(function(i){ return i.type==='test' && i.test && P().tests && P().tests[i.test]; });
+  var ppl = ['trainer','mentor','head'].map(personByKind).filter(Boolean);
+  var openToday = (d.items||[]).filter(function(i){ return isOpen(i); });
+  return head('Добрый день, '+firstName(m.name), (groupOf()?esc(groupOf().name)+' · ':'')+fmtDay(Date.now()))+
+    liveBanner()+
+    '<section class="hero" aria-label="Прогресс стажировки"><div style="flex:1 1 340px;display:flex;flex-direction:column;gap:14px">'+
+      '<span class="sub">Стажировка · '+days().length+' дней · пройдено '+doneDays+'</span>'+
+      '<div class="row" style="align-items:baseline;gap:12px"><span class="big">День '+(di+1)+'</span><span class="sub" style="font-size:18px">'+esc(d.title)+'</span></div>'+
+      '<div class="bars" aria-label="Пройдено дней: '+doneDays+' из '+days().length+'">'+bars+'</div>'+
+    '</div>'+
+    (next ? '<div class="next"><span class="small sub">Следующий шаг · '+esc(TYPE[next.type]||'')+'</span><b style="font-size:17px;line-height:1.35">'+esc(next.title)+'</b><button class="btn amber" style="align-self:flex-start" type="button" data-act="open-item" data-id="'+esc(next.id)+'">Продолжить</button></div>'
+          : '<div class="next"><b style="font-size:17px">Все открытые темы пройдены</b><span class="small sub">Новые темы откроет тренер.</span></div>')+
+    '</section>'+
+    '<div class="cols"><section class="card wide" aria-labelledby="h-today"><div class="row between"><h2 id="h-today">День '+(di+1)+': темы</h2><span class="small muted num">Открыто '+openToday.length+' из '+(d.items||[]).length+'</span>'+(tabHidden('plan')?'':'<button class="linkbtn" data-act="nav" data-v="plan">Весь план</button>')+'</div><div class="list">'+(d.items||[]).map(itemRow).join('')+'</div></section>'+
+    '<div class="narrow">'+
+      '<section class="card" aria-labelledby="h-res"><h2 id="h-res">Результаты тестов</h2>'+(res.length? res.map(function(i){ var r=P().tests[i.test]; return '<div class="row between"><span>'+esc(i.title)+'</span><b class="num" style="font-family:var(--f-display);font-weight:500;color:'+(r.passed?'var(--accent-ink)':'var(--danger)')+'">'+r.best+'%</b></div>'; }).join('') : '<p class="muted" style="margin:0">Пока нет пройденных тестов.</p>')+'</section>'+
+      (lastFb ? '<section class="card" style="background:var(--amber-soft);border-color:transparent" aria-labelledby="h-fb"><h2 id="h-fb">Комментарий тренера</h2><p style="margin:0;line-height:1.55">'+esc(lastFb.text)+'</p><span class="small" style="color:var(--amber-ink)">'+fmtTime(lastFb.at)+'</span></section>' : '')+
+      (ppl.length ? '<section class="card" aria-labelledby="h-ppl"><div class="row between"><h2 id="h-ppl">Мои люди</h2>'+(tabHidden('org')?'':'<button class="linkbtn" data-act="nav" data-v="org">Структура</button>')+'</div>'+ppl.map(personMini).join('')+'</section>' : '')+
+    '</div></div>';
+}
+
+function vPlan(){
+  if(!days().length) return head(tabTitle('plan'),'')+noContent();
+  var doneDays = days().filter(function(x){ return dayState(x)==='done'; }).length;
+  var curIdx = currentDayIdx();
+  return head(tabTitle('plan'),'Теория · понедельник–пятница','<div class="card tight" style="flex-direction:row;align-items:center;gap:12px"><span class="muted">Пройдено</span><b class="num" style="font-family:var(--f-display);font-size:22px">'+doneDays+' / '+days().length+'</b><span class="muted">дней</span></div>')+
+    days().map(function(d, i){
+      var st = dayState(d);
+      var items = d.items||[];
+      var done = items.filter(function(x){ return isDone(x); }).length;
+      var openN = items.filter(function(x){ return isOpen(x); }).length;
+      var isOpenUi = S.ui.dayOpen[d.id] != null ? S.ui.dayOpen[d.id] : (i===curIdx);
+      return '<details class="card day'+(st==='cur'?' focus':'')+(st==='locked'?' dashed':'')+'" data-day="'+esc(d.id)+'"'+(isOpenUi?' open':'')+'>'+
+        '<summary><div class="dayhead"><div class="daynum '+st+'" aria-hidden="true">'+(st==='done'?'✓':(i+1))+'</div>'+
+        '<div style="flex:1 1 260px;display:flex;flex-direction:column;gap:3px;min-width:0"><span class="lbl">День '+(i+1)+(i===curIdx && st!=='locked'?' · сейчас':'')+'</span><h2>'+esc(d.title)+'</h2><span class="small muted">'+esc(d.subtitle||'')+'</span></div>'+
+        '<div class="stack" style="align-items:flex-end;gap:6px;min-width:170px"><span class="small muted num">'+(st==='locked'?items.length+' тем · откроет тренер':done+' из '+items.length+' пройдено · открыто '+openN)+'</span><div class="meter" style="width:170px"><i style="width:'+Math.round(done/Math.max(1,items.length)*100)+'%"></i></div></div>'+
+        '<span class="chev" aria-hidden="true">›</span></div></summary>'+
+        '<div class="list" style="margin-top:6px">'+items.map(itemRow).join('')+'</div>'+
+      '</details>';
+    }).join('');
+}
+
+function simReady(id){ var s = S.sims[id]; return !!(s && s.html); }
+function vSims(){
+  var sims = allItems().filter(function(i){ return i.type==='sim'; });
+  return head(tabTitle('sims'),'Отработка навыков на копиях рабочих систем — прямо в кабинете')+
+    (sims.length ? '<div class="grid" style="--min:300px">'+sims.map(function(it){
+      var o = isOpen(it); var dn = isDone(it); var sm = it.sim ? S.sims[it.sim] : null;
+      var desc = (sm && sm.desc) || it.desc || it.material || '';
+      var btn;
+      if(!o) btn = '<button class="btn" type="button" disabled style="margin-top:auto">Откроется в день '+(it.dayIdx+1)+'</button>';
+      else if(it.sim && !simReady(it.sim)) btn = '<button class="btn" type="button" disabled style="margin-top:auto">Тренажёр ещё загружается тренером</button>';
+      else btn = '<button class="btn '+(dn?'':'primary')+'" type="button" data-act="open-item" data-id="'+esc(it.id)+'" style="margin-top:auto">'+(dn?'Пройти ещё раз':'Открыть тренажёр')+'</button>';
+      return '<article class="card'+(o?'':' dashed')+'"><div class="row between"><span class="lbl">День '+(it.dayIdx+1)+'</span>'+statusChip(it)+'</div><h2>'+esc(it.title)+'</h2><p class="muted" style="margin:0">'+esc(desc)+'</p>'+btn+'</article>';
+    }).join('')+'</div>' : noContent());
+}
+
+function vTests(){
+  var t = S.ui.test, sv = S.ui.survey;
+  var items = allItems().filter(function(i){ return (i.type==='test' && i.test) || i.type==='survey'; });
+  var left = '<section class="card" style="flex:1 1 380px;min-width:0;padding-block:8px" aria-label="Список тестов"><div class="list">'+
+    (items.length ? items.map(function(it){
+      var o = isOpen(it);
+      var tt = it.type==='test' ? test(it.test) : null;
+      var meta = it.type==='test' ? (tt ? tt.questions.length+' вопросов · проходной '+tt.pass+'%' : 'тест не найден') : 'Анонимно';
+      return '<div class="li'+(o?'':' locked')+'"><span class="ttl"><b>'+esc(it.title)+'</b><span class="small muted">День '+(it.dayIdx+1)+' · '+esc(meta)+'</span></span>'+statusChip(it)+
+        (o && (tt || it.type==='survey') ? '<button class="btn sm" type="button" data-act="open-item" data-id="'+esc(it.id)+'">'+(isDone(it)?'Открыть':'Начать')+'</button>' : '')+'</div>';
+    }).join('') : '<p class="muted">Тестов пока нет.</p>')+'</div></section>';
+  var right;
+  if(t) right = testPanel(t);
+  else if(sv) right = surveyPanel(sv);
+  else right = '<section class="card" style="flex:999 1 440px;min-width:0"><div class="empty" style="border:0"><h2>Выберите тест</h2><p style="margin:0">Тест открывается после того, как тренер откроет его в плане. Проходной балл и число попыток указаны в тесте.</p></div></section>';
+  return head(tabTitle('tests'),'Опросник по итогам дня, финальный тест и анонимные опросы')+'<div class="cols">'+left+right+'</div>';
+}
+function testPanel(t){
+  var tt = test(t.tid); if(!tt) return '<section class="card wide"><p>Тест не найден.</p></section>';
+  var rec = P().tests && P().tests[t.tid];
+  var attemptsLeft = (tt.attempts||3) - ((rec && rec.attempts)||0);
+  if(t.result){
+    var r = t.result;
+    return '<section class="card" style="flex:999 1 440px;min-width:0" aria-live="polite"><span class="lbl">'+esc(tt.title)+'</span>'+
+      '<h2 style="font-family:var(--f-display);font-size:40px" class="num">'+r.pct+'%</h2>'+
+      '<span class="chip '+(r.pct>=tt.pass?'ok':'bad')+'" style="align-self:flex-start">'+(r.pct>=tt.pass?'Тест сдан':'Не сдан · нужно '+tt.pass+'%')+'</span>'+
+      '<p style="margin:0">Правильных ответов: '+r.right+' из '+r.total+'.'+(r.wrong.length?' Ошибки в вопросах: '+r.wrong.join(', ')+'.':'')+'</p>'+
+      '<p class="muted small" style="margin:0">Лучший результат: '+((P().tests&&P().tests[t.tid]&&P().tests[t.tid].best)||r.pct)+'%. Осталось попыток: '+Math.max(0,attemptsLeft)+'.</p>'+
+      '<div class="row">'+(attemptsLeft>0 && r.pct<100 ? '<button class="btn" type="button" data-act="test-retry">Пройти ещё раз</button>' : '')+'<button class="btn primary" type="button" data-act="test-close">Готово</button></div></section>';
+  }
+  if(!t.started){
+    return '<section class="card" style="flex:999 1 440px;min-width:0"><span class="lbl">Тест</span><h2>'+esc(tt.title)+'</h2>'+
+      '<p style="margin:0" class="muted">'+tt.questions.length+' вопросов · проходной балл '+tt.pass+'% · попыток осталось '+Math.max(0,attemptsLeft)+'</p>'+
+      (rec ? '<p style="margin:0">Ваш лучший результат: <b class="num">'+rec.best+'%</b>'+(rec.passed?' — тест сдан.':'.')+'</p>' : '')+
+      (attemptsLeft>0 ? '<button class="btn primary" style="align-self:flex-start" type="button" data-act="test-start">Начать тест</button>' : '<p class="err" style="margin:0">Попытки закончились. Обратитесь к тренеру.</p>')+
+    '</section>';
+  }
+  var q = tt.questions[t.idx]; var sel = t.answers[t.idx];
+  var bar = tt.questions.map(function(_,i){ return '<span class="'+(i<t.idx?'done':(i===t.idx?'cur':''))+'"></span>'; }).join('');
+  return '<section class="card" style="flex:999 1 440px;min-width:0" aria-labelledby="h-q">'+
+    '<span class="small muted" style="font-weight:600">'+esc(tt.title)+' — вопрос '+(t.idx+1)+' из '+tt.questions.length+'</span>'+
+    '<div class="qbar" aria-hidden="true">'+bar+'</div>'+
+    '<h2 id="h-q" style="font-size:20px;line-height:1.4">'+esc(q.q)+'</h2>'+
+    '<fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px"><legend class="small muted" style="margin-bottom:10px">Выберите один вариант</legend>'+
+    q.options.map(function(o,i){ return '<label class="q-opt'+(sel===i?' sel':'')+'"><input type="radio" name="tq" id="tq-'+t.idx+'-'+i+'" data-act="answer" data-i="'+i+'"'+(sel===i?' checked':'')+'>'+esc(o)+'</label>'; }).join('')+
+    '</fieldset>'+
+    '<div class="row between"><button class="btn" type="button" data-act="test-prev"'+(t.idx===0?' disabled':'')+'>Назад</button>'+
+    (t.idx < tt.questions.length-1 ? '<button class="btn primary" type="button" data-act="test-next"'+(sel==null?' disabled':'')+'>Далее</button>' : '<button class="btn primary" type="button" data-act="test-finish"'+(sel==null?' disabled':'')+'>Завершить тест</button>')+'</div>'+
+  '</section>';
+}
+var SURVEY_Q = [['clarity','Насколько понятным был материал дня?'],['trainer','Как вы оцениваете работу тренера?'],['pace','Подходил ли темп обучения?']];
+function surveyPanel(sv){
+  var it = itemById(sv.itemId); if(!it) return '';
+  if(isDone(it)) return '<section class="card" style="flex:999 1 440px;min-width:0"><h2>Спасибо!</h2><p style="margin:0" class="muted">Вы уже заполнили этот опрос. Ответы анонимны — тренер видит только общую картину.</p></section>';
+  return '<section class="card" style="flex:999 1 440px;min-width:0"><span class="lbl">Анонимный опрос · день '+(it.dayIdx+1)+'</span><h2>'+esc(it.title)+'</h2>'+
+    '<form data-form="survey" class="stack" style="gap:18px">'+
+    SURVEY_Q.map(function(q){ var v = S.form['sv-'+q[0]]; return '<fieldset style="border:0;margin:0;padding:0" class="stack"><legend style="font-weight:600;margin-bottom:8px">'+q[1]+'</legend><div class="rating">'+[1,2,3,4,5].map(function(n){ return '<label class="'+(String(v)===String(n)?'sel':'')+'"><input type="radio" name="'+q[0]+'" data-act="rate" data-q="'+q[0]+'" data-n="'+n+'"'+(String(v)===String(n)?' checked':'')+'>'+n+'</label>'; }).join('')+'</div></fieldset>'; }).join('')+
+    '<label class="field">Что улучшить? (необязательно)<textarea id="sv-comment" data-keep>'+esc(f('sv-comment'))+'</textarea></label>'+
+    '<button class="btn primary" type="submit" style="align-self:flex-start">Отправить</button></form></section>';
+}
+
+function slideHtml(s, n, total){
+  if(s && s.image) return '<section class="slide img" aria-label="Слайд '+n+' из '+total+'"><img src="'+esc(assetUrl(s.image))+'" alt="'+esc(s.title||('Слайд '+n))+'"><span class="n num badge">'+n+' / '+total+'</span></section>';
+  s = s || {};
+  return '<section class="slide" aria-label="Слайд '+n+' из '+total+'"><div class="row between"><span class="k">'+esc(s.kicker||'')+'</span><span class="n num">'+n+' / '+total+'</span></div><h2>'+esc(s.title||'')+'</h2><ul>'+(s.points||[]).map(function(p){ return '<li>'+esc(p)+'</li>'; }).join('')+'</ul></section>';
+}
+function thumbImg(sl){ return sl && sl.image ? '<img class="timg" src="'+esc(assetUrl(sl.image))+'" alt="" loading="lazy">' : ''; }
+function presDeckId(){
+  var m = me(); var lv = liveOf(m.groupId);
+  if(S.ui.freeDeck && deckOk(S.ui.freeDeck)) return S.ui.freeDeck;
+  if(lv.active && deckOk(lv.deck)) return lv.deck;
+  var av = Object.keys(decksMap()).filter(deckOk);
+  return av[av.length-1] || null;
+}
+function curSlide(){
+  var m = me(); var lv = liveOf(m.groupId); var deckId = presDeckId();
+  var liveMode = lv.active && deckId === lv.deck;
+  if(liveMode && lv.sync && !S.ui.unsynced) return lv.slide||1;
+  return S.ui.slide||1;
+}
+function vPres(){
+  var m = me(); var lv = liveOf(m.groupId);
+  var deckId = presDeckId(); var dk = deck(deckId);
+  if(!dk) return head(tabTitle('pres'),'')+'<div class="empty"><h2>Презентация пока не открыта</h2><p style="margin:0">Когда тренер начнёт показ, слайды появятся здесь, и вы сможете смотреть их со своего компьютера.</p></div>';
+  var liveMode = lv.active && deckId === lv.deck;
+  var total = dk.slides.length;
+  var limit = openedSlides(deckId, m.groupId);
+  var view = Math.max(1, Math.min(curSlide(), Math.max(1, limit)));
+  var avail = Object.keys(decksMap()).filter(deckOk);
+  var deckPick = avail.length > 1 ? '<label class="field" style="min-width:240px">Презентация<select id="deck-pick" data-act-change="deck-pick">'+avail.map(function(id){ return '<option value="'+esc(id)+'"'+(id===deckId?' selected':'')+'>'+esc(deck(id).title)+'</option>'; }).join('')+'</select></label>' : '';
+  var status = liveMode ? '<span class="chip warn" style="padding:8px 12px"><span class="pulse" aria-hidden="true"></span>Тренер на слайде '+(lv.slide||1)+'</span>' + (view !== (lv.slide||1) ? ' <button class="btn outline sm" type="button" data-act="pres-follow">К слайду тренера</button>' : '') : '<span class="chip">Самостоятельный просмотр</span>';
+  var hd = head(tabTitle('pres'), esc(dk.title), '<div class="row" style="align-items:flex-end">'+deckPick+status+'</div>');
+  if(limit < 1) return hd + '<section class="slide locked" aria-label="Слайды закрыты"><h2 style="font-size:24px">Слайды откроются во время показа</h2><p style="margin:0">Тренер открывает слайды по одному. Как только он начнёт, они появятся здесь.</p></section>';
+  var s = dk.slides[view-1];
+  var key = deckId+'_'+view;
+  var note = S.form['note-'+key] != null ? S.form['note-'+key] : ((P().notes && P().notes[key]) || '');
+  return hd +
+    slideHtml(s, view, total)+
+    '<div class="row between"><div class="row"><button class="btn" type="button" data-act="slide-prev"'+(view<=1?' disabled':'')+'>Назад</button><button class="btn primary" type="button" data-act="slide-next"'+(view>=limit?' disabled':'')+'>Вперёд</button></div><span class="small muted num">Открыто '+limit+' из '+total+(limit<total?' — следующие откроет тренер':'')+'</span></div>'+
+    '<div class="thumbs" role="list">'+dk.slides.map(function(sl,i){ var n=i+1; var o = n<=limit; var cls = 'thumb'+(n===view?' sel':'')+(liveMode && n===(lv.slide||1) && n!==view?' live':'')+(o?'':' locked');
+      return o ? '<button role="listitem" type="button" class="'+cls+'" data-act="slide-go" data-n="'+n+'"'+(n===view?' aria-current="true"':'')+'>'+thumbImg(sl)+'<small>Слайд '+n+(liveMode&&n===(lv.slide||1)?' · тренер':'')+'</small>'+(sl.title?'<span>'+esc(sl.title)+'</span>':'')+'</button>'
+               : '<div role="listitem" class="'+cls+'"><small>Слайд '+n+'</small><span>Закрыт</span></div>'; }).join('')+'</div>'+
+    '<label class="field">Мои заметки к слайду '+view+'<textarea id="note-'+esc(key)+'" data-note="'+esc(key)+'" placeholder="Запишите, что важно запомнить. Заметки сохраняются в «Моём прогрессе».">'+esc(note)+'</textarea></label>';
+}
+
+function vKb(){
+  var kbd = S.content.knowledge;
+  if(!kbd) return head(tabTitle('kb'),'')+noContent();
+  var cat = S.ui.kbCat || 'all'; var q = String(f('kb-q')).trim().toLowerCase();
+  var arts = (kbd.articles||[]).filter(function(a){ return (cat==='all'||a.cat===cat) && (!q || (a.title+' '+(a.summary||'')+' '+(a.body||[]).join(' ')).toLowerCase().indexOf(q)>=0); });
+  var counts = {}; (kbd.articles||[]).forEach(function(a){ counts[a.cat]=(counts[a.cat]||0)+1; });
+  var ch = kbd.cheat;
+  var cheat = (cat==='all'&&!q&&ch&&ch.title) ? '<section class="cheat" aria-labelledby="h-cheat"><div class="row between"><h2 id="h-cheat">'+esc(ch.title)+'</h2>'+(ch.article&&article(ch.article)?'<button class="linkbtn" style="color:var(--amber)" data-act="article" data-id="'+esc(ch.article)+'">Открыть полностью</button>':'')+'</div><div class="grid" style="--min:200px">'+(ch.cells||[]).map(function(c){ return '<div class="cell"><span class="lbl">'+esc(c[0])+'</span><span style="font-size:15px;line-height:1.45">'+esc(c[1])+'</span></div>'; }).join('')+'</div>'+(ch.note?'<span class="small" style="color:#A9B6B0">'+esc(ch.note)+'</span>':'')+'</section>' : '';
+  return head(tabTitle('kb'),'Регламенты, скрипты и инструкции — доступны и после стажировки')+
+    '<form role="search" data-form="kb" class="row" style="flex-wrap:nowrap"><label style="flex:1;min-width:0"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Поиск по базе знаний</span><input id="kb-q" data-keep data-live="kb" class="input" type="search" placeholder="Поиск: заморозка, ЦД, «нет денег»…" value="'+esc(f('kb-q'))+'"></label></form>'+
+    '<div class="kb"><aside class="card" aria-label="Разделы">'+
+      '<button type="button" class="cat'+(cat==='all'?' on':'')+'" data-act="kb-cat" data-c="all"><span>Все материалы</span><span class="small num">'+(kbd.articles||[]).length+'</span></button>'+
+      (kbd.cats||[]).map(function(c){ return '<button type="button" class="cat'+(cat===c.id?' on':'')+'" data-act="kb-cat" data-c="'+esc(c.id)+'"><span>'+esc(c.title)+'</span><span class="small muted num">'+(counts[c.id]||0)+'</span></button>'; }).join('')+
+    '</aside><div style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:20px">'+cheat+
+    '<section class="card" style="padding-block:8px"><div class="list">'+(arts.length? arts.map(function(a){ var c=(kbd.cats||[]).filter(function(x){return x.id===a.cat;})[0];
+      return '<button type="button" class="li" style="background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;cursor:pointer;width:100%;color:var(--fg)" data-act="article" data-id="'+esc(a.id)+'"><span class="type lbl">'+esc(c?(c.short||c.title):'')+'</span><span class="ttl"><b style="font-weight:600">'+esc(a.title)+'</b><span class="small muted">'+esc(a.summary||'')+'</span></span><span class="small muted">'+esc(a.read||'')+'</span></button>'; }).join('') : '<p class="muted" style="padding:16px 0;margin:0">Ничего не найдено. Попробуйте другое слово.</p>')+'</div></section></div></div>';
+}
+
+function vOrg(){
+  var ps = people(); if(!ps.length) return head(tabTitle('org'),'')+noContent();
+  var root = ps.filter(function(p){ return !p.parent; })[0];
+  var kids = root ? ps.filter(function(p){ return p.parent===root.id; }) : [];
+  var n = kids.length || 1;
+  var tree = root ? '<section class="card tree" aria-label="Оргсхема"><div class="tree-in">'+
+    '<div class="node root"><span class="lbl">'+esc(root.role)+'</span><b style="font-size:17px">'+esc(root.name)+'</b></div>'+
+    (kids.length ? '<div class="vline" aria-hidden="true"></div><div class="hline" aria-hidden="true" style="margin-left:'+(50/n)+'%;width:'+(100-100/n)+'%"></div><div class="kids" style="grid-template-columns:repeat('+n+',minmax(0,1fr))">'+kids.map(function(k){
+      var sub = ps.filter(function(p){ return p.parent===k.id; });
+      var mine = k.kind==='trainer';
+      return '<div class="kid"><div class="vline" aria-hidden="true"></div><div class="node'+(mine?' mine':'')+'" style="width:100%"><span class="lbl">'+esc(k.area||'')+'</span><b>'+esc(k.name)+'</b><span class="small muted">'+esc(k.role)+(mine?' · ваш тренер':'')+'</span></div>'+
+        sub.map(function(s2){ return '<div class="vline" aria-hidden="true" style="height:16px"></div><div class="node" style="width:100%"><b>'+esc(s2.name)+'</b><span class="small muted">'+esc(s2.role)+'</span></div>'; }).join('')+'</div>';
+    }).join('')+'</div>' : '')+
+  '</div></section>' : '';
+  return head(tabTitle('org'),'Кто за что отвечает и к кому идти с вопросом')+tree+
+    '<section aria-labelledby="h-c" class="stack" style="gap:16px"><h2 id="h-c">К кому обращаться</h2><div class="grid" style="--min:250px">'+ps.filter(function(p){ return p.help; }).map(function(p){
+      return '<article class="card tight"><div class="row" style="flex-wrap:nowrap"><div class="ava'+(p.kind==='mentor'?' amber':(p.kind==='head'?' gray':''))+'">'+esc(initials(p.name))+'</div><div style="min-width:0"><b style="display:block">'+esc(p.name)+'</b><span class="small muted">'+esc(p.role)+'</span></div></div><p style="margin:0" class="small">'+esc(p.help)+'</p>'+(p.contact?'<div class="row" data-copybox style="flex-wrap:nowrap"><code style="font-size:14px;user-select:all;overflow:hidden;text-overflow:ellipsis">'+esc(p.contact)+'</code><button class="btn sm" type="button" data-act="copy" data-text="'+esc(p.contact)+'">Копировать</button></div>':'')+'</article>';
+    }).join('')+'</div></section>';
+}
+
+function internStats(iid){
+  var items = allItems(); var done = items.filter(function(i){ return isDone(i, iid); }).length;
+  var tests = items.filter(function(i){ return i.type==='test' && i.test; });
+  var rs = tests.map(function(i){ return P(iid).tests && P(iid).tests[i.test]; }).filter(Boolean);
+  var avg = rs.length ? Math.round(rs.reduce(function(a,r){ return a+r.best; },0)/rs.length) : null;
+  var sims = items.filter(function(i){ return i.type==='sim'; });
+  var finalIt = tests.filter(function(i){ return i.test==='tf'; })[0] || tests[tests.length-1];
+  return {pct: items.length?Math.round(done/items.length*100):0, done:done, total:items.length, avg:avg, testsDone:rs.length, testsTotal:tests.length, simsDone: sims.filter(function(i){ return isDone(i, iid); }).length, simsTotal: sims.length, final: finalIt ? (P(iid).tests && P(iid).tests[finalIt.test]) : null};
+}
+function vProgress(){
+  if(!days().length) return head(tabTitle('progress'),'')+noContent();
+  var st = internStats(S.iid);
+  var fb = ((S.feedback[S.iid] && S.feedback[S.iid].entries) || []).slice().sort(function(a,b){ return b.at-a.at; });
+  var notes = P().notes || {}; var noteKeys = Object.keys(notes).filter(function(k){ return notes[k] && String(notes[k]).trim(); });
+  var allDone = days().every(function(d){ return dayState(d)==='done'; });
+  return head(tabTitle('progress'),'Вся стажировка в одном месте','<span class="chip '+(allDone?'ok':'warn')+'" style="padding:8px 14px">'+(allDone?'Стажировка пройдена':'Стажировка идёт')+'</span>')+
+    '<div class="grid" style="--min:220px">'+
+      '<div class="card tight stat"><span class="small muted">Программа пройдена</span><span class="v num">'+st.pct+'%</span><div class="meter"><i style="width:'+st.pct+'%"></i></div><span class="small muted num">'+st.done+' из '+st.total+' тем</span></div>'+
+      '<div class="card tight stat"><span class="small muted">Средний балл тестов</span><span class="v num" style="color:var(--accent-ink)">'+(st.avg==null?'—':st.avg+'%')+'</span><span class="small muted">'+st.testsDone+' из '+st.testsTotal+' тестов</span></div>'+
+      '<div class="card tight stat"><span class="small muted">Тренажёры</span><span class="v num">'+st.simsDone+' / '+st.simsTotal+'</span><span class="small muted">пройдено</span></div>'+
+      '<div class="card tight stat"><span class="small muted">Финальный тест</span><span class="v num">'+(st.final?st.final.best+'%':'—')+'</span><span class="small muted">'+(st.final?(st.final.passed?'сдан':'не сдан'):'ещё не проходили')+'</span></div>'+
+    '</div>'+
+    '<section class="card" aria-labelledby="h-days"><h2 id="h-days">По дням</h2><div class="table-wrap"><table><thead><tr><th>День</th><th>Тема</th><th>Пройдено</th><th>Тест</th><th>Статус</th></tr></thead><tbody>'+
+      days().map(function(d,i){ var s=dayState(d); var dn=(d.items||[]).filter(function(x){return isDone(x);}).length; var t=(d.items||[]).filter(function(x){return x.type==='test'&&x.test;})[0]; var r=t&&P().tests&&P().tests[t.test];
+        return '<tr'+(s==='locked'?' style="color:var(--faint)"':'')+'><td><b>'+(i+1)+'</b></td><td>'+esc(d.title)+'</td><td class="num">'+dn+' / '+(d.items||[]).length+'</td><td class="num">'+(r?'<b style="color:'+(r.passed?'var(--accent-ink)':'var(--danger)')+'">'+r.best+'%</b>':'—')+'</td><td>'+(s==='done'?'<span class="chip ok">Пройден</span>':(s==='cur'?'<span class="chip warn">Идёт</span>':'Закрыт'))+'</td></tr>'; }).join('')+
+    '</tbody></table></div></section>'+
+    '<div class="cols"><section class="card wide" aria-labelledby="h-fb2"><h2 id="h-fb2">Обратная связь от тренера</h2>'+(fb.length? fb.map(function(e){ return '<div class="stack" style="gap:4px;padding-top:12px;border-top:1px solid var(--line2)"><span class="small muted">'+fmtTime(e.at)+'</span><p style="margin:0;line-height:1.55">'+esc(e.text)+'</p></div>'; }).join('') : '<p class="muted" style="margin:0">Тренер ещё не оставлял комментариев.</p>')+'</section>'+
+    '<section class="card narrow" aria-labelledby="h-notes" style="display:flex"><h2 id="h-notes">Мои заметки</h2>'+(noteKeys.length? noteKeys.map(function(k){ var parts=k.split('_'); var dk=deck(parts[0]); return '<div class="stack" style="gap:4px;padding-top:10px;border-top:1px solid var(--line2)"><span class="small muted">'+esc(dk?dk.title:'')+' · слайд '+esc(parts[1])+'</span><p style="margin:0;white-space:pre-line">'+esc(notes[k])+'</p></div>'; }).join('') : '<p class="muted" style="margin:0">Заметки к слайдам появятся здесь.</p>')+'</section></div>';
+}
+
+/* ---------- trainer: groups / access ---------- */
+function ngDefName(){ return 'Группа от '+new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}); }
+function ngDefStart(){ return new Date().toISOString().slice(0,10); }
+function groupList(){ return Object.keys(S.groups).map(function(k){ return Object.assign({id:k}, S.groups[k]); }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); }); }
+function curGid(){ var gl = groupList(); if(S.ui.gid && S.groups[S.ui.gid]) return S.ui.gid; return gl[0] ? gl[0].id : null; }
+function internsOf(gid){ return Object.keys(S.interns).map(function(k){ return Object.assign({id:k}, S.interns[k]); }).filter(function(i){ return i.groupId===gid; }).sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'ru'); }); }
+function groupPicker(withNew){
+  var gl = groupList(); var gid = curGid();
+  return '<div class="row" style="align-items:flex-end">'+(gl.length?'<label class="field">Группа<select id="g-pick" data-act-change="g-pick" style="min-width:240px">'+gl.map(function(g){ return '<option value="'+esc(g.id)+'"'+(g.id===gid?' selected':'')+'>'+esc(g.name)+' · '+internsOf(g.id).length+' стаж.</option>'; }).join('')+'</select></label>':'')+
+    (withNew?'<button class="btn" type="button" data-act="toggle-newgroup">'+(S.ui.newGroup?'Отмена':'Новая группа')+'</button>':'')+'</div>';
+}
+function tAccess(){ var h = tAccessMain(); var i = h.indexOf('</header>'); return i<0 ? requestsBlock()+h : h.slice(0, i+9)+requestsBlock()+h.slice(i+9); }
+function tAccessMain(){
+  if(!days().length) return head('Стажёры и доступы','')+'<div class="empty"><b>План стажировки пуст</b><span>Заполните его в разделе «Настройка».</span><button class="btn primary" data-act="nav" data-v="t-settings">Открыть настройку</button></div>';
+  var gid = curGid(); var g = gid ? S.groups[gid] : null;
+  var newGroup = (S.ui.newGroup || !gid) ? '<form data-form="newgroup" class="card" aria-labelledby="h-ng"><h2 id="h-ng">'+(gid?'Новая группа':'Создайте первую группу стажёров')+'</h2><div class="row" style="align-items:flex-end"><label class="field" style="flex:1 1 240px">Название<input id="ng-name" data-keep value="'+esc(f('ng-name',ngDefName()))+'"></label><label class="field" style="flex:1 1 180px">Дата старта<input id="ng-start" data-keep type="date" value="'+esc(f('ng-start', ngDefStart()))+'"></label><button class="btn primary" type="submit">Создать группу</button></div></form>' : '';
+  if(!g) return head('Стажёры и доступы','Создание логинов и пошаговое открытие материалов')+newGroup;
+  var list = internsOf(gid);
+  var created = S.ui.created ? (S.ui.confirmWarn?'<p class="err" role="alert">В Supabase включено подтверждение почты — стажёр не сможет войти. Отключите «Confirm email» (Authentication → Sign In / Providers → Email).</p>':'')+'<div class="creds" data-copybox role="status"><b>Доступ для «'+esc(S.ui.created.name)+'» '+(S.ui.created.reset?'обновлён':'создан')+'</b><pre style="margin:0;font:600 15px ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;user-select:all">Логин: '+esc(S.ui.created.login)+'\nПароль: '+esc(S.ui.created.pw)+'</pre><span class="small">Пароль показывается один раз. Передайте его стажёру.</span><div class="row"><button class="btn sm" type="button" data-act="copy" data-text="'+esc('Логин: '+S.ui.created.login+'\nПароль: '+S.ui.created.pw)+'">Копировать</button><button class="btn sm" type="button" data-act="creds-close">Скрыть</button></div></div>' : '';
+  var table = list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Логин</th><th>Прогресс</th><th>Был в ЛК</th><th><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Действия</span></th></tr></thead><tbody>'+list.map(function(i){
+    var st = internStats(i.id); var seen = P(i.id).seen; var on = seen && Date.now()-seen < 120000;
+    var del = S.ui.confirmDel===i.id; var sus = !!i.suspended;
+    return '<tr'+(sus?' style="opacity:.6"':'')+'><td><b>'+esc(i.name)+'</b>'+(sus?' <span class="chip bad">приостановлен</span>':'')+'</td><td class="muted">'+esc(i.login)+'</td><td class="num">'+st.pct+'%'+(st.avg!=null?' · тесты '+st.avg+'%':'')+'</td><td style="'+(on?'color:var(--accent-ink);font-weight:600':(seen?'':'color:var(--danger);font-weight:600'))+'">'+ago(seen)+'</td><td style="text-align:right;white-space:nowrap">'+
+      (del ? '<span class="small" style="margin-right:6px">Удалить доступ?</span><button class="btn sm danger" type="button" data-act="intern-del-yes" data-id="'+i.id+'">Удалить</button> <button class="btn sm" type="button" data-act="intern-del-no">Нет</button>'
+           : '<button class="btn sm" type="button" data-act="intern-suspend" data-id="'+i.id+'" data-on="'+(sus?'0':'1')+'">'+(sus?'Возобновить':'Приостановить')+'</button> <button class="btn sm" type="button" data-act="intern-pw" data-id="'+i.id+'">Новый пароль</button> <button class="btn sm" type="button" data-act="intern-del" data-id="'+i.id+'" aria-label="Удалить '+esc(i.name)+'">Удалить</button>')+'</td></tr>';
+  }).join('')+'</tbody></table></div>' : '<div class="empty"><b>В группе пока нет стажёров</b><span>Добавьте первого стажёра в форме справа — система создаст логин и пароль.</span></div>';
+  var nameV = f('ni-name'); var loginV = S.form['ni-login'] != null ? S.form['ni-login'] : makeLogin(nameV);
+  var form = '<form data-form="newintern" class="card narrow" style="display:flex" aria-labelledby="h-ni"><h2 id="h-ni">Новый стажёр</h2>'+
+    '<label class="field">ФИО<input id="ni-name" data-keep data-live="ni" placeholder="Фамилия Имя" value="'+esc(nameV)+'" autocomplete="off"></label>'+
+    '<label class="field">Логин<input id="ni-login" data-keep placeholder="создастся из ФИО" value="'+esc(loginV)+'" autocomplete="off"></label>'+
+    '<label class="field">Пароль<span class="row" style="flex-wrap:nowrap"><input id="ni-pw" data-keep value="'+esc(f('ni-pw', S.ui.genPw || (S.ui.genPw = genPw())))+'" autocomplete="off" style="flex:1;min-width:0"><button class="btn" type="button" data-act="ni-gen">Новый</button></span></label>'+
+    (S.ui.niErr?'<p class="err" style="margin:0">'+esc(S.ui.niErr)+'</p>':'')+
+    '<button class="btn primary" type="submit">Создать доступ</button><span class="small muted">Стажёр получит доступы группы «'+esc(g.name)+'».</span></form>';
+
+  var scope = S.ui.scope && S.interns[S.ui.scope] && S.interns[S.ui.scope].groupId===gid ? S.ui.scope : 'group';
+  var openCount=0, total=0;
+  var grid = days().map(function(d, di){
+    var allOn = true, anyOn = false;
+    var rows = (d.items||[]).map(function(it){
+      total++;
+      var gOn = !!(g.access && g.access[it.id]);
+      var ov = scope!=='group' ? (S.interns[scope].overrides||{})[it.id] : undefined;
+      var on = (ov===true||ov===false) ? ov : gOn;
+      if(on){ openCount++; anyOn=true; } else allOn=false;
+      return '<div class="accessrow"><span style="min-width:0"><span class="lbl" style="font-size:10px;display:block">'+esc(TYPE[it.type]||'')+'</span>'+esc(it.title)+((ov===true||ov===false)?' <span class="ov">· индивидуально</span>':'')+'</span>'+
+        '<span class="row" style="gap:6px;flex-wrap:nowrap">'+((ov===true||ov===false)?'<button class="linkbtn small" type="button" data-act="ov-reset" data-id="'+esc(it.id)+'" aria-label="Вернуть настройку группы">↺</button>':'')+
+        '<button type="button" class="toggle'+(on?' on':'')+'" data-act="acc" data-id="'+esc(it.id)+'" aria-pressed="'+on+'" aria-label="'+(on?'Закрыть':'Открыть')+': '+esc(it.title)+'"><i></i></button></span></div>';
+    }).join('');
+    return '<div class="accessday'+(allOn?' all':(anyOn?' some':''))+'"><span class="lbl">День '+(di+1)+'</span><b style="min-height:40px">'+esc(d.title)+'</b><button class="btn outline sm" type="button" data-act="acc-day" data-d="'+esc(d.id)+'" data-on="'+(allOn?'0':'1')+'" style="margin:4px 0 6px">'+(allOn?'Закрыть день':'Открыть весь день')+'</button>'+rows+'</div>';
+  }).join('');
+  var scopeSel = '<div class="row"><div class="seg" role="group" aria-label="Кому открывать"><button type="button" class="'+(scope==='group'?'on':'')+'" data-act="scope" data-s="group" aria-pressed="'+(scope==='group')+'">Всей группе</button><button type="button" class="'+(scope!=='group'?'on':'')+'" data-act="scope" data-s="'+(list[0]?list[0].id:'group')+'" aria-pressed="'+(scope!=='group')+'"'+(list.length?'':' disabled')+'>Одному стажёру</button></div>'+
+    (scope!=='group' ? '<select id="scope-pick" class="input" style="width:auto;min-width:200px" data-act-change="scope-pick" aria-label="Стажёр">'+list.map(function(i){ return '<option value="'+i.id+'"'+(i.id===scope?' selected':'')+'>'+esc(i.name)+'</option>'; }).join('')+'</select>' : '')+'</div>';
+  return head('Стажёры и доступы','Создание логинов и пошаговое открытие материалов', groupPicker(true))+newGroup+created+
+    '<div class="cols"><section class="card wide" aria-labelledby="h-il"><h2 id="h-il">Стажёры группы «'+esc(g.name)+'»</h2>'+table+'</section>'+form+'</div>'+
+    '<section class="card" aria-labelledby="h-acc"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-acc">Доступ к материалам</h2><span class="small muted num">'+(scope==='group'?'Группа':esc(S.interns[scope].name))+': открыто '+openCount+' из '+total+'. Открытая тема сразу появляется у стажёров.</span></div>'+scopeSel+'</div>'+
+    '<div class="grid" style="--min:230px;gap:14px">'+grid+'</div></section>';
+}
+
+/* ---------- trainer: presentation ---------- */
+function tPres(){
+  var gid = curGid(); var g = gid ? S.groups[gid] : null;
+  if(!g) return head('Ведение презентации','')+'<div class="empty"><b>Сначала создайте группу</b><button class="btn primary" data-act="nav" data-v="t-access">Перейти к группам</button></div>';
+  var lv = liveOf(gid);
+  var ids = Object.keys(decksMap());
+  if(!ids.length) return head('Ведение презентации','')+'<div class="empty"><b>Презентаций пока нет</b><button class="btn primary" data-act="st-go" data-s="decks">Создать в настройке</button></div>';
+  var deckId = lv.active && deck(lv.deck) ? lv.deck : (S.ui.tdeck && deck(S.ui.tdeck) ? S.ui.tdeck : ids[0]);
+  var dk = deck(deckId); var total = dk.slides.length;
+  var opened = openedSlides(deckId, gid);
+  var cur = lv.active ? (lv.slide||1) : (S.ui.tslide || 1);
+  cur = Math.max(1, Math.min(cur, total));
+  var s = dk.slides[cur-1];
+  var pick = '<label class="field" style="min-width:240px">Презентация<select id="tdeck" data-act-change="tdeck"'+(lv.active?' disabled':'')+'>'+ids.map(function(id){ return '<option value="'+esc(id)+'"'+(id===deckId?' selected':'')+'>'+esc(deck(id).title)+'</option>'; }).join('')+'</select></label>';
+  var list = internsOf(gid);
+  var online = list.map(function(i){ var pr = P(i.id).pres; var on = pr && pr.deck===deckId && Date.now()-pr.at < 180000; return {name:i.name, on:on, slide: on?pr.slide:null}; });
+  var onCount = online.filter(function(o){ return o.on; }).length;
+  var controls = lv.active ?
+    '<div class="row"><button class="btn" type="button" data-act="tp-prev"'+(cur<=1?' disabled':'')+'>Назад</button><button class="btn amber" style="flex:1 1 260px" type="button" data-act="tp-next"'+(cur>=total?' disabled':'')+'>'+(cur<opened?'Следующий слайд':'Открыть следующий слайд группе')+'</button><span class="small muted num">Открыто '+opened+' из '+total+'</span></div>'+
+    '<div class="card tight" style="flex-direction:row;align-items:center;justify-content:space-between"><div class="stack" style="gap:2px"><b>Стажёры следуют за мной</b><span class="small muted">'+(lv.sync?'У стажёров на экране тот же слайд':'Стажёры листают открытые слайды сами')+'</span></div><button type="button" class="toggle'+(lv.sync?' on':'')+'" data-act="tp-sync" aria-pressed="'+!!lv.sync+'" aria-label="Синхронизация слайдов"><i></i></button></div>'
+    : '<div class="card tight" style="gap:12px"><b>Показ не идёт · стажёрам открыто '+opened+' из '+total+' слайдов</b><span class="small muted">При старте у стажёров откроется первый слайд, остальные вы открываете по одному. Можно открыть все слайды сразу — например, для повторения.</span><div class="row"><button class="btn amber" type="button" data-act="tp-start">Начать показ для группы</button><button class="btn" type="button" data-act="tp-openall"'+(opened>=total?' disabled':'')+'>Открыть все слайды</button><button class="btn" type="button" data-act="tp-closeall"'+(opened<1?' disabled':'')+'>Закрыть все</button></div></div>';
+  return head('Ведение презентации', esc(g.name)+' · '+esc(dk.title), '<div class="row" style="align-items:flex-end">'+groupPicker(false)+pick+(lv.active?'<button class="btn danger" type="button" data-act="tp-stop">Завершить показ</button>':'')+'</div>')+
+    '<div class="cols"><div class="wide stack" style="gap:14px">'+
+      slideHtml(s, cur, total)+controls+
+    '</div><div class="narrow">'+
+      '<section class="card" style="background:var(--amber-soft);border-color:transparent" aria-labelledby="h-tn"><h2 id="h-tn" style="font-size:16px">Заметки тренера · видите только вы</h2><p style="margin:0;line-height:1.55;white-space:pre-line">'+esc(s.note||'Заметок к этому слайду нет. Добавьте их в «Настройка → Презентации».')+'</p></section>'+
+      '<section class="card" aria-labelledby="h-on"><div class="row between"><h2 id="h-on" style="font-size:16px">В презентации</h2><span class="small muted num">'+onCount+' из '+list.length+' онлайн</span></div>'+(list.length? online.map(function(o){ return '<div class="row between" style="min-height:34px;flex-wrap:nowrap"><span class="row" style="gap:10px;flex-wrap:nowrap"><span aria-hidden="true" style="width:8px;height:8px;border-radius:50%;background:'+(o.on?'var(--accent)':'var(--line)')+'"></span>'+esc(o.name)+'</span><span class="small num" style="color:'+(o.on&&o.slide!==cur?'var(--amber-ink)':'var(--muted)')+'">'+(o.on?'слайд '+o.slide:'не в сети')+'</span></div>'; }).join('') : '<p class="muted" style="margin:0">В группе нет стажёров.</p>')+'</section>'+
+    '</div></div>'+
+    '<section aria-labelledby="h-all" class="stack"><h2 id="h-all">Все слайды'+(lv.active?' · нажмите, чтобы перейти и открыть группе':' · нажмите, чтобы посмотреть')+'</h2><div class="thumbs">'+dk.slides.map(function(sl,i){ var n=i+1; var o=n<=opened;
+      return '<button type="button" class="thumb'+(n===cur?' live':'')+(o?'':' locked')+'" style="cursor:pointer" data-act="tp-go" data-n="'+n+'">'+thumbImg(sl)+'<small style="color:'+(n===cur?'var(--amber-ink)':(o?'var(--accent-ink)':'var(--faint)'))+'">'+n+' · '+(n===cur?(lv.active?'на экране':'просмотр'):(o?'открыт':'закрыт'))+'</small>'+(sl.title?'<span>'+esc(sl.title)+'</span>':'')+'</button>'; }).join('')+'</div></section>';
+}
+
+/* ---------- trainer: results ---------- */
+function tResults(){
+  var gid = curGid(); var g = gid ? S.groups[gid] : null;
+  if(!g) return head('Результаты','')+'<div class="empty"><b>Сначала создайте группу</b></div>';
+  var list = internsOf(gid);
+  var tests = allItems().filter(function(i){ return i.type==='test' && i.test; });
+  var sel = S.ui.rsel && S.interns[S.ui.rsel] ? S.ui.rsel : null;
+  var table = list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Пройдено</th>'+tests.map(function(t){ return '<th>Д'+(t.dayIdx+1)+'</th>'; }).join('')+'<th>Был в ЛК</th><th></th></tr></thead><tbody>'+list.map(function(i){
+    var st = internStats(i.id);
+    return '<tr><td><b>'+esc(i.name)+'</b></td><td class="num">'+st.pct+'%</td>'+tests.map(function(t){ var r = P(i.id).tests && P(i.id).tests[t.test]; return '<td class="num">'+(r?'<b style="color:'+(r.passed?'var(--accent-ink)':'var(--danger)')+'">'+r.best+'%</b><span class="small muted"> ×'+r.attempts+'</span>':'<span class="muted">—</span>')+'</td>'; }).join('')+'<td>'+ago(P(i.id).seen)+'</td><td style="text-align:right"><button class="btn sm'+(sel===i.id?' outline':'')+'" type="button" data-act="rsel" data-id="'+i.id+'">Подробнее</button></td></tr>';
+  }).join('')+'</tbody></table></div>' : '<p class="muted">В группе нет стажёров.</p>';
+  var detail = '';
+  if(sel){
+    var it = S.interns[sel]; var fb = ((S.feedback[sel]&&S.feedback[sel].entries)||[]).slice().sort(function(a,b){ return b.at-a.at; });
+    var notes = P(sel).notes||{}; var nk = Object.keys(notes).filter(function(k){ return notes[k]&&String(notes[k]).trim(); });
+    detail = '<div class="cols"><section class="card wide" aria-labelledby="h-det"><h2 id="h-det">'+esc(it.name)+': темы</h2>'+days().map(function(d,di){ return '<div class="stack" style="gap:6px;padding-top:10px;border-top:1px solid var(--line2)"><span class="lbl">День '+(di+1)+' · '+esc(d.title)+'</span><div class="row" style="gap:6px">'+(d.items||[]).map(function(x){ var dn=isDone(x, sel); var op=isOpen(x, sel); return '<span class="chip '+(dn?'ok':(op?'warn':''))+'" title="'+esc(x.title)+'">'+esc(x.title.length>28?x.title.slice(0,28)+'…':x.title)+'</span>'; }).join('')+'</div></div>'; }).join('')+
+      '<p class="hint">Зелёные — пройдены, жёлтые — открыты, серые — закрыты.</p>'+
+      (nk.length?'<h3 style="margin-top:8px">Заметки стажёра</h3>'+nk.map(function(k){ return '<p class="small" style="margin:0;white-space:pre-line"><b>'+esc(k.replace('_',' · слайд '))+':</b> '+esc(notes[k])+'</p>'; }).join(''):'')+
+    '</section><form class="card narrow" style="display:flex" data-form="feedback" aria-labelledby="h-fbf"><h2 id="h-fbf">Обратная связь</h2><label class="field">Комментарий для стажёра<textarea id="fb-text" data-keep placeholder="Что получилось, на что обратить внимание">'+esc(f('fb-text'))+'</textarea></label><button class="btn primary" type="submit">Отправить стажёру</button>'+
+      fb.map(function(e){ return '<div class="stack" style="gap:4px;padding-top:10px;border-top:1px solid var(--line2)"><span class="small muted">'+fmtTime(e.at)+'</span><p style="margin:0" class="small">'+esc(e.text)+'</p></div>'; }).join('')+'</form></div>';
+  }
+  var sv = S.surveys.filter(function(x){ return x.groupId===gid; });
+  var byDay = {}; sv.forEach(function(x){ (byDay[x.day]=byDay[x.day]||[]).push(x); });
+  var surveys = '<section class="card" aria-labelledby="h-sv"><h2 id="h-sv">Анонимные опросы</h2>'+(sv.length ? '<div class="table-wrap"><table><thead><tr><th>День</th><th>Ответов</th><th>Понятность</th><th>Тренер</th><th>Темп</th><th>Комментарии</th></tr></thead><tbody>'+days().filter(function(d){ return byDay[d.id]; }).map(function(d){ var arr=byDay[d.id];
+      return '<tr><td>'+esc(d.title)+'</td><td class="num">'+arr.length+'</td>'+SURVEY_Q.map(function(q){ var v=arr.map(function(a){ return a.ratings&&a.ratings[q[0]]; }).filter(Boolean); return '<td class="num"><b>'+(v.length?(v.reduce(function(a,b){return a+b;},0)/v.length).toFixed(1):'—')+'</b></td>'; }).join('')+'<td class="small">'+arr.map(function(a){ return a.comment; }).filter(Boolean).map(esc).join('<br>')+'</td></tr>'; }).join('')+'</tbody></table></div>' : '<p class="muted" style="margin:0">Ответов пока нет. Чтобы собрать отзывы, добавьте в план тему с типом «Опрос».</p>')+'</section>';
+  return head('Результаты', esc(g.name), groupPicker(false))+'<section class="card" aria-label="Результаты группы">'+table+'</section>'+detail+surveys;
+}
+
+/* ---------- trainer: settings (constructor) ---------- */
+var DRAFT_SRC = {program:'program', decks:'slides', kb:'knowledge', org:'org', settings:'settings', tests:'tests'};
+var DRAFT_DEF = {program:{days:[]}, decks:{decks:{}}, kb:{cats:[], articles:[], cheat:{title:'', cells:[], note:''}}, org:{people:[]}, settings:{brand:{name:'Старт', sub:'ЛК стажёра · взыскание'}, tabs:{}}, tests:{tests:{}}};
+function draft(k){
+  if(!S.draft[k]){
+    var d = clone(S.content[DRAFT_SRC[k]] || DRAFT_DEF[k]);
+    if(k==='kb'){ d.cats = d.cats||[]; d.articles = d.articles||[]; d.cheat = d.cheat||{title:'',cells:[],note:''}; d.cheat.cells = d.cheat.cells||[]; }
+    if(k==='settings'){ d.brand = d.brand||{}; d.tabs = d.tabs||{}; }
+    if(k==='program'){ d.days = d.days||[]; }
+    if(k==='decks'){ d.decks = d.decks||{}; }
+    if(k==='org'){ d.people = d.people||[]; }
+    if(k==='tests'){ d.tests = d.tests||{}; }
+    S.draft[k] = d;
+  }
+  return S.draft[k];
+}
+function getPath(o, p){ return p.split('.').reduce(function(a,k){ return a==null?a:a[k]; }, o); }
+function setPath(o, p, v){ var ks = p.split('.'); var last = ks.pop(); var t = ks.reduce(function(a,k){ if(a[k]==null) a[k] = /^\d+$/.test(k)?[]:{}; return a[k]; }, o); t[last] = v; }
+function markDirty(k){ S.dirty[k] = true; document.querySelectorAll('[data-dirtybar="'+k+'"]').forEach(function(el){ el.hidden = false; }); }
+function bind(k, p, extra){ return ' data-d="'+k+'" data-p="'+esc(p)+'"'+(extra||''); }
+function inp(id, k, p, ph, cls){ var v = getPath(draft(k), p); return '<input id="'+id+'" class="input '+(cls||'')+'"'+bind(k,p)+' value="'+esc(v==null?'':v)+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+' autocomplete="off">'; }
+function area(id, k, p, fmt, ph, rows){ var v = getPath(draft(k), p); var txt = v==null ? '' : (fmt==='lines' ? (v||[]).join('\n') : (fmt==='paras' ? (v||[]).join('\n\n') : (fmt==='cells' ? (v||[]).map(function(c){ return (c[0]||'')+' | '+(c[1]||''); }).join('\n') : v))); return '<textarea id="'+id+'" class="input" rows="'+(rows||3)+'"'+bind(k,p,fmt?' data-fmt="'+fmt+'"':'')+(ph?' placeholder="'+esc(ph)+'"':'')+'>'+esc(txt)+'</textarea>'; }
+function sel(id, k, p, opts, extraCls){ var v = getPath(draft(k), p); v = v==null?'':String(v); return '<select id="'+id+'" class="input '+(extraCls||'')+'"'+bind(k,p,' data-rerender="1"')+'>'+opts.map(function(o){ return '<option value="'+esc(o[0])+'"'+(String(o[0])===v?' selected':'')+'>'+esc(o[1])+'</option>'; }).join('')+'</select>'; }
+function saveBar(k, label){
+  return '<div class="savebar" data-dirtybar="'+k+'"'+(S.dirty[k]?'':' hidden')+'><span>Есть несохранённые изменения: '+label+'</span><span class="row"><button class="btn sm" type="button" data-act="draft-reset" data-k="'+k+'">Отменить</button><button class="btn sm primary" type="button" data-act="draft-save" data-k="'+k+'">Сохранить</button></span></div>';
+}
+var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['sims','Тренажёры'],['kb','База знаний'],['org','Структура'],['tabs','Вкладки и название']];
+function tSettings(){
+  var st = S.ui.st || 'plan';
+  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, org:stOrg, tabs:stTabs}[st] || stPlan)();
+  return head('Настройка','Конструктор кабинета: всё, что видит стажёр. Изменения появляются у стажёров сразу после сохранения.')+
+    '<div class="subnav" role="tablist" aria-label="Разделы настройки">'+ST_TABS.map(function(t){ var dk = {plan:'program',decks:'decks',tests:'tests',kb:'kb',org:'org',tabs:'settings'}[t[0]]; return '<button type="button" role="tab" aria-selected="'+(st===t[0])+'" class="'+(st===t[0]?'on':'')+'" data-act="st-go" data-s="'+t[0]+'">'+esc(t[1])+(dk&&S.dirty[dk]?' •':'')+'</button>'; }).join('')+'</div>'+body;
+}
+
+function stPlan(){
+  var d = draft('program'); var ds = d.days;
+  var di = Math.min(S.ui.sd || 0, Math.max(0, ds.length-1));
+  var dayTabs = '<div class="subnav" aria-label="Дни">'+ds.map(function(x,i){ return '<button type="button" class="'+(i===di?'on':'')+'" data-act="sd" data-i="'+i+'">День '+(i+1)+' · '+esc(x.title||'без названия')+'</button>'; }).join('')+'<button type="button" data-act="day-add">+ День</button></div>';
+  if(!ds.length) return saveBar('program','план')+dayTabs+'<div class="empty"><b>В плане пока нет дней</b><span>Нажмите «+ День», чтобы начать.</span></div>';
+  var day = ds[di]; var base = 'days.'+di;
+  var deckOpts = [['','— нет —']].concat(Object.keys(draft('decks').decks).map(function(id){ return [id, draft('decks').decks[id].title||id]; }));
+  var tdr = draft('tests').tests;
+  var testOpts = [['','— нет —']].concat(Object.keys(tdr).map(function(id){ return [id, tdr[id].title||'Тест без названия']; }));
+  var simOpts = [['','— нет —']].concat(Object.keys(S.sims).map(function(id){ return [id, (S.sims[id].title||id)+(S.sims[id].html?'':' (не загружен)')]; }));
+  var artOpts = [['','— нет —']].concat((draft('kb').articles||[]).map(function(a){ return [a.id, a.title]; }));
+  var typeOpts = TYPE_ORDER.map(function(t){ return [t, TYPE[t]]; });
+  var items = (day.items||[]).map(function(it, ii){
+    var p = base+'.items.'+ii; var open = !!S.ui.edOpen[it.id]; var conf = S.ui.confirm==='item:'+it.id;
+    var hasUrl = it.url != null;
+    return '<div class="ed'+(open?' open':'')+'">'+
+      '<div class="ed-row"><span class="n num">'+(ii+1)+'</span>'+
+        '<span class="t">'+inp('pi-'+it.id+'-t','program',p+'.title','Тема')+'</span>'+
+        '<span class="ty">'+sel('pi-'+it.id+'-ty','program',p+'.type',typeOpts)+'</span>'+
+        '<span class="m">'+inp('pi-'+it.id+'-m','program',p+'.material','Материал / ссылка (подпись)')+'</span>'+
+        '<span class="acts">'+
+          (conf ? '<button class="btn sm danger" type="button" data-act="item-del-yes" data-i="'+ii+'">Удалить</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>' :
+          '<button class="iconbtn" type="button" data-act="item-mv" data-i="'+ii+'" data-dir="-1" aria-label="Выше"'+(ii===0?' disabled':'')+'>↑</button>'+
+          '<button class="iconbtn" type="button" data-act="item-mv" data-i="'+ii+'" data-dir="1" aria-label="Ниже"'+(ii===(day.items.length-1)?' disabled':'')+'>↓</button>'+
+          '<button class="iconbtn'+(open?' on':'')+'" type="button" data-act="ed-open" data-id="'+esc(it.id)+'" aria-expanded="'+open+'" aria-label="Подробнее">⋯</button>'+
+          '<button class="iconbtn danger" type="button" data-act="confirm" data-c="item:'+esc(it.id)+'" aria-label="Удалить тему">✕</button>')+
+        '</span></div>'+
+      (open ? '<div class="ed-more">'+
+        '<label class="field wide">Ссылка на материал (откроется у стажёра в новой вкладке)<input id="pi-'+it.id+'-u" class="input"'+bind('program',p+'.url')+' value="'+esc(it.url||'')+'" placeholder="https://…"></label>'+
+        '<label class="field">Презентация'+sel('pi-'+it.id+'-dk','program',p+'.deck',deckOpts)+'</label>'+
+        '<label class="field">Слайд №<input id="pi-'+it.id+'-sl" class="input" type="number" min="1"'+bind('program',p+'.slide',' data-fmt="num"')+' value="'+esc(it.slide||'')+'"></label>'+
+        '<label class="field">Тест'+sel('pi-'+it.id+'-ts','program',p+'.test',testOpts)+'</label>'+
+        '<label class="field">Тренажёр'+sel('pi-'+it.id+'-sm','program',p+'.sim',simOpts)+'</label>'+
+        '<label class="field">Статья базы знаний'+sel('pi-'+it.id+'-ar','program',p+'.article',artOpts)+'</label>'+
+        '<label class="field wide">Описание для стажёра'+area('pi-'+it.id+'-ds','program',p+'.desc','', 'Что сделать, на что обратить внимание', 2)+'</label>'+
+        '<p class="hint wide">Что откроется у стажёра по кнопке «Открыть»: тренажёр → тест → слайд презентации → статья → карточка темы со ссылкой.'+(hasUrl&&!it.url?' Ссылка пока не указана.':'')+'</p>'+
+      '</div>' : '')+
+    '</div>';
+  }).join('');
+  var dconf = S.ui.confirm==='day:'+di;
+  return saveBar('program','план')+dayTabs+
+    '<section class="card" aria-label="День '+(di+1)+'"><div class="row" style="align-items:flex-end">'+
+      '<label class="field" style="flex:1 1 220px">Название дня'+inp('pd-'+di+'-t','program',base+'.title','Например, Продукт')+'</label>'+
+      '<label class="field" style="flex:3 1 320px">Подзаголовок'+inp('pd-'+di+'-s','program',base+'.subtitle','Коротко о чём день')+'</label>'+
+      '<span class="row" style="gap:4px"><button class="iconbtn" type="button" data-act="day-mv" data-dir="-1" aria-label="День раньше"'+(di===0?' disabled':'')+'>←</button><button class="iconbtn" type="button" data-act="day-mv" data-dir="1" aria-label="День позже"'+(di===ds.length-1?' disabled':'')+'>→</button>'+
+      (dconf ? '<button class="btn sm danger" type="button" data-act="day-del-yes">Удалить день</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>' : '<button class="btn sm danger" type="button" data-act="confirm" data-c="day:'+di+'">Удалить день</button>')+'</span>'+
+    '</div></section>'+
+    '<section class="stack" style="gap:8px" aria-label="Темы дня"><div class="row between"><h2>Темы дня · '+(day.items||[]).length+'</h2><button class="btn primary sm" type="button" data-act="item-add">+ Тема</button></div>'+items+
+    '<button class="btn" type="button" data-act="item-add" style="align-self:flex-start">+ Добавить тему</button></section>'+
+    '<p class="hint">Новые темы закрыты для групп, пока вы не откроете их в «Стажёры и доступы».</p>';
+}
+
+function curDeckDraftId(){ var dd = draft('decks').decks; var ids = Object.keys(dd); return S.ui.sdeck && dd[S.ui.sdeck] ? S.ui.sdeck : ids[0]; }
+function stDecks(){
+  var dd = draft('decks').decks; var ids = Object.keys(dd);
+  var cur = curDeckDraftId();
+  var tabs = '<div class="subnav" aria-label="Презентации">'+ids.map(function(id){ return '<button type="button" class="'+(id===cur?'on':'')+'" data-act="sdeck" data-id="'+esc(id)+'">'+esc(dd[id].title||'Без названия')+' · '+(dd[id].slides||[]).length+'</button>'; }).join('')+'<button type="button" data-act="deck-add">+ Презентация</button></div>';
+  var noAssets = !S.assets ? '<p class="err" style="margin:0">Загрузка картинок недоступна: кабинет не подключён к хранилищу.</p>' : '';
+  if(!cur) return saveBar('decks','презентации')+tabs+'<div class="empty"><b>Презентаций пока нет</b><span>Создайте презентацию и добавьте в неё скриншоты слайдов.</span><button class="btn primary" type="button" data-act="deck-add">+ Создать презентацию</button></div>';
+  var dk = dd[cur]; var base = 'decks.'+cur;
+  var dconf = S.ui.confirm==='deck:'+cur;
+  var up = S.ui.uploading;
+  var drop = '<div class="dropzone'+(S.ui.dragOver?' over':'')+'" data-drop="slides" role="group" aria-label="Добавить скриншоты">'+
+    (up ? '<b>Загружаю '+up.done+' из '+up.total+'…</b><span class="small muted">Не закрывайте страницу</span>' :
+    '<b>Перетащите скриншоты сюда или нажмите Ctrl+V</b><span class="small muted">Каждый скриншот — отдельный слайд, добавится в конец. PNG или JPG, можно сразу несколько: порядок — по имени файла.</span>'+
+    '<label class="btn primary file" style="margin-top:4px">Выбрать файлы<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple data-act-change="slides-files" aria-label="Скриншоты слайдов"></label>')+
+  '</div>';
+  var slides = (dk.slides||[]).map(function(s, i){
+    var p = base+'.slides.'+i; var conf = S.ui.confirm==='slide:'+cur+':'+i;
+    var last = i===dk.slides.length-1;
+    return '<div class="slidecard">'+
+      (s.image ? '<div class="shot"><img src="'+esc(assetUrl(s.image))+'" alt="Слайд '+(i+1)+'" loading="lazy"></div>' : '<div class="shot text"><span>Текстовый слайд</span><b>'+esc(s.title||'')+'</b></div>')+
+      '<div class="row between" style="gap:6px;flex-wrap:nowrap"><b class="num">'+(i+1)+'</b><span class="acts row" style="gap:4px;flex-wrap:nowrap">'+
+        (conf ? '<button class="btn sm danger" type="button" data-act="slide-del-yes" data-i="'+i+'">Удалить</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>' :
+        '<button class="iconbtn" type="button" data-act="slide-mv" data-i="'+i+'" data-dir="-1" aria-label="Левее"'+(i===0?' disabled':'')+'>←</button><button class="iconbtn" type="button" data-act="slide-mv" data-i="'+i+'" data-dir="1" aria-label="Правее"'+(last?' disabled':'')+'>→</button>'+
+        '<label class="iconbtn file" title="Заменить скриншот" aria-label="Заменить скриншот">⟳<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-act-change="slide-replace" data-i="'+i+'"></label>'+
+        '<button class="iconbtn danger" type="button" data-act="confirm" data-c="slide:'+esc(cur)+':'+i+'" aria-label="Удалить слайд">✕</button>')+'</span></div>'+
+      inp('ds-'+cur+'-'+i+'-t','decks',p+'.title','Подпись (видна в списке слайдов)','sm')+
+      area('ds-'+cur+'-'+i+'-n','decks',p+'.note','','Заметка тренера — видите только вы',2)+
+    '</div>';
+  }).join('');
+  return saveBar('decks','презентации')+tabs+
+    '<section class="card"><div class="row" style="align-items:flex-end"><label class="field" style="flex:1 1 320px">Название презентации'+inp('dk-'+cur+'-t','decks',base+'.title','Например, Презентация День 1 · Продукт')+'</label>'+
+      (dconf ? '<button class="btn sm danger" type="button" data-act="deck-del-yes">Удалить презентацию</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>' : '<button class="btn sm danger" type="button" data-act="confirm" data-c="deck:'+esc(cur)+'">Удалить презентацию</button>')+'</div>'+noAssets+drop+
+      '<p class="hint">Скриншоты сохраняются сразу. Темы плана ссылаются на слайд по номеру — при перестановке слайдов проверьте номера в «План стажировки → ⋯».</p></section>'+
+    (dk.slides&&dk.slides.length ? '<section class="stack" style="gap:10px"><h2>Слайды · '+dk.slides.length+'</h2><div class="slidegrid">'+slides+'</div></section>' : '');
+}
+
+function stTests(){
+  var tt = draft('tests').tests; var ids = Object.keys(tt);
+  var cur = S.ui.stest && tt[S.ui.stest] ? S.ui.stest : ids[0];
+  var tabs = '<div class="subnav" aria-label="Тесты">'+ids.map(function(id){ return '<button type="button" class="'+(id===cur?'on':'')+'" data-act="stest" data-id="'+esc(id)+'">'+esc(tt[id].title||'Тест без названия')+'</button>'; }).join('')+'<button type="button" data-act="test-add">+ Тест</button></div>';
+  if(!cur) return saveBar('tests','тесты')+tabs+'<div class="empty"><b>Тестов пока нет</b><span>Создайте тест, затем привяжите его к теме плана: «План стажировки → ⋯ → Тест».</span></div>';
+  var t = tt[cur]; var base = 'tests.'+cur; var tconf = S.ui.confirm==='test:'+cur;
+  var qs = (t.questions||[]).map(function(q, i){
+    var p = base+'.questions.'+i; var conf = S.ui.confirm==='q:'+cur+':'+i;
+    var opts = (q.options||[]).map(function(o, oi){ return [oi, 'Вариант '+(oi+1)+(o?': '+(o.length>40?o.slice(0,40)+'…':o):'')]; });
+    return '<div class="ed"><div class="ed-row"><span class="n num">'+(i+1)+'</span><span class="t">'+inp('tq-'+cur+'-'+i+'-q','tests',p+'.q','Текст вопроса')+'</span>'+
+      '<span class="acts">'+(conf ? '<button class="btn sm danger" type="button" data-act="q-del-yes" data-i="'+i+'">Удалить</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>' :
+        '<button class="iconbtn" type="button" data-act="q-mv" data-i="'+i+'" data-dir="-1" aria-label="Выше"'+(i===0?' disabled':'')+'>↑</button><button class="iconbtn" type="button" data-act="q-mv" data-i="'+i+'" data-dir="1" aria-label="Ниже"'+(i===t.questions.length-1?' disabled':'')+'>↓</button><button class="iconbtn danger" type="button" data-act="confirm" data-c="q:'+esc(cur)+':'+i+'" aria-label="Удалить вопрос">✕</button>')+'</span></div>'+
+      '<div class="ed-more"><label class="field">Варианты ответа — каждый с новой строки'+area('tq-'+cur+'-'+i+'-o','tests',p+'.options','lines','Вариант 1\nВариант 2\nВариант 3',4).replace('<textarea ','<textarea data-rerender="1" ')+'</label>'+
+      '<label class="field">Правильный ответ'+(opts.length ? sel('tq-'+cur+'-'+i+'-c','tests',p+'.correct',opts) : '<span class="small muted">Сначала впишите варианты</span>')+'</label></div></div>';
+  }).join('');
+  return saveBar('tests','тесты')+tabs+
+    '<section class="card"><div class="row" style="align-items:flex-end">'+
+      '<label class="field" style="flex:2 1 280px">Название теста'+inp('tt-'+cur+'-t','tests',base+'.title','Например, Тест по итогам дня 1')+'</label>'+
+      '<label class="field" style="flex:0 1 150px">Проходной балл, %<input id="tt-'+cur+'-p" class="input" type="number" min="0" max="100"'+bind('tests',base+'.pass',' data-fmt="num"')+' value="'+esc(t.pass==null?80:t.pass)+'"></label>'+
+      '<label class="field" style="flex:0 1 150px">Попыток<input id="tt-'+cur+'-a" class="input" type="number" min="1" max="20"'+bind('tests',base+'.attempts',' data-fmt="num"')+' value="'+esc(t.attempts==null?3:t.attempts)+'"></label>'+
+      (tconf ? '<button class="btn sm danger" type="button" data-act="test-del-yes">Удалить тест</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>' : '<button class="btn sm danger" type="button" data-act="confirm" data-c="test:'+esc(cur)+'">Удалить тест</button>')+
+    '</div><p class="hint">Чтобы тест появился у стажёров, привяжите его к теме плана: «План стажировки → ⋯ → Тест» и откройте эту тему в доступах.</p></section>'+
+    '<section class="stack" style="gap:8px"><div class="row between"><h2>Вопросы · '+(t.questions||[]).length+'</h2><button class="btn primary sm" type="button" data-act="q-add">+ Вопрос</button></div>'+qs+'<button class="btn" type="button" data-act="q-add" style="align-self:flex-start">+ Добавить вопрос</button></section>';
+}
+
+function stSims(){
+  var ids = Object.keys(S.sims).sort(function(a,b){ return (S.sims[a].title||'').localeCompare(S.sims[b].title||'','ru'); });
+  var used = {}; allItems().forEach(function(i){ if(i.sim) (used[i.sim]=used[i.sim]||[]).push('День '+(i.dayIdx+1)+': '+i.title); });
+  return '<section class="card"><h2>Тренажёры в кабинете</h2><p class="hint">Загрузите тренажёр одним HTML-файлом до 240 КБ, и он откроется у стажёра прямо в кабинете. Чтобы тренажёр появился в плане, выберите его в теме: «План стажировки → ⋯ → Тренажёр». Отметку «выполнено» стажёр ставит сам после прохождения.</p><button class="btn primary" type="button" data-act="sim-add" style="align-self:flex-start">+ Добавить тренажёр</button></section>'+
+    ids.map(function(id){
+      var s = S.sims[id]; var conf = S.ui.confirm==='sim:'+id;
+      return '<section class="card"><div class="simrow"><div class="meta">'+
+        '<label class="field">Название<input id="sm-'+id+'-t" class="input" data-keep value="'+esc(f('sm-'+id+'-t', s.title))+'"></label>'+
+        '<label class="field">Описание для стажёра<textarea id="sm-'+id+'-d" class="input" data-keep rows="2">'+esc(f('sm-'+id+'-d', s.desc))+'</textarea></label>'+
+        '<span class="small muted">'+(used[id]?'В плане: '+esc(used[id].join('; ')):'Пока не привязан ни к одной теме плана.')+'</span>'+
+      '</div><div class="side2">'+
+        (s.html ? '<span class="chip ok" style="align-self:flex-start">Загружен · '+kb(s.size||s.html.length)+(s.updatedAt?' · '+fmtDay(s.updatedAt):'')+'</span>' : '<span class="chip warn" style="align-self:flex-start">Файл не загружен</span>')+
+        '<label class="btn file">'+(s.html?'Заменить HTML-файл':'Загрузить HTML-файл')+'<input type="file" accept=".html,.htm,text/html" data-act-change="sim-file" data-id="'+esc(id)+'" aria-label="Файл тренажёра"></label>'+
+        (s.html ? '<button class="btn" type="button" data-act="sim-preview" data-id="'+esc(id)+'">Открыть</button>' : '')+
+        '<button class="btn primary" type="button" data-act="sim-save" data-id="'+esc(id)+'">Сохранить описание</button>'+
+        (conf ? '<span class="row"><button class="btn sm danger" type="button" data-act="sim-del-yes" data-id="'+esc(id)+'">Удалить тренажёр</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button></span>' : '<button class="btn danger" type="button" data-act="confirm" data-c="sim:'+esc(id)+'">Удалить</button>')+
+      '</div></div></section>';
+    }).join('');
+}
+
+function stKb(){
+  var d = draft('kb');
+  var catOpts = d.cats.map(function(c){ return [c.id, c.title||c.id]; });
+  var cats = d.cats.map(function(c, i){ var conf = S.ui.confirm==='cat:'+i; return '<div class="ed-row"><span class="t">'+inp('kc-'+i,'kb','cats.'+i+'.title','Название раздела')+'</span><span class="acts">'+(conf?'<button class="btn sm danger" type="button" data-act="cat-del-yes" data-i="'+i+'">Удалить</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>':'<button class="iconbtn danger" type="button" data-act="confirm" data-c="cat:'+i+'" aria-label="Удалить раздел">✕</button>')+'</span></div>'; }).join('');
+  var arts = d.articles.map(function(a, i){
+    var p = 'articles.'+i; var open = !!S.ui.edOpen['a:'+a.id]; var conf = S.ui.confirm==='art:'+a.id;
+    return '<div class="ed'+(open?' open':'')+'"><div class="ed-row"><span class="n num">'+(i+1)+'</span><span class="t">'+inp('ka-'+a.id+'-t','kb',p+'.title','Заголовок статьи')+'</span><span class="ty">'+sel('ka-'+a.id+'-c','kb',p+'.cat',[['','— раздел —']].concat(catOpts))+'</span>'+
+      '<span class="acts">'+(conf?'<button class="btn sm danger" type="button" data-act="art-del-yes" data-i="'+i+'">Удалить</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>':'<button class="iconbtn'+(open?' on':'')+'" type="button" data-act="ed-open" data-id="a:'+esc(a.id)+'" aria-expanded="'+open+'" aria-label="Редактировать текст">⋯</button><button class="iconbtn danger" type="button" data-act="confirm" data-c="art:'+esc(a.id)+'" aria-label="Удалить статью">✕</button>')+'</span></div>'+
+      (open ? '<div class="ed-more"><label class="field">Краткое описание'+inp('ka-'+a.id+'-s','kb',p+'.summary')+'</label><label class="field">Время чтения'+inp('ka-'+a.id+'-r','kb',p+'.read','например, 5 мин')+'</label><label class="field wide">Текст — абзацы разделяйте пустой строкой'+area('ka-'+a.id+'-b','kb',p+'.body','paras','',10)+'</label></div>' : '')+'</div>';
+  }).join('');
+  return saveBar('kb','база знаний')+
+    '<section class="card"><h2>Шпаргалка на главной базы знаний</h2><label class="field">Заголовок'+inp('kch-t','kb','cheat.title','Например, Шпаргалка: условия лояльности')+'</label><label class="field">Карточки — по одной на строку: «Заголовок | текст»'+area('kch-c','kb','cheat.cells','cells','Софт · скидка | 20% начислений',4)+'</label><label class="field">Подпись внизу'+inp('kch-n','kb','cheat.note')+'</label><label class="field">Статья «Открыть полностью»'+sel('kch-a','kb','cheat.article',[['','— нет —']].concat(d.articles.map(function(a){ return [a.id,a.title]; })))+'</label><p class="hint">Оставьте заголовок пустым, чтобы скрыть шпаргалку.</p></section>'+
+    '<section class="card"><div class="row between"><h2>Разделы</h2><button class="btn sm" type="button" data-act="cat-add">+ Раздел</button></div>'+cats+'</section>'+
+    '<section class="stack" style="gap:8px"><div class="row between"><h2>Статьи · '+d.articles.length+'</h2><button class="btn primary sm" type="button" data-act="art-add">+ Статья</button></div>'+arts+'</section>';
+}
+
+function stOrg(){
+  var ps = draft('org').people;
+  return saveBar('org','структура')+
+    '<div class="row between"><p class="hint" style="flex:1 1 300px">Эти люди и контакты видны стажёрам в разделе «'+esc(tabTitle('org'))+'». Тренер, наставник и руководитель с ролью в ЛК попадают в блок «Мои люди» на главной.</p><button class="btn primary" type="button" data-act="org-add">+ Человек</button></div>'+
+    '<div class="grid" style="--min:320px">'+ps.map(function(p, i){
+      var opts = [['','— верх структуры —']].concat(ps.filter(function(x){ return x.id!==p.id; }).map(function(x){ return [x.id, x.name||x.role||'—']; }));
+      var conf = S.ui.confirm==='person:'+p.id; var b = 'people.'+i;
+      return '<div class="card tight"><div class="row between"><b>'+esc(p.name||'Новый человек')+'</b>'+(conf?'<span class="row"><button class="btn sm danger" type="button" data-act="org-del-yes" data-i="'+i+'">Убрать</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button></span>':'<button class="btn sm danger" type="button" data-act="confirm" data-c="person:'+esc(p.id)+'">Убрать</button>')+'</div>'+
+        '<label class="field">Имя и фамилия'+inp('o-'+p.id+'-name','org',b+'.name')+'</label>'+
+        '<label class="field">Должность'+inp('o-'+p.id+'-role','org',b+'.role')+'</label>'+
+        '<div class="row" style="flex-wrap:nowrap"><label class="field" style="flex:1;min-width:0">Направление'+inp('o-'+p.id+'-area','org',b+'.area','Soft, Hard, HR…')+'</label><label class="field" style="flex:1;min-width:0">Подчиняется'+sel('o-'+p.id+'-parent','org',b+'.parent',opts)+'</label></div>'+
+        '<label class="field">С чем обращаться'+inp('o-'+p.id+'-help','org',b+'.help','пусто — не показывать в контактах')+'</label>'+
+        '<label class="field">Контакт'+inp('o-'+p.id+'-contact','org',b+'.contact','@telegram или телефон')+'</label>'+
+        '<label class="field">Роль в ЛК'+sel('o-'+p.id+'-kind','org',b+'.kind',[['','—'],['head','Руководитель'],['lead','Руководитель направления'],['trainer','Тренер'],['mentor','Наставник'],['hr','HR']])+'</label></div>';
+    }).join('')+'</div>';
+}
+
+function stTabs(){
+  var d = draft('settings');
+  return saveBar('settings','вкладки')+
+    '<section class="card"><h2>Название кабинета</h2><div class="row" style="align-items:flex-end"><label class="field" style="flex:1 1 200px">Название'+inp('sb-n','settings','brand.name','Старт')+'</label><label class="field" style="flex:2 1 280px">Подпись'+inp('sb-s','settings','brand.sub','ЛК стажёра · взыскание')+'</label></div>'+
+    '<label class="check"><input type="checkbox" id="sb-apply"'+bind('settings','allowApply',' data-fmt="bool" data-rerender="1"')+(d.allowApply===false?'':' checked')+'>Разрешить стажёрам подавать заявку на доступ со страницы входа</label></section>'+
+    '<section class="card"><h2>Вкладки стажёра</h2><p class="hint">Переименуйте вкладку или скройте её. Главная видна всегда.</p><div class="stack" style="gap:8px">'+TABS.map(function(t){
+      var k = t[0]; var tab = d.tabs[k] || {};
+      return '<div class="ed-row" style="border-top:1px solid var(--line2);padding-top:8px"><span class="t"><label class="field">'+esc(t[1])+'<input id="tb-'+k+'" class="input"'+bind('settings','tabs.'+k+'.title')+' value="'+esc(tab.title||'')+'" placeholder="'+esc(t[1])+'"></label></span>'+
+        (k==='home' ? '<span class="small muted">всегда видна</span>' : '<label class="check"><input type="checkbox" id="tbh-'+k+'"'+bind('settings','tabs.'+k+'.hidden',' data-fmt="hide" data-rerender="1"')+(tab.hidden?'':' checked')+'>Показывать</label>')+'</div>';
+    }).join('')+'</div></section>';
+}
+
+function cleanDraft(k, d){
+  if(k==='program'){ d.days.forEach(function(day){ (day.items||[]).forEach(function(it){ ['deck','test','sim','article','desc'].forEach(function(x){ if(it[x]==='' ) delete it[x]; }); if(!it.slide) delete it.slide; if(it.url==='' && !it.material) delete it.url; }); }); }
+  if(k==='decks'){ Object.keys(d.decks).forEach(function(id){ (d.decks[id].slides||[]).forEach(function(s){ s.points = (s.points||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); }); }); }
+  if(k==='tests'){ Object.keys(d.tests).forEach(function(id){ var t = d.tests[id]; t.pass = Number(t.pass==null||t.pass===''?80:t.pass); t.attempts = Math.max(1, Number(t.attempts==null||t.attempts===''?3:t.attempts)); t.questions = (t.questions||[]).map(function(q){ var opts = (q.options||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); return {q:String(q.q||'').trim(), options:opts, correct:Math.min(Math.max(0, Number(q.correct)||0), Math.max(0, opts.length-1))}; }).filter(function(q){ return q.q && q.options.length >= 2; }); }); }
+  if(k==='kb'){ d.articles.forEach(function(a){ a.body = (a.body||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); }); d.cheat.cells = (d.cheat.cells||[]).filter(function(c){ return c[0]||c[1]; }); }
+  return d;
+}
+function parseVal(el){
+  var fmt = el.dataset.fmt; var v = el.value;
+  if(fmt==='lines') return v.split('\n');
+  if(fmt==='paras') return v.split(/\n\s*\n/);
+  if(fmt==='cells') return v.split('\n').map(function(l){ var ix = l.indexOf('|'); return ix<0 ? [l.trim(), ''] : [l.slice(0,ix).trim(), l.slice(ix+1).trim()]; });
+  if(fmt==='num') return v ? Number(v) : '';
+  if(fmt==='hide') return !el.checked;
+  if(fmt==='bool') return el.checked;
+  return v;
+}
+
+/* ---------- modal ---------- */
+function viewModal(){
+  var m = S.ui.modal;
+  if(m.type==='article'){
+    var a = article(m.id); if(!a) return '';
+    var it = m.itemId ? itemById(m.itemId) : null;
+    return '<div class="modal-back" data-act="modal-close-bg"><div class="modal article" role="dialog" aria-modal="true" aria-labelledby="h-art"><div class="row between"><span class="lbl">'+esc(a.read||'')+'</span><button class="btn sm" type="button" data-act="modal-close">Закрыть</button></div><h2 id="h-art" style="font-size:24px">'+esc(a.title)+'</h2>'+(a.body||[]).map(function(p){ return '<p style="white-space:pre-line">'+esc(p)+'</p>'; }).join('')+
+      (it && S.role==='intern' ? (isDone(it) ? '<span class="chip ok" style="align-self:flex-start">Прочитано</span>' : '<button class="btn primary" style="align-self:flex-start" type="button" data-act="mark-done" data-id="'+esc(it.id)+'">Отметить как прочитано</button>') : '')+
+    '</div></div>';
+  }
+  if(m.type==='task'){
+    var t = itemById(m.itemId); if(!t) return '';
+    var dn = isDone(t);
+    var link = t.url ? '<a class="btn primary" style="align-self:flex-start" href="'+esc(t.url)+'" target="_blank" rel="noopener">Открыть: '+esc(t.material||'материал')+' ↗</a>' : (t.url!=null ? '<p class="small muted" style="margin:0">Материал: '+esc(t.material||'')+'. Ссылку добавит тренер.</p>' : (t.material?'<p style="margin:0"><span class="lbl">Материал</span><br>'+esc(t.material)+'</p>':''));
+    return '<div class="modal-back" data-act="modal-close-bg"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="h-task"><div class="row between"><span class="lbl">'+esc(TYPE[t.type]||'')+' · день '+(t.dayIdx+1)+'</span><button class="btn sm" type="button" data-act="modal-close">Закрыть</button></div><h2 id="h-task" style="font-size:24px">'+esc(t.title)+'</h2>'+(t.desc?'<p style="margin:0;line-height:1.55;white-space:pre-line">'+esc(t.desc)+'</p>':'')+link+
+      (S.role==='intern' ? (dn ? '<span class="chip ok" style="align-self:flex-start">Выполнено</span>' : '<button class="btn'+(t.url?'':' primary')+'" style="align-self:flex-start" type="button" data-act="mark-done" data-id="'+esc(t.id)+'">Отметить выполненным</button>') : '')+
+    '</div></div>';
+  }
+  return '';
+}
+
+/* ---------- simulator player (kept outside #app so live updates never reload it) ---------- */
+function openPlayer(simId, itemId){
+  var sim = S.sims[simId];
+  if(!sim || !sim.html){ toast('Тренажёр ещё не загружен'); return; }
+  S.player = {simId:simId, itemId:itemId};
+  var it = itemId ? itemById(itemId) : null;
+  playerEl.innerHTML = '<div class="player" role="dialog" aria-modal="true" aria-label="Тренажёр: '+esc(sim.title)+'"><div class="player-bar"><b>'+esc(sim.title)+'</b>'+
+    (it && S.role==='intern' ? '<span id="pl-done-slot">'+(isDone(it)?'<span class="chip ok">Выполнено</span>':'<button class="btn amber" type="button" data-act="pl-done">Отметить выполненным</button>')+'</span>' : '')+
+    '<button class="btn" type="button" data-act="pl-close">Закрыть тренажёр</button></div><iframe class="player-frame" title="'+esc(sim.title)+'"></iframe></div>';
+  playerEl.querySelector('iframe').srcdoc = sim.html;
+  document.body.style.overflow = 'hidden';
+}
+function closePlayer(){ S.player = null; playerEl.innerHTML = ''; document.body.style.overflow = ''; }
+
+/* ---------- actions ---------- */
+function openItem(id){
+  var it = itemById(id); if(!it || (S.role==='intern' && !isOpen(it))) return;
+  if(it.type==='test' && it.test && test(it.test)){ S.view='tests'; S.ui.survey=null; S.ui.test = {tid:it.test, itemId:it.id, idx:0, answers:{}, started:false}; }
+  else if(it.type==='survey'){ S.view='tests'; S.ui.test=null; S.ui.survey = {itemId:it.id}; SURVEY_Q.forEach(function(q){ delete S.form['sv-'+q[0]]; }); }
+  else if(it.sim){ openPlayer(it.sim, it.id); return; }
+  else if(it.deck && deck(it.deck) && !tabHidden('pres')){ S.view='pres'; S.ui.freeDeck = it.deck; S.ui.slide = it.slide||1; S.ui.unsynced = true; if(S.role==='intern' && !isDone(it) && openedSlides(it.deck, me().groupId) >= (it.slide||1)){ var p={items:{}}; p.items[it.id]={status:'done', at:Date.now()}; saveProgress(p); } presencePing(); }
+  else if(it.article && article(it.article)){ S.ui.modal = {type:'article', id:it.article, itemId:it.id}; }
+  else { S.ui.modal = {type:'task', itemId:it.id}; }
+  render(); window.scrollTo(0,0);
+}
+function markDone(id){ var patch = {items:{}}; patch.items[id] = {status:'done', at:Date.now()}; saveProgress(patch); S.ui.modal=null; toast('Отмечено как выполненное'); }
+function presencePing(){
+  if(S.role!=='intern' || S.view!=='pres') return;
+  var m = me(); if(!m) return; var lv = liveOf(m.groupId); if(!lv.active) return;
+  saveProgress({pres:{deck:presDeckId(), slide:curSlide(), at:Date.now()}, seen:Date.now()});
+}
+setInterval(function(){ if(S.role==='intern'){ if(S.view==='pres') presencePing(); else if(S.iid && S.progress[S.iid]) saveProgress({seen:Date.now()}); } }, 60000);
+function liveUpdate(gid, patch){ return upsert('live/'+gid, S.live[gid], patch).catch(writeErr); }
+function curDayDraft(){ var d = draft('program'); var di = Math.min(S.ui.sd||0, Math.max(0,d.days.length-1)); return d.days[di]; }
+function mv(arr, i, dir){ var j = i+dir; if(j<0||j>=arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
+
+var A = {
+  nav: function(el){ S.view = el.dataset.v; S.ui.modal=null; if(S.view==='pres'){ S.ui.unsynced=false; S.ui.freeDeck=null; S.ui.slide=1; presencePing(); } render(); window.scrollTo(0,0); },
+  logout: function(){ closePlayer(); S.role=null; S.iid=null; S.ui={dayOpen:{}, edOpen:{}}; S.form={}; if(sb) sb.auth.signOut(); CACHE={}; LST.forEach(function(l){ l.fire(); }); render(); },
+  'as-trainer': function(){ if(!S.canEdit) return; S.ui.trainerForm = true; S.ui.trErr = null; render(); setTimeout(function(){ var n = document.getElementById('tr-login'); if(n) n.focus(); }, 0); },
+  'intern-suspend': function(el){
+    var id = el.dataset.id; var on = el.dataset.on==='1'; var it = S.interns[id];
+    sb.rpc('admin_set_suspended', {target:id, flag:on}).then(function(r){
+      if(r.error){ toast('Не удалось: '+r.error.message); return; }
+      var d = JSON.parse(JSON.stringify(S.interns[id]||{})); d.suspended = on; setLocal('interns/'+id, d);
+      toast(on ? 'Доступ «'+(it&&it.name||'')+'» приостановлен. Данные сохранены.' : 'Доступ «'+(it&&it.name||'')+'» возобновлён.');
+    });
+  },
+  'apply-open': function(){ S.ui.applyForm = true; S.ui.apErr = null; S.ui.apLoginAuto = true; render(); setTimeout(function(){ var n = document.getElementById('ap-name'); if(n) n.focus(); }, 0); },
+  'apply-cancel': function(){ S.ui.applyForm = false; S.ui.apErr = null; delete S.form['ap-pw']; delete S.form['ap-pw2']; render(); },
+  'app-refresh': function(){ loadAll().then(function(){ checkApproved(); render(); }).catch(function(){ toast('Нет связи с сервером.'); }); },
+  'req-approve': function(el){
+    var id = el.dataset.id; var r = S.requests[id]; var gid = f('rq-g-'+id, curGid()); if(!r || !gid || !S.groups[gid]) return;
+    S.db.doc('interns/'+id).set({name:r.name, login:r.login, contact:r.contact||'', groupId:gid, overrides:{}, createdAt:Date.now()})
+      .then(function(){ return S.db.doc('requests/'+id).update({status:'approved', groupId:gid, decidedAt:Date.now()}); })
+      .then(function(){ toast('Заявка одобрена: '+r.name+' — в группе «'+S.groups[gid].name+'»'); }, writeErr);
+  },
+  'req-reject-open': function(el){ S.ui.rejOpen = el.dataset.id; render(); setTimeout(function(){ var n = document.getElementById('rq-r-'+el.dataset.id); if(n) n.focus(); }, 0); },
+  'req-reject-cancel': function(){ S.ui.rejOpen = null; render(); },
+  'req-reject': function(el){ var id = el.dataset.id; S.ui.rejOpen = null; S.db.doc('requests/'+id).update({status:'rejected', reason:String(f('rq-r-'+id)).trim().slice(0,300), decidedAt:Date.now()}).then(function(){ toast('Заявка отклонена'); }, writeErr); },
+  'req-del': function(el){ var id = el.dataset.id; S.ui.confirm = null; sb.rpc('admin_delete_user', {target:id}).then(function(r){ if(r.error){ toast('Не удалось удалить: '+r.error.message); return; } setLocal('requests/'+id, undefined); toast('Заявка удалена, логин освобождён'); }); },
+  'tr-cancel': function(){ S.ui.trainerForm = false; S.ui.trErr = null; delete S.form['tr-pw']; render(); },
+  'open-item': function(el){ openItem(el.dataset.id); },
+  'mark-done': function(el){ markDone(el.dataset.id); },
+  'modal-close': function(){ S.ui.modal=null; render(); },
+  'modal-close-bg': function(el, e){ if(e.target===el){ S.ui.modal=null; render(); } },
+  article: function(el){ S.ui.modal={type:'article', id:el.dataset.id}; render(); },
+  'kb-cat': function(el){ S.ui.kbCat = el.dataset.c; render(); },
+  copy: function(el){ copy(el.dataset.text, el); },
+  'pl-close': function(){ closePlayer(); render(); },
+  'pl-done': function(){ var p = S.player; if(!p || !p.itemId) return; var patch={items:{}}; patch.items[p.itemId]={status:'done', at:Date.now()}; saveProgress(patch); var slot = document.getElementById('pl-done-slot'); if(slot) slot.innerHTML = '<span class="chip ok">Выполнено</span>'; },
+  'test-start': function(){ S.ui.test.started = true; S.ui.test.idx=0; S.ui.test.answers={}; render(); },
+  answer: function(el){ S.ui.test.answers[S.ui.test.idx] = Number(el.dataset.i); render(); },
+  'test-next': function(){ S.ui.test.idx++; render(); },
+  'test-prev': function(){ S.ui.test.idx = Math.max(0, S.ui.test.idx-1); render(); },
+  'test-finish': function(){
+    var t = S.ui.test; var tt = test(t.tid); var right=0, wrong=[];
+    tt.questions.forEach(function(q,i){ if(t.answers[i]===q.correct) right++; else wrong.push(i+1); });
+    var pct = Math.round(right/tt.questions.length*100);
+    var rec = (P().tests && P().tests[t.tid]) || {};
+    var best = Math.max(rec.best||0, pct); var passed = best >= tt.pass;
+    var patch = {tests:{}}; patch.tests[t.tid] = {best:best, last:pct, attempts:(rec.attempts||0)+1, passed:passed, at:Date.now()};
+    if(passed){ patch.items = {}; patch.items[t.itemId] = {status:'done', at:Date.now()}; }
+    saveProgress(patch);
+    t.result = {pct:pct, right:right, total:tt.questions.length, wrong:wrong}; render();
+  },
+  'test-retry': function(){ var t=S.ui.test; S.ui.test = {tid:t.tid, itemId:t.itemId, idx:0, answers:{}, started:true}; render(); },
+  'test-close': function(){ S.ui.test=null; render(); },
+  rate: function(el){ S.form['sv-'+el.dataset.q] = Number(el.dataset.n); render(); },
+  'slide-prev': function(){ var c = curSlide(); S.ui.unsynced = true; S.ui.slide = Math.max(1, c-1); render(); presencePing(); },
+  'slide-next': function(){ var c = curSlide(); S.ui.unsynced = true; S.ui.slide = c+1; render(); presencePing(); },
+  'slide-go': function(el){ S.ui.unsynced = true; S.ui.slide = Number(el.dataset.n); render(); presencePing(); },
+  'pres-follow': function(){ S.ui.unsynced = false; S.ui.freeDeck = null; render(); presencePing(); },
+  'toggle-newgroup': function(){ S.ui.newGroup = !S.ui.newGroup; render(); },
+  'ni-gen': function(){ S.form['ni-pw'] = genPw(); render(); },
+  'creds-close': function(){ S.ui.created=null; render(); },
+  'intern-del': function(el){ S.ui.confirmDel = el.dataset.id; render(); },
+  'intern-del-no': function(){ S.ui.confirmDel=null; render(); },
+  'intern-del-yes': function(el){ var id=el.dataset.id; S.ui.confirmDel=null; sb.rpc('admin_delete_user', {target:id}).then(function(r){ if(r.error){ toast('Не удалось удалить: '+r.error.message); return; } ['interns/','progress/','feedback/'].forEach(function(p){ setLocal(p+id, undefined); }); toast('Доступ удалён'); }); },
+  'intern-pw': function(el){
+    var id = el.dataset.id; var it = S.interns[id]; var pw = genPw();
+    sb.rpc('admin_set_password', {target:id, new_password:pw}).then(function(r){ if(r.error){ toast('Не удалось сменить пароль: '+r.error.message); return; } S.ui.created = {name:it.name, login:it.login, pw:pw, reset:true}; render(); });
+  },
+  scope: function(el){ S.ui.scope = el.dataset.s; render(); },
+  acc: function(el){
+    var id = el.dataset.id; var gid = curGid(); var g = S.groups[gid];
+    var scope = S.ui.scope && S.interns[S.ui.scope] && S.interns[S.ui.scope].groupId===gid ? S.ui.scope : 'group';
+    if(scope==='group'){ var p = {access:{}}; p.access[id] = !(g.access && g.access[id]); S.db.doc('groups/'+gid).update(p).catch(writeErr); }
+    else { var it = S.interns[scope]; var ov = (it.overrides||{})[id]; var gOn = !!(g.access&&g.access[id]); var eff = (ov===true||ov===false)?ov:gOn; var q={overrides:{}}; q.overrides[id] = !eff; S.db.doc('interns/'+scope).update(q).catch(writeErr); }
+  },
+  'ov-reset': function(el){ var id=el.dataset.id; var sc=S.ui.scope; var it=clone(S.interns[sc]); if(it.overrides) delete it.overrides[id]; S.db.doc('interns/'+sc).set(it).catch(writeErr); },
+  'acc-day': function(el){
+    var d = days().filter(function(x){ return x.id===el.dataset.d; })[0]; var on = el.dataset.on==='1';
+    var gid = curGid(); var scope = S.ui.scope && S.interns[S.ui.scope] && S.interns[S.ui.scope].groupId===gid ? S.ui.scope : 'group';
+    var key = scope==='group'?'access':'overrides'; var p = {}; p[key] = {};
+    (d.items||[]).forEach(function(it){ p[key][it.id] = on; });
+    S.db.doc(scope==='group'?'groups/'+gid:'interns/'+scope).update(p).catch(writeErr);
+  },
+  'tp-start': function(){
+    var gid = curGid(); var ids = Object.keys(decksMap()); var deckId = S.ui.tdeck && deck(S.ui.tdeck) ? S.ui.tdeck : ids[0];
+    var lv = S.live[gid] || {}; var opened = clone(lv.opened); opened[deckId] = Math.max(1, (typeof opened[deckId]==='number'?opened[deckId]:1));
+    liveUpdate(gid, {active:true, deck:deckId, slide:1, opened:opened, sync:true, at:Date.now()});
+  },
+  'tp-stop': function(){ liveUpdate(curGid(), {active:false, at:Date.now()}); toast('Показ завершён. Открытые слайды остаются доступны.'); },
+  'tp-next': function(){ var gid=curGid(); var lv=S.live[gid]; var n=(lv.slide||1)+1; var op=clone(lv.opened); op[lv.deck]=Math.max(op[lv.deck]||1, n); liveUpdate(gid, {slide:n, opened:op, at:Date.now()}); },
+  'tp-prev': function(){ var gid=curGid(); var lv=S.live[gid]; liveUpdate(gid, {slide:Math.max(1,(lv.slide||1)-1), at:Date.now()}); },
+  'tp-go': function(el){
+    var gid=curGid(); var lv=S.live[gid]||{}; var n=Number(el.dataset.n);
+    if(!lv.active){ S.ui.tslide = n; render(); return; }
+    var op=clone(lv.opened); op[lv.deck]=Math.max(op[lv.deck]||1, n); liveUpdate(gid, {slide:n, opened:op, at:Date.now()});
+  },
+  'tp-sync': function(){ var gid=curGid(); liveUpdate(gid, {sync:!(S.live[gid]||{}).sync}); },
+  'tp-openall': function(){ var gid=curGid(); var ids=Object.keys(decksMap()); var deckId = S.ui.tdeck && deck(S.ui.tdeck) ? S.ui.tdeck : ids[0]; var lv=S.live[gid]||{}; var op=clone(lv.opened); op[deckId]=deck(deckId).slides.length; liveUpdate(gid, {opened:op, active:!!lv.active, deck: lv.active?lv.deck:deckId}); toast('Все слайды открыты группе'); },
+  'tp-closeall': function(){ var gid=curGid(); var ids=Object.keys(decksMap()); var deckId = S.ui.tdeck && deck(S.ui.tdeck) ? S.ui.tdeck : ids[0]; var lv=S.live[gid]||{}; var op=clone(lv.opened); op[deckId]=0; liveUpdate(gid, {opened:op, active:!!lv.active, deck: lv.active?lv.deck:deckId}); toast('Слайды закрыты для группы'); },
+  rsel: function(el){ S.ui.rsel = S.ui.rsel===el.dataset.id ? null : el.dataset.id; S.form['fb-text']=''; render(); },
+
+  /* settings */
+  'st-go': function(el){ S.view='t-settings'; S.ui.st = el.dataset.s; S.ui.confirm=null; render(); window.scrollTo(0,0); },
+  confirm: function(el){ S.ui.confirm = el.dataset.c; render(); },
+  'confirm-no': function(){ S.ui.confirm = null; render(); },
+  'draft-reset': function(el){ var k = el.dataset.k; S.draft[k]=null; S.dirty[k]=false; S.ui.confirm=null; if(k==='decks') S.pendingDel=[]; render(); },
+  'draft-save': function(el){ saveDraft(el.dataset.k, 'Сохранено. Стажёры видят изменения.'); },
+  sd: function(el){ S.ui.sd = Number(el.dataset.i); S.ui.confirm=null; render(); },
+  'day-add': function(){ var d = draft('program'); d.days.push({id:uid('d'), title:'Новый день', subtitle:'', items:[]}); S.ui.sd = d.days.length-1; markDirty('program'); render(); },
+  'day-del-yes': function(){ var d = draft('program'); d.days.splice(Math.min(S.ui.sd||0, d.days.length-1), 1); S.ui.sd = Math.max(0,(S.ui.sd||0)-1); S.ui.confirm=null; markDirty('program'); render(); },
+  'day-mv': function(el){ var d = draft('program'); var i = Math.min(S.ui.sd||0, d.days.length-1); var dir = Number(el.dataset.dir); mv(d.days, i, dir); S.ui.sd = Math.max(0, Math.min(d.days.length-1, i+dir)); markDirty('program'); render(); },
+  'item-add': function(){ var day = curDayDraft(); if(!day) return; var it = {id:uid('it'), title:'', type:'theory', material:''}; day.items = day.items||[]; day.items.push(it); S.ui.edOpen[it.id] = true; markDirty('program'); render(); setTimeout(function(){ var n = document.getElementById('pi-'+it.id+'-t'); if(n){ n.focus(); n.scrollIntoView({block:'center'}); } }, 0); },
+  'item-del-yes': function(el){ var day = curDayDraft(); day.items.splice(Number(el.dataset.i),1); S.ui.confirm=null; markDirty('program'); render(); },
+  'item-mv': function(el){ var day = curDayDraft(); mv(day.items, Number(el.dataset.i), Number(el.dataset.dir)); markDirty('program'); render(); },
+  'ed-open': function(el){ var id = el.dataset.id; S.ui.edOpen[id] = !S.ui.edOpen[id]; render(); },
+  sdeck: function(el){ S.ui.sdeck = el.dataset.id; S.ui.confirm=null; render(); },
+  'deck-add': function(){ var dd = draft('decks').decks; var id = uid('dk'); dd[id] = {title:'Презентация '+(Object.keys(dd).length+1), slides:[]}; S.ui.sdeck = id; markDirty('decks'); render(); setTimeout(function(){ var n = document.getElementById('dk-'+id+'-t'); if(n){ n.focus(); n.select(); } }, 0); },
+  'deck-del-yes': function(){ var dd = draft('decks').decks; var cur = curDeckDraftId(); (dd[cur].slides||[]).forEach(function(s){ if(s.image) S.pendingDel.push(s.image); }); delete dd[cur]; S.ui.sdeck=null; S.ui.confirm=null; markDirty('decks'); render(); },
+  'slide-del-yes': function(el){ var dd = draft('decks').decks; var cur = curDeckDraftId(); var rm = dd[cur].slides.splice(Number(el.dataset.i),1)[0]; if(rm && rm.image) S.pendingDel.push(rm.image); S.ui.confirm=null; markDirty('decks'); render(); },
+  'slide-mv': function(el){ var dd = draft('decks').decks; var cur = curDeckDraftId(); mv(dd[cur].slides, Number(el.dataset.i), Number(el.dataset.dir)); markDirty('decks'); render(); },
+  stest: function(el){ S.ui.stest = el.dataset.id; S.ui.confirm=null; render(); },
+  'test-add': function(){ var tt = draft('tests').tests; var id = uid('t'); tt[id] = {title:'', pass:80, attempts:3, questions:[{q:'', options:[], correct:0}]}; S.ui.stest = id; markDirty('tests'); render(); },
+  'test-del-yes': function(){ var tt = draft('tests').tests; var ids = Object.keys(tt); var cur = S.ui.stest && tt[S.ui.stest] ? S.ui.stest : ids[0]; delete tt[cur]; S.ui.stest=null; S.ui.confirm=null; markDirty('tests'); render(); },
+  'q-add': function(){ var tt = draft('tests').tests; var ids = Object.keys(tt); var cur = S.ui.stest && tt[S.ui.stest] ? S.ui.stest : ids[0]; tt[cur].questions = tt[cur].questions||[]; tt[cur].questions.push({q:'', options:[], correct:0}); markDirty('tests'); render(); },
+  'q-del-yes': function(el){ var tt = draft('tests').tests; var ids = Object.keys(tt); var cur = S.ui.stest && tt[S.ui.stest] ? S.ui.stest : ids[0]; tt[cur].questions.splice(Number(el.dataset.i),1); S.ui.confirm=null; markDirty('tests'); render(); },
+  'q-mv': function(el){ var tt = draft('tests').tests; var ids = Object.keys(tt); var cur = S.ui.stest && tt[S.ui.stest] ? S.ui.stest : ids[0]; mv(tt[cur].questions, Number(el.dataset.i), Number(el.dataset.dir)); markDirty('tests'); render(); },
+  'cat-add': function(){ draft('kb').cats.push({id:uid('c'), title:''}); markDirty('kb'); render(); },
+  'cat-del-yes': function(el){ draft('kb').cats.splice(Number(el.dataset.i),1); S.ui.confirm=null; markDirty('kb'); render(); },
+  'art-add': function(){ var a = {id:uid('a'), cat:(draft('kb').cats[0]||{}).id||'', title:'', summary:'', read:'', body:[]}; draft('kb').articles.unshift(a); S.ui.edOpen['a:'+a.id]=true; markDirty('kb'); render(); },
+  'art-del-yes': function(el){ draft('kb').articles.splice(Number(el.dataset.i),1); S.ui.confirm=null; markDirty('kb'); render(); },
+  'org-add': function(){ var ps = draft('org').people; ps.push({id:uid('p'), name:'', role:'', area:'', parent:(ps.filter(function(p){ return !p.parent; })[0]||{}).id||'', help:'', contact:'', kind:''}); markDirty('org'); render(); },
+  'org-del-yes': function(el){ var ps = draft('org').people; var rm = ps[Number(el.dataset.i)]; ps.splice(Number(el.dataset.i),1); ps.forEach(function(p){ if(p.parent===rm.id) p.parent=rm.parent||''; }); S.ui.confirm=null; markDirty('org'); render(); },
+  'sim-add': function(){ var id = uid('sim'); S.db.doc('sims/'+id).set({title:'Новый тренажёр', desc:'', html:'', size:0, updatedAt:0}).then(function(){ toast('Тренажёр добавлен — загрузите HTML-файл'); }, writeErr); },
+  'sim-save': function(el){ var id = el.dataset.id; S.db.doc('sims/'+id).update({title:String(f('sm-'+id+'-t', S.sims[id].title)).trim()||'Тренажёр', desc:String(f('sm-'+id+'-d', S.sims[id].desc))}).then(function(){ delete S.form['sm-'+id+'-t']; delete S.form['sm-'+id+'-d']; toast('Сохранено'); }, writeErr); },
+  'sim-preview': function(el){ openPlayer(el.dataset.id, null); },
+  'sim-del-yes': function(el){ var id = el.dataset.id; S.ui.confirm=null; S.db.doc('sims/'+id).delete().then(function(){ toast('Тренажёр удалён'); }, writeErr); }
+};
+
+function saveDraft(k, msg){
+  var data = cleanDraft(k, clone(draft(k)));
+  var size = JSON.stringify(data).length; if(size > 250000){ toast('Слишком много текста для одного раздела ('+kb(size)+'). Сократите содержимое.'); return Promise.resolve(false); }
+  return S.db.doc('content/'+DRAFT_SRC[k]).set(data).then(function(){
+    S.content[DRAFT_SRC[k]] = clone(data); S.dirty[k]=false; S.draft[k]=null;
+    if(k==='decks' && S.pendingDel.length && S.assets){
+      var still = {}; Object.keys(data.decks||{}).forEach(function(id){ (data.decks[id].slides||[]).forEach(function(s){ if(s.image) still[s.image]=1; }); });
+      var del = S.pendingDel.filter(function(a){ return !still[a]; }); S.pendingDel = [];
+      del.forEach(function(a){ S.assets.delete(a).catch(function(){}); });
+    }
+    if(msg) toast(msg); else render();
+    return true;
+  }, function(e){ writeErr(e); return false; });
+}
+function imgFiles(list){ return Array.prototype.filter.call(list||[], function(f){ return /^image\/(png|jpeg|webp|gif)$/.test(f.type); }); }
+function addSlideImages(files){
+  if(S.role!=='trainer') return;
+  files = imgFiles(files);
+  if(!files.length){ toast('Нужны картинки PNG, JPG, WEBP или GIF.'); return; }
+  if(!S.assets){ toast('Загрузка картинок недоступна: кабинет не подключён к хранилищу.'); return; }
+  if(S.ui.uploading){ toast('Дождитесь окончания загрузки.'); return; }
+  files.sort(function(a,b){ return String(a.name).localeCompare(String(b.name), 'ru', {numeric:true}); });
+  var dd = draft('decks').decks; var cur = curDeckDraftId();
+  if(!cur){ cur = uid('dk'); dd[cur] = {title:'Презентация 1', slides:[]}; S.ui.sdeck = cur; }
+  S.ui.uploading = {done:0, total:files.length}; render();
+  var failed = 0;
+  var chain = Promise.resolve();
+  files.forEach(function(file){
+    chain = chain.then(function(){
+      return S.assets.upload(file).then(function(r){
+        var d = draft('decks').decks[cur]; if(!d) return;
+        d.slides = d.slides || []; d.slides.push({image:r.id, title:'', note:''});
+      }, function(e){ failed++; if(e && e.code==='too_large') toast('«'+file.name+'» больше 20 МБ — пропущен.'); })
+      .then(function(){ S.ui.uploading.done++; render(); });
+    });
+  });
+  chain.then(function(){
+    S.ui.uploading = null; markDirty('decks');
+    var ok = files.length - failed;
+    saveDraft('decks', ok ? 'Добавлено слайдов: '+ok+(failed?'. Не загрузилось: '+failed:'')+'. Сохранено.' : 'Не удалось загрузить скриншоты. Попробуйте ещё раз.');
+  });
+}
+function replaceSlideImage(i, file){
+  if(!S.assets || !file) return;
+  if(!imgFiles([file]).length){ toast('Нужна картинка PNG, JPG, WEBP или GIF.'); return; }
+  var cur = curDeckDraftId(); S.ui.uploading = {done:0, total:1}; render();
+  S.assets.upload(file).then(function(r){
+    var s = draft('decks').decks[cur].slides[i]; if(s.image) S.pendingDel.push(s.image); s.image = r.id; delete s.points; delete s.kicker;
+    S.ui.uploading = null; markDirty('decks'); saveDraft('decks', 'Скриншот заменён и сохранён.');
+  }, function(){ S.ui.uploading = null; toast('Не удалось загрузить картинку.'); });
+}
+
+var CHANGE = {
+  'slides-files': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; addSlideImages(fs); },
+  'slide-replace': function(el){ var fl = el.files && el.files[0]; var i = Number(el.dataset.i); el.value=''; replaceSlideImage(i, fl); },
+  'deck-pick': function(el){ S.ui.freeDeck = el.value; S.ui.slide=1; S.ui.unsynced=true; render(); },
+  'g-pick': function(el){ S.ui.gid = el.value; S.ui.scope='group'; S.ui.rsel=null; render(); },
+  'scope-pick': function(el){ S.ui.scope = el.value; render(); },
+  'tdeck': function(el){ S.ui.tdeck = el.value; S.ui.tslide=1; render(); },
+  'sim-file': function(el){
+    var file = el.files && el.files[0]; var id = el.dataset.id; if(!file) return;
+    if(file.size > 240000){ toast('Файл '+kb(file.size)+' — больше лимита 240 КБ. Уменьшите тренажёр или вынесите картинки.'); el.value=''; return; }
+    var r = new FileReader();
+    r.onload = function(){ var html = String(r.result||''); if(!/<(html|body|script|div)/i.test(html)){ toast('Это не похоже на HTML-файл тренажёра.'); return; }
+      S.db.doc('sims/'+id).update({html:html, size:file.size, file:file.name, updatedAt:Date.now()}).then(function(){ toast('Тренажёр «'+(S.sims[id].title||'')+'» загружен'); }, writeErr); };
+    r.onerror = function(){ toast('Не удалось прочитать файл.'); };
+    r.readAsText(file);
+  }
+};
+
+document.addEventListener('click', function(e){
+  var el = e.target.closest('[data-act]'); if(!el) return;
+  if(el.tagName==='INPUT' && el.type==='radio'){ var fn0=A[el.dataset.act]; if(fn0) fn0(el,e); return; }
+  var fn = A[el.dataset.act]; if(fn){ fn(el, e); }
+});
+document.addEventListener('toggle', function(e){ var d = e.target; if(d && d.dataset && d.dataset.day){ S.ui.dayOpen[d.dataset.day] = d.open; } }, true);
+document.addEventListener('change', function(e){
+  var el = e.target;
+  if(el.dataset && el.dataset.actChange && CHANGE[el.dataset.actChange]) CHANGE[el.dataset.actChange](el);
+  if(el.dataset && el.dataset.d){ setPath(draft(el.dataset.d), el.dataset.p, parseVal(el)); markDirty(el.dataset.d); if(el.dataset.rerender) render(); }
+  if(el.dataset && el.dataset.note){ var p={notes:{}}; p.notes[el.dataset.note]=el.value; saveProgress(p); }
+});
+document.addEventListener('input', function(e){
+  var el = e.target;
+  if(el.hasAttribute && el.hasAttribute('data-keep')){ S.form[el.id] = el.value; if(el.id==='ni-name' && S.ui.loginAuto!==false){ S.form['ni-login'] = makeLogin(el.value); } if(el.id==='ni-login') S.ui.loginAuto=false; if(el.id==='ap-name' && S.ui.apLoginAuto!==false){ S.form['ap-login'] = makeLogin(el.value); } if(el.id==='ap-login') S.ui.apLoginAuto=false; }
+  if(el.dataset && el.dataset.d && el.tagName!=='SELECT' && el.type!=='checkbox'){ setPath(draft(el.dataset.d), el.dataset.p, parseVal(el)); markDirty(el.dataset.d); }
+  if(el.dataset && el.dataset.note){ S.form['note-'+el.dataset.note] = el.value; }
+  if(el.dataset && (el.dataset.live==='kb' || el.dataset.live==='ni')) render();
+});
+function onDecksScreen(){ return S.role==='trainer' && S.view==='t-settings' && S.ui.st==='decks'; }
+document.addEventListener('paste', function(e){
+  if(!onDecksScreen() || !e.clipboardData) return;
+  var fs = imgFiles(e.clipboardData.files);
+  if(!fs.length){ var items = e.clipboardData.items||[]; for(var i=0;i<items.length;i++){ if(items[i].kind==='file'){ var fl = items[i].getAsFile(); if(fl) fs.push(fl); } } fs = imgFiles(fs); }
+  if(!fs.length) return;
+  e.preventDefault(); addSlideImages(fs.map(function(f, i){ return f.name && f.name!=='image.png' ? f : new File([f], 'screenshot-'+Date.now()+'-'+i+'.'+(f.type.split('/')[1]||'png'), {type:f.type}); }));
+});
+document.addEventListener('dragover', function(e){ if(!onDecksScreen()) return; if(e.target.closest && e.target.closest('[data-drop]')){ e.preventDefault(); if(!S.ui.dragOver){ S.ui.dragOver = true; render(); } } });
+document.addEventListener('dragleave', function(e){ if(S.ui.dragOver && e.target.closest && e.target.closest('[data-drop]') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-drop]'))){ S.ui.dragOver = false; render(); } });
+document.addEventListener('drop', function(e){ if(!onDecksScreen()) return; if(e.target.closest && e.target.closest('[data-drop]')){ e.preventDefault(); S.ui.dragOver = false; addSlideImages(e.dataTransfer && e.dataTransfer.files); } });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(S.ui.modal){ S.ui.modal=null; render(); } } });
+window.addEventListener('beforeunload', function(e){ if(Object.keys(S.dirty).some(function(k){ return S.dirty[k]; })){ e.preventDefault(); e.returnValue=''; } });
+document.addEventListener('submit', function(e){
+  var form = e.target; var k = form.dataset && form.dataset.form; if(!k) return; e.preventDefault();
+  if(k==='login') doLogin();
+  if(k==='apply') doApply();
+  if(k==='trainer'){
+    var tl = String(f('tr-login')).trim().toUpperCase(); var tp = String(f('tr-pw')).trim();
+    if(!tl || !tp){ S.ui.trErr = 'Введите логин и пароль тренера.'; render(); return; }
+    signIn(tl, tp, 'trainer');
+  }
+  if(k==='newgroup'){
+    var name = String(f('ng-name', ngDefName())).trim() || 'Новая группа'; var gid = uid('g');
+    S.db.doc('groups/'+gid).set({name:name, start:f('ng-start', ngDefStart()), access:{}, createdAt:Date.now()}).then(function(){ S.ui.gid=gid; S.ui.newGroup=false; delete S.form['ng-name']; toast('Группа создана'); }, writeErr);
+  }
+  if(k==='newintern'){
+    var nm = String(f('ni-name')).trim(); var lg = String(S.form['ni-login']!=null?S.form['ni-login']:makeLogin(nm)).trim().toLowerCase(); var pw = String(f('ni-pw', S.ui.genPw)).trim();
+    S.ui.niErr = !nm ? 'Укажите ФИО стажёра.' : (!lg ? 'Укажите логин.' : (pw.length<6 ? 'Пароль — минимум 6 символов.' : (Object.keys(S.interns).some(function(id){ return String(S.interns[id].login).toLowerCase()===lg; }) ? 'Логин «'+lg+'» уже занят. Измените его.' : null)));
+    if(S.ui.niErr){ render(); return; }
+    if(!/^[a-z0-9._-]+$/.test(lg)){ S.ui.niErr = 'Логин — только латинские буквы, цифры, точка, дефис.'; render(); return; }
+    var gid2 = curGid(); S.ui.busy = true; render();
+    signUpIntern(lg, pw).then(function(iid){ return S.db.doc('interns/'+iid).set({name:nm, login:lg, groupId:gid2, overrides:{}, createdAt:Date.now()}); }).then(function(){
+      S.ui.busy=false; S.ui.created = {name:nm, login:lg, pw:pw}; delete S.form['ni-name']; delete S.form['ni-login']; delete S.form['ni-pw']; S.ui.genPw = genPw(); S.ui.loginAuto=true; render();
+    }, function(e){ S.ui.busy=false; S.ui.niErr = (e && e.message) || 'Не удалось создать доступ.'; render(); });
+  }
+  if(k==='survey'){
+    var sv = S.ui.survey; var it = itemById(sv.itemId); var ratings = {}; var ok = true;
+    SURVEY_Q.forEach(function(q){ var v=S.form['sv-'+q[0]]; if(!v) ok=false; ratings[q[0]]=v; });
+    if(!ok){ toast('Поставьте оценку по каждому вопросу'); return; }
+    S.db.collection('surveys').add({groupId:me().groupId, day:it.day, itemId:it.id, ratings:ratings, comment:String(f('sv-comment')).slice(0,1000), at:Date.now()}).then(function(){
+      var p={items:{}}; p.items[it.id]={status:'done', at:Date.now()}; saveProgress(p); delete S.form['sv-comment']; toast('Спасибо, ответы отправлены');
+    }, writeErr);
+  }
+  if(k==='feedback'){
+    var txt = String(f('fb-text')).trim(); if(!txt){ toast('Напишите комментарий'); return; }
+    var iid2 = S.ui.rsel; var cur = S.feedback[iid2]; var entries = ((cur&&cur.entries)||[]).concat([{at:Date.now(), text:txt.slice(0,2000)}]);
+    S.db.doc('feedback/'+iid2).set({entries:entries}).then(function(){ S.form['fb-text']=''; toast('Комментарий отправлен стажёру'); }, writeErr);
+  }
+});
+
+function signIn(login, pw, want){
+  var errKey = want==='trainer' ? 'trErr' : 'loginErr';
+  S.ui.busy = true; render();
+  return sb.auth.signInWithPassword({email: emailOf(login), password: pw}).then(function(r){
+    if(r.error){ S.ui.busy = false; S.ui[errKey] = authErrText(r.error); render(); return; }
+    return afterAuth(r.data.user, want);
+  }).catch(function(e){ S.ui.busy = false; S.ui[errKey] = authErrText(e); render(); });
+}
+function afterAuth(user, want){
+  return sb.rpc('is_trainer').then(function(r){
+    var tr = !!r.data;
+    if(want==='trainer' && !tr){ S.ui.trErr = 'У этого аккаунта нет прав тренера.'; S.ui.busy=false; sb.auth.signOut(); render(); return; }
+    S.uid = user.id;
+    return loadAll().then(function(){
+      S.ui.busy = false; S.ui.loginErr = null; S.ui.trErr = null; S.ui.trainerForm = false;
+      delete S.form['f-pw']; delete S.form['tr-pw'];
+      if(tr){ S.role = 'trainer'; S.view = 't-access'; }
+      else if(S.interns[user.id] && S.interns[user.id].suspended){ S.ui.loginErr = 'Доступ приостановлен тренером. Обратитесь к тренеру.'; sb.auth.signOut(); }
+      else if(S.interns[user.id]){ S.role = 'intern'; S.iid = user.id; S.view = 'home'; saveProgress({seen:Date.now()}); }
+      else if(CACHE['requests/'+user.id]){ S.role = 'applicant'; }
+      else { S.ui.loginErr = 'Аккаунт не найден. Обратитесь к тренеру.'; sb.auth.signOut(); }
+      render();
+    });
+  }).catch(function(e){ S.ui.busy = false; S.ui.loginErr = authErrText(e); render(); });
+}
+function doLogin(){
+  var lg = String(f('f-login')).trim().toLowerCase(); var pw = String(f('f-pw'));
+  if(!lg || !pw){ S.ui.loginErr = 'Введите логин и пароль.'; render(); return; }
+  signIn(lg, pw, 'intern');
+}
+function doApply(){
+  var nm = String(f('ap-name')).trim(); var lg = String(S.form['ap-login']!=null?S.form['ap-login']:makeLogin(nm)).trim().toLowerCase();
+  var pw = String(f('ap-pw')); var pw2 = String(f('ap-pw2')); var contact = String(f('ap-contact')).trim(); var note = String(f('ap-note')).trim();
+  S.ui.apErr = nm.split(/\s+/).length < 2 ? 'Укажите фамилию и имя.' : (!/^[a-z0-9._-]{3,}$/.test(lg) ? 'Логин — от 3 символов: латинские буквы, цифры, точка, дефис.' : (pw.length < 6 ? 'Пароль — не короче 6 символов.' : (pw !== pw2 ? 'Пароли не совпадают.' : (!contact ? 'Укажите телефон или Telegram, чтобы тренер мог связаться.' : null))));
+  if(S.ui.apErr){ render(); return; }
+  S.ui.busy = true; render();
+  sb.auth.signUp({email: emailOf(lg), password: pw}).then(function(r){
+    if(r.error){ var m = r.error.message||''; throw {message: /already registered|already exists/i.test(m) ? 'Логин «'+lg+'» уже занят. Если заявку подавали вы — войдите с ним на странице входа.' : (/signups not allowed|disabled/i.test(m) ? 'Подача заявок сейчас отключена. Обратитесь к тренеру.' : 'Не удалось отправить заявку: '+m)}; }
+    var u = r.data && r.data.user;
+    if(!u || (u.identities && u.identities.length===0)) throw {message:'Логин «'+lg+'» уже занят.'};
+    if(!r.data.session) throw {message:'Заявку не удалось завершить: в Supabase включено подтверждение почты. Сообщите тренеру.'};
+    var doc = {name:nm, login:lg, contact:contact.slice(0,100), note:note.slice(0,300), status:'pending', at:Date.now()};
+    return sb.from('docs').insert({path:'requests/'+u.id, data:doc}).then(function(res){
+      if(res.error){ sb.auth.signOut(); throw {message: /row-level|policy/i.test(res.error.message||'') ? 'Подача заявок сейчас отключена. Обратитесь к тренеру.' : 'Не удалось отправить заявку: '+res.error.message}; }
+      S.uid = u.id; setLocal('requests/'+u.id, doc);
+      S.ui.busy = false; S.ui.applyForm = false; S.role = 'applicant'; ['ap-pw','ap-pw2','ap-name','ap-login','ap-contact','ap-note'].forEach(function(k){ delete S.form[k]; }); render();
+    });
+  }).catch(function(e){ S.ui.busy = false; S.ui.apErr = (e && e.message) || 'Не удалось отправить заявку.'; render(); });
+}
+function signUpIntern(login, pw){
+  var tmp = supabase.createClient(CFG.url, CFG.anonKey, {auth:{persistSession:false, autoRefreshToken:false, detectSessionInUrl:false, storageKey:'start-signup-tmp'}});
+  return tmp.auth.signUp({email: emailOf(login), password: pw}).then(function(r){
+    if(r.error){ if(/already registered|already exists/i.test(r.error.message||'')) throw {message:'Логин «'+login+'» уже занят. Измените его.'}; throw {message:'Не удалось создать доступ: '+r.error.message}; }
+    var u = r.data && r.data.user;
+    if(!u || (u.identities && u.identities.length===0)) throw {message:'Логин «'+login+'» уже занят. Измените его.'};
+    if(!r.data.session) S.ui.confirmWarn = true;
+    return u.id;
+  });
+}
+
+/* ---------- boot ---------- */
+render();
+if(!window.supabase || !CFG.url || !CFG.anonKey || /ВСТАВЬТЕ|XXXX/.test(CFG.url + CFG.anonKey)){
+  S.dbState = 'none'; render();
+} else {
+  sb = supabase.createClient(CFG.url, CFG.anonKey);
+  S.db = DB; S.assets = ASSETS; S.canEdit = true; S.dbState = 'ok';
+  ['program','slides','tests','knowledge','org','settings'].forEach(function(k){
+    S.db.doc('content/'+k).onSnapshot(function(s){ S.content[k] = s.exists ? s.data() : null; S.loaded[k]=true; schedule(); });
+  });
+  [['groups','groups'],['interns','interns'],['progress','progress'],['feedback','feedback'],['live','live'],['sims','sims'],['requests','requests']].forEach(function(c){
+    S.db.collection(c[0]).onSnapshot(function(snap){ var o={}; snap.docs.forEach(function(d){ o[d.id]=d.data(); }); S[c[1]]=o; S.loaded[c[0]]=true; if(c[0]==='interns'){ checkApproved(); checkSuspended(); } schedule(); });
+  });
+  S.db.collection('surveys').onSnapshot(function(snap){ S.surveys = snap.docs.map(function(d){ return d.data(); }); schedule(); });
+  sb.channel('docs-live').on('postgres_changes', {event:'*', schema:'public', table:'docs'}, function(pl){
+    if(pl.eventType==='DELETE'){ var p = pl.old && pl.old.path; if(p) setLocal(p, undefined); }
+    else if(pl.new && pl.new.path){ setLocal(pl.new.path, pl.new.data); }
+  }).subscribe();
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden && S.role) loadAll().catch(function(){}); });
+  setInterval(function(){ if(S.role && !document.hidden) loadAll().catch(function(){}); }, 120000);
+  sb.from('docs').select('path,data').eq('path','content/settings').maybeSingle().then(function(r){ if(r.data) setLocal('content/settings', r.data.data); });
+  S.ui.busy = true;
+  sb.auth.getSession().then(function(r){
+    var s = r.data && r.data.session;
+    if(s) afterAuth(s.user, null); else { S.ui.busy = false; render(); }
+  });
+}
+})();
+
+</script>
+</body>
+</html>
