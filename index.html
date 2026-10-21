@@ -108,7 +108,7 @@ h3{font-size:16px;font-weight:600}
 .list{display:flex;flex-direction:column}
 .li{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--line2)}
 .li:first-child{border-top:0}
-.li .type{width:96px;flex-shrink:0}
+.li .type{width:118px;flex-shrink:0}
 .li .ttl{flex:1;min-width:0}
 .li .ttl b{font-weight:500;display:block}
 .li.locked{color:var(--faint)}
@@ -190,6 +190,13 @@ body.trainer .cheat{background:var(--side)}
 .article p{margin:0;line-height:1.6}
 
 .tree{overflow-x:auto}
+.tree-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 12px}
+.trees{display:flex;flex-direction:column;gap:16px}
+.contact-fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:25;display:inline-flex;align-items:center;gap:8px;padding:10px 16px 10px 12px;border-radius:999px;background:var(--accent);color:#fff;font-weight:600;font-size:14px;text-decoration:none;box-shadow:var(--shadow)}
+.contact-fab:hover{background:var(--accent-ink)}
+body:not(.trainer) .main{padding-bottom:88px}
+.contact-fab svg{width:18px;height:18px;flex-shrink:0}
+@media (max-width:640px){.contact-fab{right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:10px 14px 10px 12px}}
 .tree-in{min-width:640px;display:flex;flex-direction:column;align-items:stretch}
 .node{border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;text-align:center;background:var(--surface)}
 .node.root{align-self:center;width:300px;background:var(--side);color:#fff;border-color:var(--side)}
@@ -250,6 +257,46 @@ details[open] .chev{transform:rotate(90deg)}
 @media (prefers-reduced-motion:reduce){.chev{transition:none}}
 .mat{font-size:12.5px;color:var(--muted)}
 .mat.link{color:var(--accent-ink)}
+a.mat.link{text-decoration:none;font-weight:500}
+a.mat.link:hover{text-decoration:underline}
+.tone-theory{--tone:#5DB85A;--tone-soft:#E4F3DF;--tone-ink:#2C6A2A}
+.tone-practice{--tone:#9466F0;--tone-soft:#EEE5FE;--tone-ink:#5424BE}
+.tone-check{--tone:#E2B200;--tone-soft:#FFF3C4;--tone-ink:#6E5100}
+.tone-summary{--tone:#3FB08F;--tone-soft:#D9F3EC;--tone-ink:#1B6653}
+.tone-org{--tone:#9C9CBE;--tone-soft:#ECECF6;--tone-ink:#4A4A68}
+.tone-meeting{--tone:#7E6CCB;--tone-soft:#E4DEF6;--tone-ink:#43348A}
+.tone-crm{--tone:#4E91DB;--tone-soft:#DEECFA;--tone-ink:#1D568F}
+.tone-none{--tone:transparent;--tone-soft:var(--surface2);--tone-ink:var(--muted)}
+.li{position:relative}
+.li[class*="tone-"]{padding-left:14px}
+.li::before{content:'';position:absolute;left:0;top:11px;bottom:11px;width:4px;border-radius:4px;background:var(--tone,transparent)}
+.li.locked::before{opacity:.45}
+.tpill{display:inline-block;padding:3px 9px;border-radius:999px;background:var(--tone-soft,var(--surface2));color:var(--tone-ink,var(--muted));font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+.li.locked .tpill{opacity:.7}
+.sref{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap}
+.sref::before{content:'';width:10px;height:7px;border:1.5px solid currentColor;border-radius:2px;opacity:.7}
+.ttl .meta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 0}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--muted);align-items:center}
+.legend .lg{display:inline-flex;align-items:center;gap:7px}
+.legend .lg i{width:12px;height:12px;border-radius:4px;background:var(--tone)}
+.ed[class*="tone-"]{border-left:4px solid var(--tone)}
+.ed.tone-none{border-left-width:1px;border-left-color:var(--line)}
+.accessrow[class*="tone-"]{border-left:3px solid var(--tone);padding-left:8px}
+.topics{display:flex;flex-direction:column;gap:2px;max-height:520px;overflow:auto}
+.topic{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-left:3px solid var(--tone,transparent);border-radius:6px;padding:8px 10px;cursor:pointer;color:var(--fg);font-size:14px}
+.topic:hover{background:var(--surface2)}
+.topic.on{background:var(--accent-soft);font-weight:600}
+.topic .n{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+.slidetopic{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.slidetopic .tpill{text-transform:none;letter-spacing:0;font-size:12.5px}
+.impbox{display:flex;flex-direction:column;gap:12px}
+.impstat{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.impstat div{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;background:var(--surface2)}
+.impstat b{font-family:var(--f-display);font-size:24px;font-weight:500}
+.impday{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line2);padding-top:10px}
+.impday .row{gap:6px}
+.progress{height:10px;border-radius:999px;background:var(--line2);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .2s}
 .player{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column}
 .player-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--side);color:var(--side-fg)}
 .player-bar b{font-size:16px;flex:1 1 200px;min-width:0}
@@ -390,6 +437,11 @@ function kb(n){ return Math.round(n/1024)+' КБ'; }
 
 var TYPE = {theory:'Теория', practice:'Практика', listen:'Прослушка', test:'Тест', survey:'Опрос', sim:'Тренажёр', tool:'Инструмент', meeting:'Встреча', org:'Организационное', presentation:'Презентация'};
 var TYPE_ORDER = ['theory','practice','listen','sim','test','survey','tool','meeting','org'];
+var TONES = {theory:'Теория и знакомство', practice:'Демонстрация и отработка', check:'Опросы и проверка', summary:'Итоги и обратная связь', crm:'Практика с CRM', org:'Организационное', meeting:'Встреча'};
+var TONE_ORDER = ['theory','practice','check','summary','crm','org','meeting'];
+function toneOf(it){ return it && TONES[it.tone] ? it.tone : 'none'; }
+function slideRef(it){ if(!it.deck || !it.slide) return ''; return 'Слайд '+it.slide+(it.slideTo && it.slideTo>it.slide ? '–'+it.slideTo : ''); }
+function toneLegend(items){ var used = {}; (items||[]).forEach(function(i){ if(TONES[i.tone]) used[i.tone]=1; }); var ks = TONE_ORDER.filter(function(t){ return used[t]; }); if(!ks.length) return ''; return '<div class="legend" aria-label="Цвета блоков">'+ks.map(function(t){ return '<span class="lg tone-'+t+'"><i aria-hidden="true"></i>'+esc(TONES[t])+'</span>'; }).join('')+'</div>'; }
 var TABS = [['home','Главная'],['plan','План обучения'],['sims','Тренажёры'],['tests','Тесты и опросы'],['pres','Презентация'],['kb','База знаний'],['org','Структура компании'],['progress','Мой прогресс']];
 
 /* ---------- content accessors ---------- */
@@ -431,6 +483,9 @@ function currentDayIdx(iid){ var idx = 0; days().forEach(function(d,i){ if(daySt
 function groupOf(iid){ var it = S.interns[iid||S.iid]; return it ? S.groups[it.groupId] : null; }
 function liveOf(gid){ return S.live[gid] || {}; }
 function openedSlides(deckId, gid){ var lv = liveOf(gid); var o = lv.opened && lv.opened[deckId]; var dk = deck(deckId); var total = dk ? dk.slides.length : 0; return (typeof o === 'number') ? Math.min(o, total) : 0; }
+function itemSlideMax(deckId, iid){ var mx = 0; allItems().forEach(function(i){ if(i.deck===deckId && isOpen(i, iid)) mx = Math.max(mx, Number(i.slideTo||i.slide||0)); }); return mx; }
+function slideLimit(deckId){ var m = me(); var dk = deck(deckId); var tot = dk ? dk.slides.length : 0; return Math.min(tot, Math.max(openedSlides(deckId, m.groupId), itemSlideMax(deckId))); }
+function topicsForSlide(deckId, n){ return allItems().filter(function(i){ return i.deck===deckId && i.slide && n>=i.slide && n<=Math.max(i.slide, i.slideTo||i.slide); }); }
 function deckOk(deckId){
   var m = me(); if(!m || !deck(deckId)) return false; var lv = liveOf(m.groupId);
   if(lv.active && lv.deck===deckId) return true;
@@ -493,6 +548,10 @@ function viewLogin(){
     '</form>'+ dbMsg + (allowApply() && S.dbState==='ok' ? '<p class="small muted" style="margin:0;text-align:center">Нет логина? <button type="button" class="linkbtn" data-act="apply-open">Подать заявку на доступ</button></p>' : '') + trainer +
   '</div></div>';
 }
+function trainerTg(){ var v = String(settings().trainerContact==null ? '' : settings().trainerContact).trim(); return v || '@zzuboff'; }
+function tgLink(v){ if(/^https?:\/\//i.test(v)) return v; var u = v.replace(/^@/,'').replace(/^t\.me\//i,''); return u ? 'https://t.me/'+encodeURIComponent(u) : ''; }
+function contactFab(){ var v = trainerTg(); if(v==='-') return ''; var url = tgLink(v); if(!url) return '';
+  return '<a class="contact-fab" href="'+esc(url)+'" target="_blank" rel="noopener" aria-label="Связь с тренером в Telegram: '+esc(v)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4 3 11l6 2.5L19 7l-8 8 6.5 5L21 4z"/></svg>Связь с тренером</a>'; }
 function allowApply(){ return settings().allowApply !== false; }
 function viewApply(){
   var b = brand(); var nameV = f('ap-name'); var loginV = S.form['ap-login'] != null ? S.form['ap-login'] : makeLogin(nameV);
@@ -576,7 +635,7 @@ function viewShell(){
     '</nav>';
     body = ({'t-access':tAccess, 't-pres':tPres, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
   }
-  return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>';
+  return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>'+(S.role==='intern' ? contactFab() : '');
 }
 
 function noContent(){ return '<div class="empty"><h2>Материалы ещё не загружены</h2><p style="margin:0">Как только тренер заполнит программу стажировки, здесь появятся дни, темы и тесты.</p></div>'; }
@@ -596,15 +655,18 @@ function statusChip(it){
   if(isDone(it)) return '<span class="chip ok">Пройдено</span>';
   return '<span class="chip warn">Доступно</span>';
 }
-function matLine(it){
-  if(!it.material) return '';
+function matLine(it, open){
+  var sr = slideRef(it) && deck(it.deck) ? '<span class="sref">'+esc(slideRef(it))+'</span>' : '';
+  if(!it.material) return sr ? '<span class="meta">'+sr.replace('class="sref"','class="sref" style="margin-left:0"')+'</span>' : '';
   var isLink = it.url != null;
-  return '<span class="mat'+(isLink?' link':'')+'">'+esc(it.material)+(isLink?' ↗':'')+'</span>';
+  var m = (isLink && it.url && open) ? '<a class="mat link" href="'+esc(it.url)+'" target="_blank" rel="noopener">'+esc(it.material)+' ↗</a>'
+    : '<span class="mat'+(isLink?' link':'')+'">'+esc(it.material)+(isLink?' ↗':'')+'</span>';
+  return '<span class="meta">'+m+sr+'</span>';
 }
 function itemRow(it){
   var open = isOpen(it);
-  return '<div class="li'+(open?'':' locked')+'"><span class="type lbl">'+esc(TYPE[it.type]||'')+'</span>'+
-    '<span class="ttl"><b>'+esc(it.title)+'</b>'+matLine(it)+'</span>'+
+  return '<div class="li tone-'+toneOf(it)+(open?'':' locked')+'"><span class="type"><span class="tpill">'+esc(TYPE[it.type]||'')+'</span></span>'+
+    '<span class="ttl"><b>'+esc(it.title)+'</b>'+matLine(it, open)+'</span>'+
     statusChip(it)+
     (open ? '<button class="btn sm" type="button" data-act="open-item" data-id="'+esc(it.id)+'">Открыть</button>' : '<span class="small muted" style="min-width:86px;text-align:right">Откроет тренер</span>')+
   '</div>';
@@ -648,7 +710,8 @@ function vPlan(){
   if(!days().length) return head(tabTitle('plan'),'')+noContent();
   var doneDays = days().filter(function(x){ return dayState(x)==='done'; }).length;
   var curIdx = currentDayIdx();
-  return head(tabTitle('plan'),'Теория · понедельник–пятница','<div class="card tight" style="flex-direction:row;align-items:center;gap:12px"><span class="muted">Пройдено</span><b class="num" style="font-family:var(--f-display);font-size:22px">'+doneDays+' / '+days().length+'</b><span class="muted">дней</span></div>')+
+  return head(tabTitle('plan'),days().length+' рабочих дней · по дням','<div class="card tight" style="flex-direction:row;align-items:center;gap:12px"><span class="muted">Пройдено</span><b class="num" style="font-family:var(--f-display);font-size:22px">'+doneDays+' / '+days().length+'</b><span class="muted">дней</span></div>')+
+    toneLegend(allItems())+
     days().map(function(d, i){
       var st = dayState(d);
       var items = d.items||[];
@@ -747,8 +810,10 @@ function slideHtml(s, n, total){
   return '<section class="slide" aria-label="Слайд '+n+' из '+total+'"><div class="row between"><span class="k">'+esc(s.kicker||'')+'</span><span class="n num">'+n+' / '+total+'</span></div><h2>'+esc(s.title||'')+'</h2><ul>'+(s.points||[]).map(function(p){ return '<li>'+esc(p)+'</li>'; }).join('')+'</ul></section>';
 }
 function thumbImg(sl){ return sl && sl.image ? '<img class="timg" src="'+esc(assetUrl(sl.image))+'" alt="" loading="lazy">' : ''; }
+function presLocked(){ var m = me(); if(!m) return false; var lv = liveOf(m.groupId); return !!(lv.active && lv.sync && deckOk(lv.deck)); }
 function presDeckId(){
   var m = me(); var lv = liveOf(m.groupId);
+  if(presLocked()) return lv.deck;
   if(S.ui.freeDeck && deckOk(S.ui.freeDeck)) return S.ui.freeDeck;
   if(lv.active && deckOk(lv.deck)) return lv.deck;
   var av = Object.keys(decksMap()).filter(deckOk);
@@ -757,6 +822,7 @@ function presDeckId(){
 function curSlide(){
   var m = me(); var lv = liveOf(m.groupId); var deckId = presDeckId();
   var liveMode = lv.active && deckId === lv.deck;
+  if(presLocked()) return lv.slide||1;
   if(liveMode && lv.sync && !S.ui.unsynced) return lv.slide||1;
   return S.ui.slide||1;
 }
@@ -766,22 +832,26 @@ function vPres(){
   if(!dk) return head(tabTitle('pres'),'')+'<div class="empty"><h2>Презентация пока не открыта</h2><p style="margin:0">Когда тренер начнёт показ, слайды появятся здесь, и вы сможете смотреть их со своего компьютера.</p></div>';
   var liveMode = lv.active && deckId === lv.deck;
   var total = dk.slides.length;
-  var limit = openedSlides(deckId, m.groupId);
+  var limit = slideLimit(deckId);
   var view = Math.max(1, Math.min(curSlide(), Math.max(1, limit)));
+  var locked = presLocked();
   var avail = Object.keys(decksMap()).filter(deckOk);
-  var deckPick = avail.length > 1 ? '<label class="field" style="min-width:240px">Презентация<select id="deck-pick" data-act-change="deck-pick">'+avail.map(function(id){ return '<option value="'+esc(id)+'"'+(id===deckId?' selected':'')+'>'+esc(deck(id).title)+'</option>'; }).join('')+'</select></label>' : '';
-  var status = liveMode ? '<span class="chip warn" style="padding:8px 12px"><span class="pulse" aria-hidden="true"></span>Тренер на слайде '+(lv.slide||1)+'</span>' + (view !== (lv.slide||1) ? ' <button class="btn outline sm" type="button" data-act="pres-follow">К слайду тренера</button>' : '') : '<span class="chip">Самостоятельный просмотр</span>';
+  var deckPick = (avail.length > 1 && !locked) ? '<label class="field" style="min-width:240px">Презентация<select id="deck-pick" data-act-change="deck-pick">'+avail.map(function(id){ return '<option value="'+esc(id)+'"'+(id===deckId?' selected':'')+'>'+esc(deck(id).title)+'</option>'; }).join('')+'</select></label>' : '';
+  var status = locked ? '<span class="chip warn" style="padding:8px 12px"><span class="pulse" aria-hidden="true"></span>Идёт показ · слайды переключает тренер</span>' : liveMode ? '<span class="chip warn" style="padding:8px 12px"><span class="pulse" aria-hidden="true"></span>Тренер на слайде '+(lv.slide||1)+'</span>' + (view !== (lv.slide||1) ? ' <button class="btn outline sm" type="button" data-act="pres-follow">К слайду тренера</button>' : '') : '<span class="chip">Самостоятельный просмотр</span>';
   var hd = head(tabTitle('pres'), esc(dk.title), '<div class="row" style="align-items:flex-end">'+deckPick+status+'</div>');
   if(limit < 1) return hd + '<section class="slide locked" aria-label="Слайды закрыты"><h2 style="font-size:24px">Слайды откроются во время показа</h2><p style="margin:0">Тренер открывает слайды по одному. Как только он начнёт, они появятся здесь.</p></section>';
   var s = dk.slides[view-1];
   var key = deckId+'_'+view;
   var note = S.form['note-'+key] != null ? S.form['note-'+key] : ((P().notes && P().notes[key]) || '');
+  var tps = topicsForSlide(deckId, view);
   return hd +
     slideHtml(s, view, total)+
-    '<div class="row between"><div class="row"><button class="btn" type="button" data-act="slide-prev"'+(view<=1?' disabled':'')+'>Назад</button><button class="btn primary" type="button" data-act="slide-next"'+(view>=limit?' disabled':'')+'>Вперёд</button></div><span class="small muted num">Открыто '+limit+' из '+total+(limit<total?' — следующие откроет тренер':'')+'</span></div>'+
-    '<div class="thumbs" role="list">'+dk.slides.map(function(sl,i){ var n=i+1; var o = n<=limit; var cls = 'thumb'+(n===view?' sel':'')+(liveMode && n===(lv.slide||1) && n!==view?' live':'')+(o?'':' locked');
+    (tps.length ? '<div class="slidetopic"><span>Тема плана:</span>'+tps.map(function(i){ return '<span class="tpill tone-'+toneOf(i)+'">День '+(i.dayIdx+1)+' · '+esc(i.title)+'</span>'; }).join('')+'</div>' : '')+
+    (locked ? '<p class="hint" style="margin:0">Тренер ведёт показ: на экране тот же слайд, что у тренера. Листать самостоятельно можно будет после показа.</p>' :
+    '<div class="row between"><div class="row"><button class="btn" type="button" data-act="slide-prev"'+(view<=1?' disabled':'')+'>Назад</button><button class="btn primary" type="button" data-act="slide-next"'+(view>=limit?' disabled':'')+'>Вперёд</button></div><span class="small muted num">Открыто '+limit+' из '+total+(limit<total?' — следующие откроет тренер':'')+'</span></div>')+
+    (locked ? '' : '<div class="thumbs" role="list">'+dk.slides.map(function(sl,i){ var n=i+1; var o = n<=limit; var cls = 'thumb'+(n===view?' sel':'')+(liveMode && n===(lv.slide||1) && n!==view?' live':'')+(o?'':' locked');
       return o ? '<button role="listitem" type="button" class="'+cls+'" data-act="slide-go" data-n="'+n+'"'+(n===view?' aria-current="true"':'')+'>'+thumbImg(sl)+'<small>Слайд '+n+(liveMode&&n===(lv.slide||1)?' · тренер':'')+'</small>'+(sl.title?'<span>'+esc(sl.title)+'</span>':'')+'</button>'
-               : '<div role="listitem" class="'+cls+'"><small>Слайд '+n+'</small><span>Закрыт</span></div>'; }).join('')+'</div>'+
+               : '<div role="listitem" class="'+cls+'"><small>Слайд '+n+'</small><span>Закрыт</span></div>'; }).join('')+'</div>')+
     '<label class="field">Мои заметки к слайду '+view+'<textarea id="note-'+esc(key)+'" data-note="'+esc(key)+'" placeholder="Запишите, что важно запомнить. Заметки сохраняются в «Моём прогрессе».">'+esc(note)+'</textarea></label>';
 }
 
@@ -805,10 +875,12 @@ function vKb(){
 
 function vOrg(){
   var ps = people(); if(!ps.length) return head(tabTitle('org'),'')+noContent();
-  var root = ps.filter(function(p){ return !p.parent; })[0];
-  var kids = root ? ps.filter(function(p){ return p.parent===root.id; }) : [];
+  var ids = {}; ps.forEach(function(p){ ids[p.id]=1; });
+  var roots = ps.filter(function(p){ return !p.parent || !ids[p.parent]; });
+  function oneTree(root){
+  var kids = ps.filter(function(p){ return p.parent===root.id; });
   var n = kids.length || 1;
-  var tree = root ? '<section class="card tree" aria-label="Оргсхема"><div class="tree-in">'+
+  return '<section class="card tree" aria-label="'+esc(root.area||root.role||'Оргсхема')+'">'+(roots.length>1?'<p class="tree-title">'+esc(root.area||root.role||'')+'</p>':'')+'<div class="tree-in">'+
     '<div class="node root"><span class="lbl">'+esc(root.role)+'</span><b style="font-size:17px">'+esc(root.name)+'</b></div>'+
     (kids.length ? '<div class="vline" aria-hidden="true"></div><div class="hline" aria-hidden="true" style="margin-left:'+(50/n)+'%;width:'+(100-100/n)+'%"></div><div class="kids" style="grid-template-columns:repeat('+n+',minmax(0,1fr))">'+kids.map(function(k){
       var sub = ps.filter(function(p){ return p.parent===k.id; });
@@ -816,7 +888,9 @@ function vOrg(){
       return '<div class="kid"><div class="vline" aria-hidden="true"></div><div class="node'+(mine?' mine':'')+'" style="width:100%"><span class="lbl">'+esc(k.area||'')+'</span><b>'+esc(k.name)+'</b><span class="small muted">'+esc(k.role)+(mine?' · ваш тренер':'')+'</span></div>'+
         sub.map(function(s2){ return '<div class="vline" aria-hidden="true" style="height:16px"></div><div class="node" style="width:100%"><b>'+esc(s2.name)+'</b><span class="small muted">'+esc(s2.role)+'</span></div>'; }).join('')+'</div>';
     }).join('')+'</div>' : '')+
-  '</div></section>' : '';
+  '</div></section>';
+  }
+  var tree = roots.length ? '<div class="trees">'+roots.map(oneTree).join('')+'</div>' : '';
   return head(tabTitle('org'),'Кто за что отвечает и к кому идти с вопросом')+tree+
     '<section aria-labelledby="h-c" class="stack" style="gap:16px"><h2 id="h-c">К кому обращаться</h2><div class="grid" style="--min:250px">'+ps.filter(function(p){ return p.help; }).map(function(p){
       return '<article class="card tight"><div class="row" style="flex-wrap:nowrap"><div class="ava'+(p.kind==='mentor'?' amber':(p.kind==='head'?' gray':''))+'">'+esc(initials(p.name))+'</div><div style="min-width:0"><b style="display:block">'+esc(p.name)+'</b><span class="small muted">'+esc(p.role)+'</span></div></div><p style="margin:0" class="small">'+esc(p.help)+'</p>'+(p.contact?'<div class="row" data-copybox style="flex-wrap:nowrap"><code style="font-size:14px;user-select:all;overflow:hidden;text-overflow:ellipsis">'+esc(p.contact)+'</code><button class="btn sm" type="button" data-act="copy" data-text="'+esc(p.contact)+'">Копировать</button></div>':'')+'</article>';
@@ -897,7 +971,7 @@ function tAccessMain(){
       var ov = scope!=='group' ? (S.interns[scope].overrides||{})[it.id] : undefined;
       var on = (ov===true||ov===false) ? ov : gOn;
       if(on){ openCount++; anyOn=true; } else allOn=false;
-      return '<div class="accessrow"><span style="min-width:0"><span class="lbl" style="font-size:10px;display:block">'+esc(TYPE[it.type]||'')+'</span>'+esc(it.title)+((ov===true||ov===false)?' <span class="ov">· индивидуально</span>':'')+'</span>'+
+      return '<div class="accessrow tone-'+toneOf(it)+'"><span style="min-width:0"><span class="lbl" style="font-size:10px;display:block">'+esc(TYPE[it.type]||'')+'</span>'+esc(it.title)+((ov===true||ov===false)?' <span class="ov">· индивидуально</span>':'')+'</span>'+
         '<span class="row" style="gap:6px;flex-wrap:nowrap">'+((ov===true||ov===false)?'<button class="linkbtn small" type="button" data-act="ov-reset" data-id="'+esc(it.id)+'" aria-label="Вернуть настройку группы">↺</button>':'')+
         '<button type="button" class="toggle'+(on?' on':'')+'" data-act="acc" data-id="'+esc(it.id)+'" aria-pressed="'+on+'" aria-label="'+(on?'Закрыть':'Открыть')+': '+esc(it.title)+'"><i></i></button></span></div>';
     }).join('');
@@ -908,7 +982,7 @@ function tAccessMain(){
   return head('Стажёры и доступы','Создание логинов и пошаговое открытие материалов', groupPicker(true))+newGroup+created+
     '<div class="cols"><section class="card wide" aria-labelledby="h-il"><h2 id="h-il">Стажёры группы «'+esc(g.name)+'»</h2>'+table+'</section>'+form+'</div>'+
     '<section class="card" aria-labelledby="h-acc"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-acc">Доступ к материалам</h2><span class="small muted num">'+(scope==='group'?'Группа':esc(S.interns[scope].name))+': открыто '+openCount+' из '+total+'. Открытая тема сразу появляется у стажёров.</span></div>'+scopeSel+'</div>'+
-    '<div class="grid" style="--min:230px;gap:14px">'+grid+'</div></section>';
+    toneLegend(allItems())+'<div class="grid" style="--min:230px;gap:14px">'+grid+'</div></section>';
 }
 
 /* ---------- trainer: presentation ---------- */
@@ -937,6 +1011,9 @@ function tPres(){
       slideHtml(s, cur, total)+controls+
     '</div><div class="narrow">'+
       '<section class="card" style="background:var(--amber-soft);border-color:transparent" aria-labelledby="h-tn"><h2 id="h-tn" style="font-size:16px">Заметки тренера · видите только вы</h2><p style="margin:0;line-height:1.55;white-space:pre-line">'+esc(s.note||'Заметок к этому слайду нет. Добавьте их в «Настройка → Презентации».')+'</p></section>'+
+      (function(){ var tp = allItems().filter(function(i){ return i.deck===deckId && i.slide; }); if(!tp.length) return '';
+        return '<section class="card" aria-labelledby="h-tp"><div class="row between"><h2 id="h-tp" style="font-size:16px">Темы плана</h2><span class="small muted num">'+tp.length+'</span></div><div class="topics">'+tp.map(function(i){ var on = cur>=i.slide && cur<=Math.max(i.slide, i.slideTo||i.slide);
+          return '<button type="button" class="topic tone-'+toneOf(i)+(on?' on':'')+'" data-act="tp-go" data-n="'+i.slide+'"'+(on?' aria-current="true"':'')+'><span>'+esc(i.title)+'</span><span class="n num">'+esc(slideRef(i).replace('Слайд ','сл. '))+'</span></button>'; }).join('')+'</div><span class="small muted">'+(lv.active?'Нажмите тему — группа перейдёт на её слайд.':'Нажмите тему, чтобы открыть её слайд.')+'</span></section>'; })()+
       '<section class="card" aria-labelledby="h-on"><div class="row between"><h2 id="h-on" style="font-size:16px">В презентации</h2><span class="small muted num">'+onCount+' из '+list.length+' онлайн</span></div>'+(list.length? online.map(function(o){ return '<div class="row between" style="min-height:34px;flex-wrap:nowrap"><span class="row" style="gap:10px;flex-wrap:nowrap"><span aria-hidden="true" style="width:8px;height:8px;border-radius:50%;background:'+(o.on?'var(--accent)':'var(--line)')+'"></span>'+esc(o.name)+'</span><span class="small num" style="color:'+(o.on&&o.slide!==cur?'var(--amber-ink)':'var(--muted)')+'">'+(o.on?'слайд '+o.slide:'не в сети')+'</span></div>'; }).join('') : '<p class="muted" style="margin:0">В группе нет стажёров.</p>')+'</section>'+
     '</div></div>'+
     '<section aria-labelledby="h-all" class="stack"><h2 id="h-all">Все слайды'+(lv.active?' · нажмите, чтобы перейти и открыть группе':' · нажмите, чтобы посмотреть')+'</h2><div class="thumbs">'+dk.slides.map(function(sl,i){ var n=i+1; var o=n<=opened;
@@ -997,10 +1074,10 @@ function sel(id, k, p, opts, extraCls){ var v = getPath(draft(k), p); v = v==nul
 function saveBar(k, label){
   return '<div class="savebar" data-dirtybar="'+k+'"'+(S.dirty[k]?'':' hidden')+'><span>Есть несохранённые изменения: '+label+'</span><span class="row"><button class="btn sm" type="button" data-act="draft-reset" data-k="'+k+'">Отменить</button><button class="btn sm primary" type="button" data-act="draft-save" data-k="'+k+'">Сохранить</button></span></div>';
 }
-var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['sims','Тренажёры'],['kb','База знаний'],['org','Структура'],['tabs','Вкладки и название']];
+var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['sims','Тренажёры'],['kb','База знаний'],['org','Структура'],['tabs','Вкладки и название'],['import','Импорт программы']];
 function tSettings(){
   var st = S.ui.st || 'plan';
-  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, org:stOrg, tabs:stTabs}[st] || stPlan)();
+  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, org:stOrg, tabs:stTabs, 'import':stImport}[st] || stPlan)();
   return head('Настройка','Конструктор кабинета: всё, что видит стажёр. Изменения появляются у стажёров сразу после сохранения.')+
     '<div class="subnav" role="tablist" aria-label="Разделы настройки">'+ST_TABS.map(function(t){ var dk = {plan:'program',decks:'decks',tests:'tests',kb:'kb',org:'org',tabs:'settings'}[t[0]]; return '<button type="button" role="tab" aria-selected="'+(st===t[0])+'" class="'+(st===t[0]?'on':'')+'" data-act="st-go" data-s="'+t[0]+'">'+esc(t[1])+(dk&&S.dirty[dk]?' •':'')+'</button>'; }).join('')+'</div>'+body;
 }
@@ -1020,7 +1097,7 @@ function stPlan(){
   var items = (day.items||[]).map(function(it, ii){
     var p = base+'.items.'+ii; var open = !!S.ui.edOpen[it.id]; var conf = S.ui.confirm==='item:'+it.id;
     var hasUrl = it.url != null;
-    return '<div class="ed'+(open?' open':'')+'">'+
+    return '<div class="ed tone-'+toneOf(it)+(open?' open':'')+'">'+
       '<div class="ed-row"><span class="n num">'+(ii+1)+'</span>'+
         '<span class="t">'+inp('pi-'+it.id+'-t','program',p+'.title','Тема')+'</span>'+
         '<span class="ty">'+sel('pi-'+it.id+'-ty','program',p+'.type',typeOpts)+'</span>'+
@@ -1036,6 +1113,8 @@ function stPlan(){
         '<label class="field wide">Ссылка на материал (откроется у стажёра в новой вкладке)<input id="pi-'+it.id+'-u" class="input"'+bind('program',p+'.url')+' value="'+esc(it.url||'')+'" placeholder="https://…"></label>'+
         '<label class="field">Презентация'+sel('pi-'+it.id+'-dk','program',p+'.deck',deckOpts)+'</label>'+
         '<label class="field">Слайд №<input id="pi-'+it.id+'-sl" class="input" type="number" min="1"'+bind('program',p+'.slide',' data-fmt="num"')+' value="'+esc(it.slide||'')+'"></label>'+
+        '<label class="field">…по слайд № (необязательно)<input id="pi-'+it.id+'-st" class="input" type="number" min="1"'+bind('program',p+'.slideTo',' data-fmt="num"')+' value="'+esc(it.slideTo||'')+'"></label>'+
+        '<label class="field">Цвет блока'+sel('pi-'+it.id+'-tn','program',p+'.tone',[['','Без цвета']].concat(TONE_ORDER.map(function(t){ return [t, TONES[t]]; })))+'</label>'+
         '<label class="field">Тест'+sel('pi-'+it.id+'-ts','program',p+'.test',testOpts)+'</label>'+
         '<label class="field">Тренажёр'+sel('pi-'+it.id+'-sm','program',p+'.sim',simOpts)+'</label>'+
         '<label class="field">Статья базы знаний'+sel('pi-'+it.id+'-ar','program',p+'.article',artOpts)+'</label>'+
@@ -1106,7 +1185,8 @@ function stTests(){
       '<span class="acts">'+(conf ? '<button class="btn sm danger" type="button" data-act="q-del-yes" data-i="'+i+'">Удалить</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>' :
         '<button class="iconbtn" type="button" data-act="q-mv" data-i="'+i+'" data-dir="-1" aria-label="Выше"'+(i===0?' disabled':'')+'>↑</button><button class="iconbtn" type="button" data-act="q-mv" data-i="'+i+'" data-dir="1" aria-label="Ниже"'+(i===t.questions.length-1?' disabled':'')+'>↓</button><button class="iconbtn danger" type="button" data-act="confirm" data-c="q:'+esc(cur)+':'+i+'" aria-label="Удалить вопрос">✕</button>')+'</span></div>'+
       '<div class="ed-more"><label class="field">Варианты ответа — каждый с новой строки'+area('tq-'+cur+'-'+i+'-o','tests',p+'.options','lines','Вариант 1\nВариант 2\nВариант 3',4).replace('<textarea ','<textarea data-rerender="1" ')+'</label>'+
-      '<label class="field">Правильный ответ'+(opts.length ? sel('tq-'+cur+'-'+i+'-c','tests',p+'.correct',opts) : '<span class="small muted">Сначала впишите варианты</span>')+'</label></div></div>';
+      '<label class="field">Правильный ответ'+(opts.length ? sel('tq-'+cur+'-'+i+'-c','tests',p+'.correct',opts) : '<span class="small muted">Сначала впишите варианты</span>')+'</label>'+
+      '<label class="field">Источник / комментарий — видит только тренер'+inp('tq-'+cur+'-'+i+'-s','tests',p+'.src','например, Слайд 12')+'</label></div></div>';
   }).join('');
   return saveBar('tests','тесты')+tabs+
     '<section class="card"><div class="row" style="align-items:flex-end">'+
@@ -1175,6 +1255,7 @@ function stTabs(){
   var d = draft('settings');
   return saveBar('settings','вкладки')+
     '<section class="card"><h2>Название кабинета</h2><div class="row" style="align-items:flex-end"><label class="field" style="flex:1 1 200px">Название'+inp('sb-n','settings','brand.name','Старт')+'</label><label class="field" style="flex:2 1 280px">Подпись'+inp('sb-s','settings','brand.sub','ЛК стажёра · взыскание')+'</label></div>'+
+    '<label class="field">Кнопка «Связь с тренером» у стажёра — Telegram тренера'+inp('sb-tg','settings','trainerContact','@zzuboff')+'</label><p class="hint" style="margin:0">Укажите @username. Стажёр увидит кнопку внизу справа, по ней откроется чат с тренером. Чтобы скрыть кнопку, поставьте «-».</p>'+
     '<label class="check"><input type="checkbox" id="sb-apply"'+bind('settings','allowApply',' data-fmt="bool" data-rerender="1"')+(d.allowApply===false?'':' checked')+'>Разрешить стажёрам подавать заявку на доступ со страницы входа</label></section>'+
     '<section class="card"><h2>Вкладки стажёра</h2><p class="hint">Переименуйте вкладку или скройте её. Главная видна всегда.</p><div class="stack" style="gap:8px">'+TABS.map(function(t){
       var k = t[0]; var tab = d.tabs[k] || {};
@@ -1183,10 +1264,133 @@ function stTabs(){
     }).join('')+'</div></section>';
 }
 
+/* ---------- import package (zip: manifest.json + slide images) ---------- */
+function stImport(){
+  var im = S.ui.imp || {};
+  var intro = '<section class="card"><h2>Импорт программы стажировки</h2><p style="margin:0;line-height:1.55">Загрузите готовый пакет <b>.zip</b> (план по дням, презентации-скриншоты, опросники). Кабинет сам загрузит слайды в хранилище, заполнит план, презентации и тесты и привяжет темы плана к слайдам.</p>'+
+    '<p class="hint" style="margin:0">Можно выбрать сам архив или распакованные файлы: manifest.json вместе со всеми картинками.</p>'+
+    (im.status==='running' ? '' : '<label class="btn primary file" style="align-self:flex-start">'+(im.man?'Выбрать другой пакет':'Выбрать пакет')+'<input type="file" accept=".zip,application/zip,.json,image/jpeg,image/png,image/webp" multiple data-act-change="imp-file" aria-label="Пакет импорта"></label>')+
+    (im.status==='reading' ? '<p class="muted" style="margin:0">Читаю пакет…</p>' : '')+
+    (im.err ? '<p class="err" role="alert" style="margin:0">'+esc(im.err)+'</p>' : '')+'</section>';
+  if(!im.man) return intro;
+  var m = im.man; var pd = (m.program && m.program.days) || []; var dk = m.decks || {}; var ts = m.tests || {};
+  var nItems = pd.reduce(function(a,d){ return a+(d.items||[]).length; },0);
+  var nSlides = Object.keys(dk).reduce(function(a,k){ return a+(dk[k].slides||[]).length; },0);
+  var nLinked = pd.reduce(function(a,d){ return a+(d.items||[]).filter(function(i){ return i.deck && i.slide; }).length; },0);
+  var nQ = Object.keys(ts).reduce(function(a,k){ return a+(ts[k].questions||[]).length; },0);
+  var o = im.opts;
+  var curDays = days().length; var curItems = allItems().length;
+  var dirty = ['program','decks','tests'].filter(function(k){ return S.dirty[k]; });
+  var stats = '<div class="impstat"><div><span class="small muted">Дней</span><b class="num">'+pd.length+'</b><span class="small muted">'+nItems+' тем</span></div><div><span class="small muted">Презентаций</span><b class="num">'+Object.keys(dk).length+'</b><span class="small muted">'+nSlides+' слайдов</span></div><div><span class="small muted">Темы → слайды</span><b class="num">'+nLinked+'</b><span class="small muted">привязано к слайдам</span></div><div><span class="small muted">Опросников</span><b class="num">'+Object.keys(ts).length+'</b><span class="small muted">'+nQ+' вопросов</span></div></div>';
+  var preview = pd.map(function(d, di){ var tones = {}; (d.items||[]).forEach(function(i){ var t = TONES[i.tone]?i.tone:'none'; tones[t]=(tones[t]||0)+1; });
+    return '<div class="impday"><div class="row between"><b>День '+(di+1)+' · '+esc(d.title)+'</b><span class="small muted">'+(d.items||[]).length+' тем</span></div><div class="row">'+Object.keys(tones).map(function(t){ return '<span class="tpill tone-'+t+'">'+esc(t==='none'?'без цвета':TONES[t])+' · '+tones[t]+'</span>'; }).join('')+'</div></div>'; }).join('');
+  var decksList = Object.keys(dk).map(function(k){ var ex = deck(k); return '<li>'+esc(dk[k].title)+' — '+(dk[k].slides||[]).length+' слайдов'+(ex?' <span class="small muted">(заменит загруженную ранее)</span>':'')+'</li>'; }).join('');
+  var testsList = Object.keys(ts).map(function(k){ var ex = test(k); return '<li>'+esc(ts[k].title)+' — '+(ts[k].questions||[]).length+' вопросов, проходной '+(ts[k].pass||80)+'%'+(ex?' <span class="small muted">(заменит загруженный ранее)</span>':'')+'</li>'; }).join('');
+  var chk = function(k, label){ return '<label class="check"><input type="checkbox" data-act="imp-opt" data-k="'+k+'"'+(o[k]?' checked':'')+(im.status==='running'||im.status==='done'?' disabled':'')+'>'+label+'</label>'; };
+  var warn = (o.program && curDays ? '<p class="err" style="margin:0">Текущий план ('+curDays+' дн., '+curItems+' тем) будет заменён новым. Доступы групп к темам нового плана нужно будет открыть заново'+(im.reimport?'; при повторной загрузке этого же пакета доступы сохранятся':'')+'.</p>' : '')+
+    (dirty.length ? '<p class="err" style="margin:0">Есть несохранённые изменения в настройке — после импорта они будут сброшены.</p>' : '');
+  var action;
+  if(im.status==='running'){ var pr = im.total ? Math.round(im.done/im.total*100) : 0;
+    action = '<div class="stack" style="gap:8px"><b>'+esc(im.step||'Загружаю…')+'</b><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pr+'"><i style="width:'+pr+'%"></i></div><span class="small muted num">'+im.done+' из '+im.total+' · не закрывайте страницу</span></div>'; }
+  else if(im.status==='done') action = '<div class="creds" role="status"><b>Готово: программа загружена на сайт</b><span>'+esc(im.result||'')+'</span><span class="small">Теперь откройте темы группе в «Стажёры и доступы» — вместе с темой у стажёра откроются её слайды.</span><div class="row"><button class="btn sm primary" type="button" data-act="nav" data-v="t-access">Открыть доступы</button><button class="btn sm" type="button" data-act="st-go" data-s="plan">Посмотреть план</button><button class="btn sm" type="button" data-act="nav" data-v="t-pres">Ведение презентации</button></div></div>';
+  else action = '<div class="row"><button class="btn primary" type="button" data-act="imp-run"'+((o.program||o.decks||o.tests)?'':' disabled')+'>Загрузить на сайт</button><span class="small muted">Слайды загрузятся в хранилище Supabase, это займёт 1–3 минуты.</span></div>';
+  return intro+'<section class="card impbox" aria-labelledby="h-imp"><div class="row between"><h2 id="h-imp">'+esc(m.title||'Пакет')+'</h2><span class="small muted">'+esc(im.name||'')+'</span></div>'+stats+
+    '<div class="stack" style="gap:6px">'+chk('program','План стажировки по дням — '+pd.length+' дн., '+nItems+' тем, с цветами блоков и привязкой к слайдам')+chk('decks','Презентации — '+nSlides+' слайдов:')+(decksList?'<ul style="margin:0 0 0 24px;padding:0" class="small">'+decksList+'</ul>':'')+chk('tests','Опросники:')+(testsList?'<ul style="margin:0 0 0 24px;padding:0" class="small">'+testsList+'</ul>':'')+'</div>'+
+    warn+action+'</section>'+
+    '<section class="card"><h2>Что будет в плане</h2>'+toneLegend(pd.reduce(function(a,d){ return a.concat(d.items||[]); },[]))+preview+'</section>';
+}
+function loadJSZip(){
+  if(window.JSZip) return Promise.resolve(window.JSZip);
+  return new Promise(function(res, rej){ var sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; sc.onload = function(){ window.JSZip ? res(window.JSZip) : rej(); }; sc.onerror = function(){ rej(); }; document.head.appendChild(sc); });
+}
+function readImportFiles(files){
+  files = Array.prototype.slice.call(files||[]);
+  var zipF = files.filter(function(x){ return /\.zip$/i.test(x.name) || x.type==='application/zip' || x.type==='application/x-zip-compressed'; })[0];
+  if(zipF){
+    return loadJSZip().catch(function(){ throw {message:'Не удалось загрузить модуль для чтения архива. Распакуйте архив и выберите manifest.json вместе со всеми картинками.'}; })
+      .then(function(JSZip){ return JSZip.loadAsync(zipF); })
+      .then(function(z){
+        var mf = z.file('manifest.json') || z.file(/(^|\/)manifest\.json$/)[0];
+        if(!mf) throw {message:'В архиве нет manifest.json — это не пакет импорта.'};
+        var prefix = mf.name.replace(/manifest\.json$/, '');
+        return mf.async('string').then(function(txt){ return {name:zipF.name, text:txt, get:function(n){ var e = z.file(prefix+n); return e ? e.async('blob') : Promise.reject({message:'нет файла '+n}); }, has:function(n){ return !!z.file(prefix+n); }}; });
+      });
+  }
+  var byName = {}; files.forEach(function(x){ byName[x.name] = x; });
+  var mf = byName['manifest.json'];
+  if(!mf) return Promise.reject({message:'Выберите архив .zip или файл manifest.json вместе с картинками слайдов.'});
+  return mf.text().then(function(txt){ return {name:'manifest.json + '+(files.length-1)+' файлов', text:txt, get:function(n){ return byName[n] ? Promise.resolve(byName[n]) : Promise.reject({message:'нет файла '+n}); }, has:function(n){ return !!byName[n]; }}; });
+}
+function importParse(files){
+  S.ui.imp = {status:'reading'}; render();
+  readImportFiles(files).then(function(r){
+    var man; try{ man = JSON.parse(r.text); }catch(e){ throw {message:'manifest.json повреждён.'}; }
+    if(!man || man.format!=='start-import') throw {message:'Это не пакет импорта кабинета «Старт».'};
+    var missing = []; Object.keys(man.decks||{}).forEach(function(k){ (man.decks[k].slides||[]).forEach(function(sl){ if(sl.file && !r.has(sl.file)) missing.push(sl.file); }); });
+    if(missing.length) throw {message:'В пакете не хватает картинок слайдов: '+missing.slice(0,5).join(', ')+(missing.length>5?' и ещё '+(missing.length-5):'')+'.'};
+    var ids = {}; days().forEach(function(d){ (d.items||[]).forEach(function(i){ ids[i.id]=1; }); });
+    var re = (man.program && man.program.days || []).some(function(d){ return (d.items||[]).some(function(i){ return ids[i.id]; }); });
+    S.ui.imp = {status:'ready', name:r.name, man:man, get:r.get, reimport:re, opts:{program:!!(man.program&&man.program.days&&man.program.days.length), decks:!!Object.keys(man.decks||{}).length, tests:!!Object.keys(man.tests||{}).length}};
+    render();
+  }).catch(function(e){ S.ui.imp = {status:'error', err:(e && e.message) || 'Не удалось прочитать пакет.'}; render(); });
+}
+function safeName(s){ return String(s).toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/-+/g,'-'); }
+function importRun(){
+  var im = S.ui.imp; if(!im || !im.man || im.status==='running') return;
+  if(!S.db || !sb){ toast('Нет подключения к базе.'); return; }
+  var m = im.man; var o = im.opts; var ver = safeName(m.version || ('p'+Date.now()));
+  var jobs = []; if(o.decks) Object.keys(m.decks||{}).forEach(function(k){ (m.decks[k].slides||[]).forEach(function(sl){ if(sl.file) jobs.push({deck:k, sl:sl, name:'imp-'+ver+'-'+safeName(sl.file)}); }); });
+  im.status = 'running'; im.done = 0; im.total = jobs.length + (o.decks?1:0) + (o.tests?1:0) + (o.program?1:0); im.step = jobs.length ? 'Загружаю слайды в хранилище…' : 'Сохраняю…'; render();
+  var failed = []; var idx = 0;
+  function worker(){
+    if(idx >= jobs.length) return Promise.resolve();
+    var j = jobs[idx++];
+    return im.get(j.sl.file).then(function(blob){
+      var type = /\.png$/i.test(j.sl.file) ? 'image/png' : (/\.webp$/i.test(j.sl.file) ? 'image/webp' : 'image/jpeg');
+      return sb.storage.from('slides').upload(j.name, blob, {contentType:type, upsert:true, cacheControl:'3600'});
+    }).then(function(r){ if(r && r.error) failed.push(j.sl.file+': '+r.error.message); }, function(e){ failed.push(j.sl.file+': '+((e&&e.message)||'ошибка')); })
+      .then(function(){ im.done++; schedule(); return worker(); });
+  }
+  Promise.all([worker(), worker(), worker(), worker()]).then(function(){
+    if(failed.length) throw {message:'Не загрузилось слайдов: '+failed.length+'. Первая ошибка — '+failed[0]+'. Проверьте, что в Supabase выполнен schema.sql (хранилище «slides»), и запустите импорт ещё раз — уже загруженные слайды просто перезапишутся.'};
+    var chain = Promise.resolve(); var oldImgs = []; var newImgs = {};
+    if(o.decks) chain = chain.then(function(){
+      im.step = 'Сохраняю презентации…'; schedule();
+      var doc = clone(S.content.slides || {decks:{}}); doc.decks = doc.decks || {};
+      Object.keys(m.decks).forEach(function(k){
+        var prev = doc.decks[k]; var prevNotes = {};
+        if(prev) (prev.slides||[]).forEach(function(sl){ if(sl.image){ oldImgs.push(sl.image); if(sl.note) prevNotes[sl.image] = sl.note; } });
+        doc.decks[k] = {title:m.decks[k].title, slides:(m.decks[k].slides||[]).map(function(sl){ var name = 'imp-'+ver+'-'+safeName(sl.file); newImgs[name]=1; return {image:name, title:sl.title||'', note:prevNotes[name] || sl.note || ''}; })};
+      });
+      return S.db.doc('content/slides').set(doc).then(function(){ S.content.slides = clone(doc); im.done++; });
+    });
+    if(o.tests) chain = chain.then(function(){
+      im.step = 'Сохраняю опросники…'; schedule();
+      var doc = clone(S.content.tests || {tests:{}}); doc.tests = doc.tests || {};
+      Object.keys(m.tests).forEach(function(k){ doc.tests[k] = clone(m.tests[k]); });
+      return S.db.doc('content/tests').set(doc).then(function(){ S.content.tests = clone(doc); im.done++; });
+    });
+    if(o.program) chain = chain.then(function(){
+      im.step = 'Сохраняю план стажировки…'; schedule();
+      var doc = clone(m.program);
+      return S.db.doc('content/program').set(doc).then(function(){ S.content.program = clone(doc); im.done++; });
+    });
+    return chain.then(function(){
+      ['program','decks','tests'].forEach(function(k){ S.draft[k] = null; S.dirty[k] = false; });
+      var del = oldImgs.filter(function(a){ return !newImgs[a]; });
+      if(S.assets) del.forEach(function(a){ S.assets.delete(a).catch(function(){}); });
+      var pd = (m.program && m.program.days) || [];
+      im.status = 'done';
+      im.result = [o.program ? 'План: '+pd.length+' дн., '+pd.reduce(function(a,d){ return a+(d.items||[]).length; },0)+' тем' : '', o.decks ? 'презентаций: '+Object.keys(m.decks).length+' ('+jobs.length+' слайдов)' : '', o.tests ? 'опросников: '+Object.keys(m.tests).length : ''].filter(Boolean).join(' · ')+'.';
+      render(); toast('Программа загружена на сайт');
+    });
+  }).catch(function(e){ im.status = 'ready'; im.err = (e && e.message) || 'Не удалось загрузить. Попробуйте ещё раз.'; render(); });
+}
+
 function cleanDraft(k, d){
-  if(k==='program'){ d.days.forEach(function(day){ (day.items||[]).forEach(function(it){ ['deck','test','sim','article','desc'].forEach(function(x){ if(it[x]==='' ) delete it[x]; }); if(!it.slide) delete it.slide; if(it.url==='' && !it.material) delete it.url; }); }); }
+  if(k==='program'){ d.days.forEach(function(day){ (day.items||[]).forEach(function(it){ ['deck','test','sim','article','desc'].forEach(function(x){ if(it[x]==='' ) delete it[x]; }); if(!it.slide) delete it.slide; if(!it.slideTo || !it.slide || it.slideTo<=it.slide) delete it.slideTo; if(!it.tone) delete it.tone; if(it.url==='' && !it.material) delete it.url; }); }); }
   if(k==='decks'){ Object.keys(d.decks).forEach(function(id){ (d.decks[id].slides||[]).forEach(function(s){ s.points = (s.points||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); }); }); }
-  if(k==='tests'){ Object.keys(d.tests).forEach(function(id){ var t = d.tests[id]; t.pass = Number(t.pass==null||t.pass===''?80:t.pass); t.attempts = Math.max(1, Number(t.attempts==null||t.attempts===''?3:t.attempts)); t.questions = (t.questions||[]).map(function(q){ var opts = (q.options||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); return {q:String(q.q||'').trim(), options:opts, correct:Math.min(Math.max(0, Number(q.correct)||0), Math.max(0, opts.length-1))}; }).filter(function(q){ return q.q && q.options.length >= 2; }); }); }
+  if(k==='tests'){ Object.keys(d.tests).forEach(function(id){ var t = d.tests[id]; t.pass = Number(t.pass==null||t.pass===''?80:t.pass); t.attempts = Math.max(1, Number(t.attempts==null||t.attempts===''?3:t.attempts)); t.questions = (t.questions||[]).map(function(q){ var opts = (q.options||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); var o = {q:String(q.q||'').trim(), options:opts, correct:Math.min(Math.max(0, Number(q.correct)||0), Math.max(0, opts.length-1))}; if(q.src && String(q.src).trim()) o.src = String(q.src).trim(); return o; }).filter(function(q){ return q.q && q.options.length >= 2; }); }); }
   if(k==='kb'){ d.articles.forEach(function(a){ a.body = (a.body||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); }); d.cheat.cells = (d.cheat.cells||[]).filter(function(c){ return c[0]||c[1]; }); }
   return d;
 }
@@ -1242,7 +1446,7 @@ function openItem(id){
   if(it.type==='test' && it.test && test(it.test)){ S.view='tests'; S.ui.survey=null; S.ui.test = {tid:it.test, itemId:it.id, idx:0, answers:{}, started:false}; }
   else if(it.type==='survey'){ S.view='tests'; S.ui.test=null; S.ui.survey = {itemId:it.id}; SURVEY_Q.forEach(function(q){ delete S.form['sv-'+q[0]]; }); }
   else if(it.sim){ openPlayer(it.sim, it.id); return; }
-  else if(it.deck && deck(it.deck) && !tabHidden('pres')){ S.view='pres'; S.ui.freeDeck = it.deck; S.ui.slide = it.slide||1; S.ui.unsynced = true; if(S.role==='intern' && !isDone(it) && openedSlides(it.deck, me().groupId) >= (it.slide||1)){ var p={items:{}}; p.items[it.id]={status:'done', at:Date.now()}; saveProgress(p); } presencePing(); }
+  else if(it.deck && deck(it.deck) && !tabHidden('pres')){ S.view='pres'; S.ui.freeDeck = it.deck; S.ui.slide = it.slide||1; S.ui.unsynced = true; if(S.role==='intern' && !isDone(it) && slideLimit(it.deck) >= (it.slide||1)){ var p={items:{}}; p.items[it.id]={status:'done', at:Date.now()}; saveProgress(p); } presencePing(); }
   else if(it.article && article(it.article)){ S.ui.modal = {type:'article', id:it.article, itemId:it.id}; }
   else { S.ui.modal = {type:'task', itemId:it.id}; }
   render(); window.scrollTo(0,0);
@@ -1311,9 +1515,9 @@ var A = {
   'test-retry': function(){ var t=S.ui.test; S.ui.test = {tid:t.tid, itemId:t.itemId, idx:0, answers:{}, started:true}; render(); },
   'test-close': function(){ S.ui.test=null; render(); },
   rate: function(el){ S.form['sv-'+el.dataset.q] = Number(el.dataset.n); render(); },
-  'slide-prev': function(){ var c = curSlide(); S.ui.unsynced = true; S.ui.slide = Math.max(1, c-1); render(); presencePing(); },
-  'slide-next': function(){ var c = curSlide(); S.ui.unsynced = true; S.ui.slide = c+1; render(); presencePing(); },
-  'slide-go': function(el){ S.ui.unsynced = true; S.ui.slide = Number(el.dataset.n); render(); presencePing(); },
+  'slide-prev': function(){ if(S.role==='intern' && presLocked()) return; var c = curSlide(); S.ui.unsynced = true; S.ui.slide = Math.max(1, c-1); render(); presencePing(); },
+  'slide-next': function(){ if(S.role==='intern' && presLocked()) return; var c = curSlide(); S.ui.unsynced = true; S.ui.slide = c+1; render(); presencePing(); },
+  'slide-go': function(el){ if(S.role==='intern' && presLocked()) return; S.ui.unsynced = true; S.ui.slide = Number(el.dataset.n); render(); presencePing(); },
   'pres-follow': function(){ S.ui.unsynced = false; S.ui.freeDeck = null; render(); presencePing(); },
   'toggle-newgroup': function(){ S.ui.newGroup = !S.ui.newGroup; render(); },
   'ni-gen': function(){ S.form['ni-pw'] = genPw(); render(); },
@@ -1392,6 +1596,8 @@ var A = {
   'sim-add': function(){ var id = uid('sim'); S.db.doc('sims/'+id).set({title:'Новый тренажёр', desc:'', html:'', size:0, updatedAt:0}).then(function(){ toast('Тренажёр добавлен — загрузите HTML-файл'); }, writeErr); },
   'sim-save': function(el){ var id = el.dataset.id; S.db.doc('sims/'+id).update({title:String(f('sm-'+id+'-t', S.sims[id].title)).trim()||'Тренажёр', desc:String(f('sm-'+id+'-d', S.sims[id].desc))}).then(function(){ delete S.form['sm-'+id+'-t']; delete S.form['sm-'+id+'-d']; toast('Сохранено'); }, writeErr); },
   'sim-preview': function(el){ openPlayer(el.dataset.id, null); },
+  'imp-run': function(){ importRun(); },
+  'imp-opt': function(el){ var im = S.ui.imp; if(!im || !im.opts) return; im.opts[el.dataset.k] = el.checked; render(); },
   'sim-del-yes': function(el){ var id = el.dataset.id; S.ui.confirm=null; S.db.doc('sims/'+id).delete().then(function(){ toast('Тренажёр удалён'); }, writeErr); }
 };
 
@@ -1448,9 +1654,10 @@ function replaceSlideImage(i, file){
 }
 
 var CHANGE = {
+  'imp-file': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; if(fs.length) importParse(fs); },
   'slides-files': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; addSlideImages(fs); },
   'slide-replace': function(el){ var fl = el.files && el.files[0]; var i = Number(el.dataset.i); el.value=''; replaceSlideImage(i, fl); },
-  'deck-pick': function(el){ S.ui.freeDeck = el.value; S.ui.slide=1; S.ui.unsynced=true; render(); },
+  'deck-pick': function(el){ if(S.role==='intern' && presLocked()) return; S.ui.freeDeck = el.value; S.ui.slide=1; S.ui.unsynced=true; render(); },
   'g-pick': function(el){ S.ui.gid = el.value; S.ui.scope='group'; S.ui.rsel=null; render(); },
   'scope-pick': function(el){ S.ui.scope = el.value; render(); },
   'tdeck': function(el){ S.ui.tdeck = el.value; S.ui.tslide=1; render(); },
