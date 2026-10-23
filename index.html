@@ -114,6 +114,27 @@ h3{font-size:16px;font-weight:600}
 .li.locked{color:var(--faint)}
 .banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;background:var(--amber-soft);color:var(--amber-ink);border-radius:16px;padding:16px 20px;font-weight:600}
 .pulse{width:9px;height:9px;border-radius:50%;background:#C2410C;display:inline-block;margin-right:8px}
+.roll-card{max-width:520px;text-align:center;align-items:center;gap:20px}
+.roll-card h1{font-size:30px}
+.roll-ico{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent-ink);font-size:36px}
+.roll-ico.ok{background:var(--ok-soft);color:var(--ok-ink)}
+.roll-btn{min-height:64px;font-size:19px;padding:0 40px;border-radius:16px}
+.rollrow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;border-top:1px solid var(--line2)}
+.att{min-width:44px;height:36px;border-radius:10px;border:1px dashed var(--line);background:var(--surface);cursor:pointer;font-weight:700;font-size:15px;color:var(--faint);display:inline-flex;align-items:center;justify-content:center;padding:0 10px}
+.att.yes{background:var(--ok-soft);color:var(--ok-ink);border:1px solid transparent}
+.att.no{background:var(--danger-soft);color:var(--danger);border:1px solid transparent}
+.att:hover{border-color:var(--accent)}
+.attgrid td,.attgrid th{text-align:center}
+.attgrid td:first-child,.attgrid th:first-child{text-align:left}
+.attdays{display:flex;flex-wrap:wrap;gap:8px}
+.attdays .att{flex-direction:column;height:auto;min-width:64px;padding:6px 10px;gap:2px;font-size:13px}
+.attdays .att small{font-weight:500;font-size:11px;opacity:.8}
+.pfacts{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
+.pfacts b{color:var(--fg);font-weight:600}
+.rmark{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+.rmark.yes{background:var(--ok-soft);color:var(--ok-ink)}
+.rmark.no{background:var(--danger-soft);color:var(--danger)}
+.rmark.wait{background:var(--line2);color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.pulse{animation:p 1.6s infinite}@keyframes p{50%{opacity:.35}}}
 
 .day{display:flex;flex-direction:column;gap:14px}
@@ -427,7 +448,7 @@ var S = {
   content:{program:null, slides:null, tests:null, knowledge:null, org:null, settings:null, surveys:null},
   loaded:{},
   groups:{}, interns:{}, progress:{}, feedback:{}, live:{}, surveys:[], sims:{},
-  role:null, iid:null, view:'home', ui:{dayOpen:{}, edOpen:{}}, form:{}, draft:{}, dirty:{}, player:null, assets:null, pendingDel:[], requests:{}
+  role:null, iid:null, view:'home', ui:{dayOpen:{}, edOpen:{}}, form:{}, draft:{}, dirty:{}, player:null, assets:null, pendingDel:[], requests:{}, rolls:{}, profiles:{}
 };
 
 /* ---------- helpers ---------- */
@@ -578,6 +599,14 @@ function trainerTg(){ var v = String(settings().trainerContact==null ? '' : sett
 function tgLink(v){ if(/^https?:\/\//i.test(v)) return v; var u = v.replace(/^@/,'').replace(/^t\.me\//i,''); return u ? 'https://t.me/'+encodeURIComponent(u) : ''; }
 function contactFab(){ var v = trainerTg(); if(v==='-') return ''; var url = tgLink(v); if(!url) return '';
   return '<a class="contact-fab" href="'+esc(url)+'" target="_blank" rel="noopener" aria-label="Связь с тренером в Telegram: '+esc(v)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4 3 11l6 2.5L19 7l-8 8 6.5 5L21 4z"/></svg>Связь с тренером</a>'; }
+function rollScreen(m, rl){
+  var b = brand(); var mine = P().roll; var done = mine && mine.id===rl.id;
+  return '<div class="login" role="dialog" aria-modal="true" aria-labelledby="h-roll"><div class="login-card roll-card">'+
+    '<div class="brand" style="align-self:stretch"><div class="mark">'+esc(b.name[0]||'С')+'</div><div style="text-align:left"><b>'+esc(b.name)+'</b><small>'+esc(m.name)+'</small></div></div>'+
+    (done ? '<div class="roll-ico ok" aria-hidden="true">✓</div><h1 id="h-roll">Вы отмечены</h1><p class="muted" style="margin:0;line-height:1.55">Отметка в '+esc(new Date(mine.at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}))+'. Кабинет снова откроется, как только тренер завершит перекличку.</p><span class="chip warn"><span class="pulse" aria-hidden="true"></span>Перекличка идёт</span>'
+      : '<div class="roll-ico" aria-hidden="true">✋</div><h1 id="h-roll">Перекличка</h1><p style="margin:0;line-height:1.55">Тренер проверяет, кто на месте. Нажмите кнопку, чтобы отметиться.</p><button class="btn primary roll-btn" type="button" data-act="roll-here">Я на месте</button><span class="small muted">Остальные разделы кабинета откроются после переклички.</span>')+
+  '<button class="linkbtn small" type="button" data-act="logout">Выйти из кабинета</button></div></div>';
+}
 function allowApply(){ return settings().allowApply !== false; }
 function viewApply(){
   var b = brand(); var nameV = f('ap-name'); var loginV = S.form['ap-login'] != null ? S.form['ap-login'] : makeLogin(nameV);
@@ -641,6 +670,8 @@ function viewShell(){
   if(S.role==='intern'){
     var m = me();
     if(!m){ return '<div class="login"><div class="login-card"><h1>Аккаунт не найден</h1><p class="muted">Тренер мог удалить этот доступ. Обратитесь к тренеру.</p><button class="btn" data-act="logout">Выйти</button></div></div>'; }
+    var rl = liveOf(m.groupId).roll;
+    if(rl && rl.active){ if(S.player) closePlayer(); S.ui.modal = null; return rollScreen(m, rl); }
     if(tabHidden(S.view)) S.view = 'home';
     var lv = liveOf(m.groupId);
     var liveTag = lv.active ? '<span class="live-tag">идёт</span>' : null;
@@ -656,10 +687,10 @@ function viewShell(){
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
     side = '<nav class="side" aria-label="Разделы тренера">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+
-      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
+      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
       '<div class="me"><div class="ava amber">Т</div><div class="who"><b>Тренер</b><small>Управление стажировкой</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
-    body = ({'t-access':tAccess, 't-pres':tPres, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
+    body = ({'t-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
   }
   return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>'+(S.role==='intern' ? contactFab() : '');
 }
@@ -1044,6 +1075,43 @@ function tAccessMain(){
     toneLegend(allItems())+'<div class="grid" style="--min:230px;gap:14px">'+grid+'</div></section>';
 }
 
+/* ---------- trainer: roll call ---------- */
+function rollsOf(gid){ return Object.keys(S.rolls||{}).map(function(k){ return Object.assign({id:k}, S.rolls[k]); }).filter(function(r){ return r.groupId===gid; }).sort(function(a,b){ return (b.startedAt||0)-(a.startedAt||0); }); }
+function rollMarkAt(iid, rid){ var r = P(iid).roll; return r && r.id===rid ? r.at : null; }
+function hhmm(t){ return t ? new Date(t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : ''; }
+function tRoll(){
+  var gid = curGid(); var g = gid ? S.groups[gid] : null;
+  if(!g) return head('Перекличка','')+'<div class="empty"><b>Сначала создайте группу</b><button class="btn primary" data-act="nav" data-v="t-access">Перейти к группам</button></div>';
+  var rl = liveOf(gid).roll; var active = !!(rl && rl.active);
+  var list = internsOf(gid).filter(function(i){ return !i.suspended; });
+  var hist = rollsOf(gid);
+  var top;
+  if(active){
+    var here = list.filter(function(i){ return rollMarkAt(i.id, rl.id); }).length;
+    var mins = Math.max(0, Math.round((Date.now()-(rl.startedAt||Date.now()))/60000));
+    top = '<section class="card" aria-labelledby="h-rl"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-rl"><span class="pulse" aria-hidden="true"></span>Перекличка идёт</h2><span class="small muted">Началась в '+hhmm(rl.startedAt)+(mins?' · '+mins+' мин назад':'')+'. У стажёров на экране только кнопка «Я на месте».</span></div>'+
+      '<div class="row" style="align-items:center"><span class="num" style="font-family:var(--f-display);font-size:28px">'+here+' / '+list.length+'</span><button class="btn danger" type="button" data-act="roll-stop">Завершить перекличку</button></div></div>'+
+      '<div class="meter"><i style="width:'+(list.length?Math.round(here/list.length*100):0)+'%"></i></div>'+
+      (list.length ? '<div>'+list.map(function(i){ var at = rollMarkAt(i.id, rl.id);
+        return '<div class="rollrow"><span class="row" style="gap:12px;flex-wrap:nowrap"><span class="rmark '+(at?'yes':'no')+'" aria-hidden="true">'+(at?'✓':'✕')+'</span><b>'+esc(i.name)+'</b></span><span class="small '+(at?'':'muted')+'">'+(at?'на месте · '+hhmm(at):'не отметился')+'</span></div>'; }).join('')+'</div>' : '<p class="muted" style="margin:0">В группе нет активных стажёров.</p>')+
+      '</section>';
+  } else {
+    top = '<section class="card" aria-labelledby="h-rl"><h2 id="h-rl">Начать перекличку</h2><p style="margin:0;line-height:1.55">У всех стажёров группы «'+esc(g.name)+'» кабинет закроется экраном переклички с кнопкой «Я на месте». Вы видите, кто отметился, и завершаете перекличку — после этого стажёры снова пользуются кабинетом как обычно.</p>'+
+      '<div class="row"><button class="btn primary" type="button" data-act="roll-start"'+(list.length?'':' disabled')+'>Начать перекличку · '+list.length+' стаж.</button></div></section>';
+  }
+  var histBox = '<section class="card" aria-labelledby="h-rh"><div class="row between"><h2 id="h-rh">Журнал перекличек</h2>'+(hist.length?'<button class="btn sm" type="button" data-act="xl-rolls">Выгрузить в Excel</button>':'')+'</div>'+
+    (hist.length ? '<div class="table-wrap"><table><thead><tr><th>Дата</th><th>Время</th><th>На месте</th><th>Не отметились</th></tr></thead><tbody>'+hist.map(function(r){ var ls = r.list||[]; var yes = ls.filter(function(x){ return x.at; }); var no = ls.filter(function(x){ return !x.at; });
+        return '<tr><td>'+esc(fmtDay(r.startedAt))+'</td><td class="num">'+hhmm(r.startedAt)+'–'+hhmm(r.endedAt)+'</td><td class="num"><b>'+yes.length+' / '+ls.length+'</b></td><td class="small">'+(no.length?no.map(function(x){ return esc(x.name); }).join(', '):'<span class="muted">все на месте</span>')+'</td></tr>'; }).join('')+'</tbody></table></div>' : '<p class="muted" style="margin:0">Перекличек в этой группе ещё не было.</p>')+'</section>';
+  return head('Перекличка', esc(g.name), groupPicker(false))+top+histBox;
+}
+function xlRolls(gid){
+  var g = S.groups[gid]; var rows = [['Дата','Начало','Конец','ФИО','Отметился','Время отметки']];
+  rollsOf(gid).slice().reverse().forEach(function(r){ (r.list||[]).forEach(function(x){ rows.push([fmtDT(r.startedAt).slice(0,10), hhmm(r.startedAt), hhmm(r.endedAt), x.name, x.at?'да':'нет', hhmm(x.at)]); }); });
+  var names = {}; rollsOf(gid).forEach(function(r){ (r.list||[]).forEach(function(x){ var n = names[x.iid] = names[x.iid] || {name:x.name, y:0, t:0}; n.t++; if(x.at) n.y++; }); });
+  var sum = [['ФИО','Перекличек','На месте','Пропущено','Посещаемость, %']].concat(Object.keys(names).map(function(k){ var n = names[k]; return [n.name, n.t, n.y, n.t-n.y, n.t?Math.round(n.y/n.t*100):'']; }).sort(function(a,b){ return String(a[0]).localeCompare(String(b[0]),'ru'); }));
+  return xlSave('Перекличка — '+(g?g.name:''), [{name:'Посещаемость', rows:sum, filter:1}, {name:'Журнал', rows:rows, filter:1}]);
+}
+
 /* ---------- trainer: presentation ---------- */
 function tPres(){
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
@@ -1080,6 +1148,14 @@ function tPres(){
 }
 
 /* ---------- trainer: results ---------- */
+/* trainer-only intern data: profiles/<iid> (interns cannot read this collection) */
+function prof(iid){ return (S.profiles && S.profiles[iid]) || {}; }
+function attOf(iid, dayId){ var a = prof(iid).att; var v = a && a[dayId]; return v==='yes'||v==='no' ? v : ''; }
+function attCount(iid){ var y=0, n=0; days().forEach(function(d){ var v = attOf(iid, d.id); if(v==='yes') y++; else if(v==='no') n++; }); return {y:y, n:n}; }
+function saveProfile(iid, patch){ return upsert('profiles/'+iid, S.profiles[iid], patch).catch(writeErr); }
+function attBtn(iid, d, di, big){ var v = attOf(iid, d.id); var lbl = v==='yes'?'✓':(v==='no'?'✕':'—');
+  return '<button type="button" class="att '+v+'" data-act="att-cycle" data-i="'+esc(iid)+'" data-d="'+esc(d.id)+'" title="'+esc('День '+(di+1)+': '+(v==='yes'?'присутствовал':(v==='no'?'отсутствовал':'не отмечено'))+' — нажмите, чтобы изменить')+'" aria-label="'+esc('День '+(di+1)+': '+(v==='yes'?'присутствовал':(v==='no'?'отсутствовал':'не отмечено')))+'">'+(big?'<small>День '+(di+1)+'</small>':'')+lbl+'</button>'; }
+function attText(v){ return v==='yes'?'присутствовал':(v==='no'?'отсутствовал':''); }
 function fmtDT(t){ if(!t) return ''; var d = new Date(t); function z(n){ return (n<10?'0':'')+n; } return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear()+' '+z(d.getHours())+':'+z(d.getMinutes()); }
 function testRec(iid, tid){ return P(iid).tests && P(iid).tests[tid]; }
 function internStatus(iid){
@@ -1110,13 +1186,14 @@ function questionStats(tid, iids){
 }
 function tResults(){
   var mode = S.ui.rmode || 'group';
-  var segs = [['all','Все группы'],['group','Группа'],['intern','Стажёр'],['surveys','Опросы']];
+  var segs = [['all','Все группы'],['group','Группа'],['att','Присутствие'],['intern','Стажёр'],['surveys','Опросы']];
   var seg = '<div class="seg" role="group" aria-label="Режим">'+segs.map(function(x){ return '<button type="button" class="'+(mode===x[0]?'on':'')+'" data-act="rmode" data-m="'+x[0]+'" aria-pressed="'+(mode===x[0])+'">'+x[1]+'</button>'; }).join('')+'</div>';
   if(mode==='all') return head('Результаты','Сравнение групп', '<div class="row" style="align-items:flex-end">'+seg+'<button class="btn" type="button" data-act="xl-all">Выгрузить в Excel</button></div>')+rAll();
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
   if(!g) return head('Результаты','', seg)+'<div class="empty"><b>Сначала создайте группу</b></div>';
   var right = '<div class="row" style="align-items:flex-end">'+seg+groupPicker(false);
   if(mode==='intern') return head('Результаты', esc(g.name)+' · карта стажёра', right+'</div>')+rIntern(gid);
+  if(mode==='att') return head('Результаты', esc(g.name)+' · присутствие на стажировке', right+'<button class="btn" type="button" data-act="xl-group">Выгрузить группу в Excel</button></div>')+rAtt(gid);
   if(mode==='surveys') return head('Результаты', esc(g.name)+' · опросы', right+'<button class="btn" type="button" data-act="xl-surveys">Выгрузить в Excel</button></div>')+rSurveys(gid);
   return head('Результаты', esc(g.name), right+'<button class="btn" type="button" data-act="xl-group">Выгрузить группу в Excel</button></div>')+rGroup(gid);
 }
@@ -1129,6 +1206,14 @@ function rAll(){
       '<td class="num">'+(ti.length? st.allOk+' / '+st.n : '—')+'</td><td class="num">'+st.resp+'</td><td style="text-align:right"><button class="btn sm" type="button" data-act="rgo" data-g="'+esc(g.id)+'">Открыть</button></td></tr>'; }).join('');
   return '<section class="card" aria-label="Группы"><div class="table-wrap"><table><thead><tr><th>Группа</th><th>Стажёров</th><th>Прогресс</th><th>Ср. балл</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+' сдали</th>'; }).join('')+'<th>Сдали все</th><th>Ответов в опросах</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="hint">«Д2 сдали» — сколько стажёров группы сдали тест, стоящий в плане в день 2.</p></section>';
 }
+function rAtt(gid){
+  var list = internsOf(gid); if(!list.length) return '<div class="empty"><b>В группе нет стажёров</b></div>';
+  var ds = days();
+  return '<section class="card" aria-labelledby="h-att"><div class="stack" style="gap:4px"><h2 id="h-att">Присутствие по дням</h2><span class="small muted">Нажмите на клетку: — не отмечено → ✓ присутствовал → ✕ отсутствовал. «Все ✓» отмечает присутствующими всех, у кого день ещё не отмечен.</span></div>'+
+    '<div class="table-wrap"><table class="attgrid"><thead><tr><th>Стажёр</th>'+ds.map(function(d, di){ return '<th><span title="'+esc(d.title)+'">День '+(di+1)+'</span><br><button class="linkbtn small" type="button" data-act="att-day-all" data-d="'+esc(d.id)+'">все ✓</button></th>'; }).join('')+'<th>Был</th><th>Не был</th></tr></thead><tbody>'+
+    list.map(function(i){ var c = attCount(i.id); return '<tr><td><b>'+esc(i.name)+'</b>'+(prof(i.id).geo?'<br><span class="small muted">'+esc(prof(i.id).geo)+'</span>':'')+'</td>'+ds.map(function(d, di){ return '<td>'+attBtn(i.id, d, di)+'</td>'; }).join('')+'<td class="num"><b>'+c.y+'</b></td><td class="num'+(c.n?' pct-bad':'')+'">'+c.n+'</td></tr>'; }).join('')+
+    '</tbody></table></div></section>';
+}
 function rGroup(gid){
   var list = internsOf(gid); var ti = testItems(); var st = groupStats(gid);
   var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">Стажёров</span><span class="v num">'+st.n+'</span><span class="small muted">в сети за сутки: '+st.active+'</span></div>'+
@@ -1136,9 +1221,9 @@ function rGroup(gid){
     '<div class="kpi"><span class="small muted">Средний балл тестов</span><span class="v num" style="color:var(--accent-ink)">'+(st.avgT==null?'—':st.avgT+'%')+'</span><span class="small muted">по лучшим попыткам</span></div>'+
     '<div class="kpi"><span class="small muted">Сдали все тесты</span><span class="v num">'+(ti.length? st.allOk+' / '+st.n : '—')+'</span><span class="small muted">'+ti.length+' тестов в плане</span></div>'+
     '<div class="kpi"><span class="small muted">Ответов в опросах</span><span class="v num">'+st.resp+'</span><span class="small muted">все анкеты группы</span></div></div>';
-  var table = list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Прогресс</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+'</th>'; }).join('')+'<th>Ср. балл</th><th>Статус</th><th>Был в ЛК</th><th></th></tr></thead><tbody>'+list.map(function(i){
-    var s2 = internStats(i.id);
-    return '<tr'+(i.suspended?' style="opacity:.6"':'')+'><td><b>'+esc(i.name)+'</b>'+(i.suspended?' <span class="chip bad">приостановлен</span>':'')+'</td><td class="num">'+s2.pct+'%</td>'+ti.map(function(t){ return pctCell(testRec(i.id, t.test), test(t.test)); }).join('')+'<td class="num">'+(s2.avg==null?'—':s2.avg+'%')+'</td><td>'+statusChipR(internStatus(i.id))+'</td><td>'+ago(P(i.id).seen)+'</td><td style="text-align:right;white-space:nowrap"><button class="btn sm" type="button" data-act="rsel" data-id="'+i.id+'">Карта</button> <button class="btn sm" type="button" data-act="xl-intern" data-id="'+i.id+'" title="Карта стажёра в Excel">Excel</button></td></tr>';
+  var table = list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Прогресс</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+'</th>'; }).join('')+'<th>Ср. балл</th><th>Присутствие</th><th>Статус</th><th>Был в ЛК</th><th></th></tr></thead><tbody>'+list.map(function(i){
+    var s2 = internStats(i.id); var ac = attCount(i.id);
+    return '<tr'+(i.suspended?' style="opacity:.6"':'')+'><td><b>'+esc(i.name)+'</b>'+(i.suspended?' <span class="chip bad">приостановлен</span>':'')+'</td><td class="num">'+s2.pct+'%</td>'+ti.map(function(t){ return pctCell(testRec(i.id, t.test), test(t.test)); }).join('')+'<td class="num">'+(s2.avg==null?'—':s2.avg+'%')+'</td><td class="num">'+(ac.y||ac.n ? ac.y+' / '+(ac.y+ac.n)+(ac.n?' <span class="small" style="color:var(--danger)">−'+ac.n+'</span>':'') : '<span class="muted">—</span>')+'</td><td>'+statusChipR(internStatus(i.id))+'</td><td>'+ago(P(i.id).seen)+'</td><td style="text-align:right;white-space:nowrap"><button class="btn sm" type="button" data-act="rsel" data-id="'+i.id+'">Карта</button> <button class="btn sm" type="button" data-act="xl-intern" data-id="'+i.id+'" title="Карта стажёра в Excel">Excel</button></td></tr>';
   }).join('')+'</tbody></table></div>' : '<p class="muted" style="margin:0">В группе нет стажёров.</p>';
   var ids = list.map(function(i){ return i.id; });
   var tsum = ti.length ? '<section class="card" aria-labelledby="h-ts"><h2 id="h-ts">Тесты группы</h2><div class="table-wrap"><table><thead><tr><th>Тест</th><th>Проходили</th><th>Сдали</th><th>Средний</th><th>Лучший</th><th>Худший</th><th>Ср. попыток</th></tr></thead><tbody>'+ti.map(function(i){
@@ -1157,10 +1242,11 @@ function rIntern(gid){
   var it = S.interns[sel]; var st = internStats(sel); var ti = testItems(); var g = S.groups[gid];
   var pick = '<div class="row" style="align-items:flex-end"><label class="field" style="min-width:260px">Стажёр<select id="r-int" data-act-change="r-int">'+list.map(function(i){ return '<option value="'+i.id+'"'+(i.id===sel?' selected':'')+'>'+esc(i.name)+'</option>'; }).join('')+'</select></label><button class="btn primary" type="button" data-act="xl-intern" data-id="'+sel+'">Карта стажёра в Excel</button></div>';
   var stt = internStatus(sel);
-  var info = '<section class="card"><div class="row between" style="align-items:flex-start"><div class="row" style="flex-wrap:nowrap;gap:14px"><div class="ava">'+esc(initials(it.name))+'</div><div class="stack" style="gap:2px"><h2 style="font-size:22px">'+esc(it.name)+'</h2><span class="small muted">Логин '+esc(it.login)+(it.contact?' · '+esc(it.contact):'')+' · группа «'+esc(g.name)+'» · в кабинете с '+esc(fmtDay(it.createdAt||Date.now()))+'</span></div></div><div class="stack" style="align-items:flex-end;gap:6px">'+statusChipR(stt)+'<span class="small muted">Был в ЛК: '+ago(P(sel).seen)+'</span></div></div>'+
-    '<div class="kpis"><div class="kpi"><span class="small muted">Программа</span><span class="v num">'+st.pct+'%</span><span class="small muted">'+st.done+' из '+st.total+' тем</span></div><div class="kpi"><span class="small muted">Средний балл</span><span class="v num" style="color:var(--accent-ink)">'+(st.avg==null?'—':st.avg+'%')+'</span><span class="small muted">'+st.testsDone+' из '+ti.length+' тестов пройдено</span></div><div class="kpi"><span class="small muted">Сдано тестов</span><span class="v num">'+ti.filter(function(i){ var r = testRec(sel, i.test); return r && r.passed; }).length+' / '+ti.length+'</span><span class="small muted">с проходным баллом</span></div><div class="kpi"><span class="small muted">Тренажёры</span><span class="v num">'+st.simsDone+' / '+st.simsTotal+'</span><span class="small muted">пройдено</span></div></div></section>';
-  var daysT = '<section class="card"><h2>По дням</h2><div class="table-wrap"><table><thead><tr><th>День</th><th>Тема дня</th><th>Темы</th><th>Тест</th><th>Статус</th></tr></thead><tbody>'+days().map(function(d,di){ var s3 = dayState(d, sel); var dn = (d.items||[]).filter(function(x){ return isDone(x, sel); }).length; var t = (d.items||[]).filter(function(x){ return x.type==='test'&&x.test; })[0]; var r = t && testRec(sel, t.test);
-      return '<tr><td><b>'+(di+1)+'</b></td><td>'+esc(d.title)+'</td><td class="num">'+dn+' / '+(d.items||[]).length+'</td>'+(r?pctCell(r):'<td class="muted">—</td>')+'<td>'+(s3==='done'?'<span class="chip ok">Пройден</span>':(s3==='cur'?'<span class="chip warn">Открыт</span>':'Закрыт'))+'</td></tr>'; }).join('')+'</tbody></table></div></section>';
+  var rlist = rollsOf(gid); var ryes = rlist.filter(function(r){ return (r.list||[]).some(function(x){ return x.iid===sel && x.at; }); }).length; var rtot = rlist.filter(function(r){ return (r.list||[]).some(function(x){ return x.iid===sel; }); }).length;
+  var info = '<section class="card"><div class="row between" style="align-items:flex-start"><div class="row" style="flex-wrap:nowrap;gap:14px"><div class="ava">'+esc(initials(it.name))+'</div><div class="stack" style="gap:2px"><h2 style="font-size:22px">'+esc(it.name)+'</h2><span class="small muted">Логин '+esc(it.login)+(it.contact?' · '+esc(it.contact):'')+' · группа «'+esc(g.name)+'» · в кабинете с '+esc(fmtDay(it.createdAt||Date.now()))+'</span>'+(function(){ var pf = prof(sel); var fx = []; if(pf.tg) fx.push('<span>Telegram <b>'+esc(pf.tg)+'</b></span>'); if(pf.geo) fx.push('<span>Гео <b>'+esc(pf.geo)+'</b></span>'); if(pf.age) fx.push('<span>Возраст <b>'+esc(pf.age)+'</b></span>'); return fx.length ? '<div class="pfacts" style="margin-top:4px">'+fx.join('')+'</div>' : ''; })()+'</div></div><div class="stack" style="align-items:flex-end;gap:6px">'+statusChipR(stt)+'<span class="small muted">Был в ЛК: '+ago(P(sel).seen)+'</span></div></div>'+
+    '<div class="kpis"><div class="kpi"><span class="small muted">Программа</span><span class="v num">'+st.pct+'%</span><span class="small muted">'+st.done+' из '+st.total+' тем</span></div><div class="kpi"><span class="small muted">Средний балл</span><span class="v num" style="color:var(--accent-ink)">'+(st.avg==null?'—':st.avg+'%')+'</span><span class="small muted">'+st.testsDone+' из '+ti.length+' тестов пройдено</span></div><div class="kpi"><span class="small muted">Сдано тестов</span><span class="v num">'+ti.filter(function(i){ var r = testRec(sel, i.test); return r && r.passed; }).length+' / '+ti.length+'</span><span class="small muted">с проходным баллом</span></div><div class="kpi"><span class="small muted">Тренажёры</span><span class="v num">'+st.simsDone+' / '+st.simsTotal+'</span><span class="small muted">пройдено</span></div><div class="kpi"><span class="small muted">Перекличка</span><span class="v num">'+(rtot? ryes+' / '+rtot : '—')+'</span><span class="small muted">отметился на месте</span></div></div></section>';
+  var daysT = '<section class="card"><h2>По дням</h2><div class="table-wrap"><table><thead><tr><th>День</th><th>Тема дня</th><th>Присутствие</th><th>Темы</th><th>Тест</th><th>Статус</th></tr></thead><tbody>'+days().map(function(d,di){ var s3 = dayState(d, sel); var dn = (d.items||[]).filter(function(x){ return isDone(x, sel); }).length; var t = (d.items||[]).filter(function(x){ return x.type==='test'&&x.test; })[0]; var r = t && testRec(sel, t.test);
+      return '<tr><td><b>'+(di+1)+'</b></td><td>'+esc(d.title)+'</td><td>'+attBtn(sel, d, di)+'</td><td class="num">'+dn+' / '+(d.items||[]).length+'</td>'+(r?pctCell(r):'<td class="muted">—</td>')+'<td>'+(s3==='done'?'<span class="chip ok">Пройден</span>':(s3==='cur'?'<span class="chip warn">Открыт</span>':'Закрыт'))+'</td></tr>'; }).join('')+'</tbody></table></div></section>';
   var tests = ti.length ? '<section class="card"><h2>Тесты</h2>'+ti.map(function(i){ var tt = test(i.test); var r = testRec(sel, i.test);
       var hd = '<div class="row between"><div class="stack" style="gap:2px"><b>'+esc(i.title)+'</b><span class="small muted">День '+(i.dayIdx+1)+' · проходной '+tt.pass+'% · попыток '+(r?r.attempts:0)+' из '+(tt.attempts||3)+(r&&r.hist&&r.hist.length?' · по попыткам: '+r.hist.map(function(h){ return h.pct+'%'; }).join(' → '):'')+'</span></div>'+(r?'<span class="chip '+(r.passed?'ok':'bad')+'">'+r.best+'%'+(r.passed?' · сдан':' · не сдан')+'</span>':'<span class="chip">Не начат</span>')+'</div>';
       if(!r || !r.ans) return '<div class="stack" style="gap:8px;padding-top:12px;border-top:1px solid var(--line2)">'+hd+(r?'<p class="small muted" style="margin:0">Ответы по вопросам сохраняются с этой версии кабинета — у ранних попыток их нет.</p>':'')+'</div>';
@@ -1173,11 +1259,20 @@ function rIntern(gid){
       return '<div class="stack" style="gap:6px;padding-top:12px;border-top:1px solid var(--line2)"><b>'+esc(def.title)+'</b><span class="small muted">'+fmtDT(r.at)+'</span>'+(def.questions||[]).map(function(q){ return '<p class="small" style="margin:0"><span class="muted">'+esc(q.q)+'</span><br>'+esc(svAnsText(q, a[q.id]))+'</p>'; }).join('')+'</div>'; }).join('')+'</section>' : '';
   var fb = ((S.feedback[sel]&&S.feedback[sel].entries)||[]).slice().sort(function(a,b){ return b.at-a.at; });
   var notes = P(sel).notes||{}; var nk = Object.keys(notes).filter(function(k){ return notes[k]&&String(notes[k]).trim(); });
-  var side = '<form class="card narrow" style="display:flex" data-form="feedback" aria-labelledby="h-fbf"><h2 id="h-fbf">Обратная связь</h2><label class="field">Комментарий для стажёра<textarea id="fb-text" data-keep placeholder="Что получилось, на что обратить внимание">'+esc(f('fb-text'))+'</textarea></label><button class="btn primary" type="submit">Отправить стажёру</button>'+
+  var pf = prof(sel); var pk = function(x){ return 'pf-'+x+'-'+sel; };
+  var ac = attCount(sel);
+  var profCard = '<form class="card" style="display:flex" data-form="profile" data-id="'+esc(sel)+'" aria-labelledby="h-pf"><div class="stack" style="gap:2px"><h2 id="h-pf">Данные стажёра</h2><span class="small muted">Видите только вы — стажёру эти поля не показываются.</span></div>'+
+    '<label class="field">Telegram<input id="'+pk('tg')+'" data-keep placeholder="@username" value="'+esc(f(pk('tg'), pf.tg||''))+'" autocomplete="off"></label>'+
+    '<div class="row" style="flex-wrap:nowrap"><label class="field" style="flex:2;min-width:0">Гео — страна<input id="'+pk('geo')+'" data-keep list="geo-list" placeholder="например, Молдова" value="'+esc(f(pk('geo'), pf.geo||''))+'" autocomplete="off"></label><label class="field" style="flex:1;min-width:0">Возраст<input id="'+pk('age')+'" data-keep type="number" min="14" max="99" value="'+esc(f(pk('age'), pf.age||''))+'"></label></div>'+
+    '<datalist id="geo-list">'+['Молдова','Россия','Украина','Беларусь','Казахстан','Узбекистан','Кыргызстан','Таджикистан','Армения','Грузия','Азербайджан','Польша','Румыния','Латвия','Литва','Эстония','Германия'].map(function(c){ return '<option value="'+c+'">'; }).join('')+'</datalist>'+
+    '<label class="field">Общая характеристика<textarea id="'+pk('note')+'" data-keep rows="5" placeholder="Сильные стороны, на что обратить внимание, впечатление тренера">'+esc(f(pk('note'), pf.note||''))+'</textarea></label>'+
+    '<button class="btn primary" type="submit" style="align-self:flex-start">Сохранить данные</button>'+(pf.updatedAt?'<span class="small muted">Обновлено '+esc(fmtDT(pf.updatedAt))+'</span>':'')+
+    '<div class="stack" style="gap:8px;padding-top:12px;border-top:1px solid var(--line2)"><div class="row between"><b>Присутствие на стажировке</b><span class="small muted num">был '+ac.y+' · не был '+ac.n+'</span></div><div class="attdays">'+days().map(function(d, di){ return attBtn(sel, d, di, true); }).join('')+'</div><span class="small muted">Нажмите на день: — → ✓ → ✕.</span></div></form>';
+  var side = '<form class="card" style="display:flex" data-form="feedback" aria-labelledby="h-fbf"><h2 id="h-fbf">Обратная связь</h2><label class="field">Комментарий для стажёра<textarea id="fb-text" data-keep placeholder="Что получилось, на что обратить внимание">'+esc(f('fb-text'))+'</textarea></label><button class="btn primary" type="submit">Отправить стажёру</button>'+
     fb.map(function(e){ return '<div class="stack" style="gap:4px;padding-top:10px;border-top:1px solid var(--line2)"><span class="small muted">'+fmtTime(e.at)+'</span><p style="margin:0" class="small">'+esc(e.text)+'</p></div>'; }).join('')+
     (nk.length?'<h3 style="margin-top:8px">Заметки стажёра к слайдам</h3>'+nk.map(function(k){ var parts = k.split('_'); var dk = deck(parts[0]); return '<p class="small" style="margin:0;white-space:pre-line"><b>'+esc((dk?dk.title:'')+' · слайд '+parts[1])+':</b> '+esc(notes[k])+'</p>'; }).join(''):'')+'</form>';
   S.ui.rsel = sel;
-  return pick+info+'<div class="cols"><div class="wide stack" style="gap:20px">'+daysT+tests+svs+'</div>'+side+'</div>';
+  return pick+info+'<div class="cols"><div class="wide stack" style="gap:20px">'+daysT+tests+svs+'</div><div class="narrow stack" style="gap:20px">'+profCard+side+'</div></div>';
 }
 function svAnsText(q, v){
   if(v==null || v==='' || (Array.isArray(v)&&!v.length)) return '—';
@@ -1245,10 +1340,16 @@ function itemStatusText(it, iid){ if(isDone(it, iid)) return 'пройдено';
 function doneAt(it, iid){ var p = P(iid); if(it.type==='test' && it.test){ var r = testRec(iid, it.test); return r && r.passed ? fmtDT(r.at) : ''; } var x = p.items && p.items[it.id]; return x && x.at ? fmtDT(x.at) : ''; }
 function sheetSummary(list){
   var ti = testItems();
-  var rows = [['ФИО','Логин','Группа','Доступ','Прогресс, %','Тем пройдено','Всего тем','Сдано тестов','Средний балл, %'].concat(ti.map(function(i){ return 'Д'+(i.dayIdx+1)+' · '+i.title+', %'; })).concat(['Статус','Последний вход'])];
+  var rows = [['ФИО','Логин','Группа','Telegram','Гео','Возраст','Доступ','Присутствовал, дней','Отсутствовал, дней','Прогресс, %','Тем пройдено','Всего тем','Сдано тестов','Средний балл, %'].concat(ti.map(function(i){ return 'Д'+(i.dayIdx+1)+' · '+i.title+', %'; })).concat(['Статус','Последний вход','Характеристика'])];
   list.forEach(function(i){ var st = internStats(i.id); var g = S.groups[i.groupId];
-    rows.push([i.name, i.login, g?g.name:'', i.suspended?'приостановлен':'активен', st.pct, st.done, st.total, ti.filter(function(t){ var r = testRec(i.id, t.test); return r && r.passed; }).length+' из '+ti.length, st.avg==null?'':st.avg].concat(ti.map(function(t){ return pctN(testRec(i.id, t.test)); })).concat([internStatus(i.id).label, fmtDT(P(i.id).seen)])); });
+    var pf = prof(i.id); var ac = attCount(i.id);
+    rows.push([i.name, i.login, g?g.name:'', pf.tg||'', pf.geo||'', pf.age||'', i.suspended?'приостановлен':'активен', ac.y, ac.n, st.pct, st.done, st.total, ti.filter(function(t){ var r = testRec(i.id, t.test); return r && r.passed; }).length+' из '+ti.length, st.avg==null?'':st.avg].concat(ti.map(function(t){ return pctN(testRec(i.id, t.test)); })).concat([internStatus(i.id).label, fmtDT(P(i.id).seen), pf.note||''])); });
   return {name:'Сводка', rows:rows, filter:1};
+}
+function sheetAttendance(list){
+  var ds = days(); var rows = [['ФИО','Группа'].concat(ds.map(function(d, di){ return 'День '+(di+1)+' · '+d.title; })).concat(['Присутствовал','Отсутствовал','Не отмечено'])];
+  list.forEach(function(i){ var g = S.groups[i.groupId]; var c = attCount(i.id); rows.push([i.name, g?g.name:''].concat(ds.map(function(d){ return attText(attOf(i.id, d.id)); })).concat([c.y, c.n, ds.length-c.y-c.n])); });
+  return {name:'Присутствие', rows:rows, filter:1};
 }
 function sheetTests(list){
   var rows = [['ФИО','Группа','День','Тест','Попыток','Лучший, %','Последний, %','Проходной, %','Сдан','Попытки по порядку, %','Дата последней попытки']];
@@ -1287,7 +1388,7 @@ function surveySheets(gid){
   return [{name:'Сводка опросов', rows:sumRows, filter:1, cols:[30,60,18,10,10,60]}].concat(sheets);
 }
 function xlGroup(gid){ var g = S.groups[gid]; var list = internsOf(gid);
-  return xlSave('Результаты — '+g.name, [sheetSummary(list), sheetTests(list), sheetQuestions(list), sheetAnswers(list), sheetTopics(list)].concat(surveySheets(gid))); }
+  return xlSave('Результаты — '+g.name, [sheetSummary(list), sheetAttendance(list), sheetTests(list), sheetQuestions(list), sheetAnswers(list), sheetTopics(list)].concat(surveySheets(gid))); }
 function xlAll(){
   var gl = groupList(); var ti = testItems();
   var rows = [['Группа','Старт','Стажёров','Средний прогресс, %','Средний балл, %','Сдали все тесты'].concat(ti.map(function(i){ return 'Д'+(i.dayIdx+1)+' сдали'; })).concat(['Ответов в опросах'])];
@@ -1297,16 +1398,16 @@ function xlAll(){
 }
 function xlIntern(iid){
   var i = Object.assign({id:iid}, S.interns[iid]); var g = S.groups[i.groupId]; var st = internStats(iid); var ti = testItems();
-  var card = [['Карта стажёра'],[],['ФИО', i.name],['Логин', i.login],['Группа', g?g.name:''],['Старт группы', g&&g.start||''],['Контакт', i.contact||''],['В кабинете с', fmtDT(i.createdAt)],['Последний вход', fmtDT(P(iid).seen)],['Доступ', i.suspended?'приостановлен':'активен'],[],
-    ['Прогресс программы, %', st.pct],['Тем пройдено', st.done+' из '+st.total],['Сдано тестов', ti.filter(function(t){ var r = testRec(iid, t.test); return r && r.passed; }).length+' из '+ti.length],['Средний балл тестов, %', st.avg==null?'':st.avg],['Тренажёры', st.simsDone+' из '+st.simsTotal],['Итог', internStatus(iid).label],[],
-    ['По дням'],['День','Тема дня','Пройдено тем','Всего тем','Тест, %','Статус дня']];
+  var card = [['Карта стажёра'],[],['ФИО', i.name],['Логин', i.login],['Группа', g?g.name:''],['Старт группы', g&&g.start||''],['Контакт из заявки', i.contact||''],['Telegram', prof(iid).tg||''],['Гео', prof(iid).geo||''],['Возраст', prof(iid).age||''],['В кабинете с', fmtDT(i.createdAt)],['Последний вход', fmtDT(P(iid).seen)],['Доступ', i.suspended?'приостановлен':'активен'],[],
+    ['Прогресс программы, %', st.pct],['Тем пройдено', st.done+' из '+st.total],['Сдано тестов', ti.filter(function(t){ var r = testRec(iid, t.test); return r && r.passed; }).length+' из '+ti.length],['Средний балл тестов, %', st.avg==null?'':st.avg],['Тренажёры', st.simsDone+' из '+st.simsTotal],['Перекличка', (function(){ var rl = rollsOf(i.groupId).filter(function(r){ return (r.list||[]).some(function(x){ return x.iid===iid; }); }); var y = rl.filter(function(r){ return (r.list||[]).some(function(x){ return x.iid===iid && x.at; }); }).length; return rl.length ? 'на месте '+y+' из '+rl.length : 'не было'; })()],['Итог', internStatus(iid).label],['Присутствие', attCount(iid).y+' дн. был, '+attCount(iid).n+' дн. не был'],['Характеристика', prof(iid).note||''],[],
+    ['По дням'],['День','Тема дня','Присутствие','Пройдено тем','Всего тем','Тест, %','Статус дня']];
   days().forEach(function(d, di){ var dn = (d.items||[]).filter(function(x){ return isDone(x, iid); }).length; var t = (d.items||[]).filter(function(x){ return x.type==='test'&&x.test; })[0]; var r = t && testRec(iid, t.test); var s3 = dayState(d, iid);
-    card.push([di+1, d.title, dn, (d.items||[]).length, r?r.best:'', s3==='done'?'пройден':(s3==='cur'?'открыт':'закрыт')]); });
+    card.push([di+1, d.title, attText(attOf(iid, d.id)), dn, (d.items||[]).length, r?r.best:'', s3==='done'?'пройден':(s3==='cur'?'открыт':'закрыт')]); });
   var svRows = [['Опрос','Дата','Вопрос','Ответ']];
   S.surveys.filter(function(r){ return r.iid===iid; }).forEach(function(r){ var def = svDef(r.survey) || {title:'Опрос', questions:[]}; var a = respAnswers(r); (def.questions||[]).forEach(function(q){ svRows.push([def.title, fmtDT(r.at), q.q, svAnsText(q, a[q.id])]); }); });
   var fbRows = [['Дата','Комментарий тренера']].concat(((S.feedback[iid]&&S.feedback[iid].entries)||[]).map(function(e){ return [fmtDT(e.at), e.text]; }));
   var notes = P(iid).notes || {}; var nRows = [['Презентация','Слайд','Заметка']].concat(Object.keys(notes).filter(function(k){ return notes[k]&&String(notes[k]).trim(); }).map(function(k){ var p = k.split('_'); var dk = deck(p[0]); return [dk?dk.title:'', Number(p[1])||p[1], notes[k]]; }));
-  var sheets = [{name:'Карта', rows:card, cols:[26,40,14,12,10,14]}, sheetTopics([i]), sheetTests([i]), sheetAnswers([i])];
+  var sheets = [{name:'Карта', rows:card, cols:[26,60,16,14,12,10,14]}, sheetTopics([i]), sheetTests([i]), sheetAnswers([i])];
   if(svRows.length>1) sheets.push({name:'Опросы', rows:svRows, cols:[30,18,50,50]});
   sheets.push({name:'Обратная связь', rows:fbRows, cols:[18,90]});
   if(nRows.length>1) sheets.push({name:'Заметки', rows:nRows, cols:[34,8,80]});
@@ -1857,6 +1958,17 @@ var A = {
     var lv = S.live[gid] || {}; var opened = clone(lv.opened); opened[deckId] = Math.max(1, (typeof opened[deckId]==='number'?opened[deckId]:1));
     liveUpdate(gid, {active:true, deck:deckId, slide:1, opened:opened, sync:true, at:Date.now()});
   },
+  'att-cycle': function(el){ var iid = el.dataset.i, d = el.dataset.d; var v = attOf(iid, d); var nv = v==='' ? 'yes' : (v==='yes' ? 'no' : null); var p = {att:{}}; p.att[d] = nv; saveProfile(iid, p); },
+  'att-day-all': function(el){ var d = el.dataset.d; var gid = curGid(); var n = 0; internsOf(gid).forEach(function(i){ if(!attOf(i.id, d)){ var p = {att:{}}; p.att[d] = 'yes'; saveProfile(i.id, p); n++; } }); toast(n ? 'Отмечено присутствующими: '+n : 'Все уже отмечены'); },
+  'roll-start': function(){ var gid = curGid(); if(!gid) return; liveUpdate(gid, {roll:{active:true, id:uid('r'), startedAt:Date.now()}}); toast('Перекличка началась'); },
+  'roll-stop': function(){
+    var gid = curGid(); var rl = liveOf(gid).roll; if(!rl || !rl.active) return; var end = Date.now();
+    var list = internsOf(gid).filter(function(i){ return !i.suspended; }).map(function(i){ return {iid:i.id, name:i.name, at:rollMarkAt(i.id, rl.id)}; });
+    S.db.doc('rolls/'+rl.id).set({groupId:gid, startedAt:rl.startedAt, endedAt:end, list:list}).then(function(){ return liveUpdate(gid, {roll:{active:false, id:rl.id, startedAt:rl.startedAt, endedAt:end}}); })
+      .then(function(){ var y = list.filter(function(x){ return x.at; }).length; toast('Перекличка завершена: на месте '+y+' из '+list.length); }, writeErr);
+  },
+  'roll-here': function(){ var m = me(); if(!m) return; var rl = liveOf(m.groupId).roll; if(!rl || !rl.active) return; saveProgress({roll:{id:rl.id, at:Date.now()}, seen:Date.now()}); var cur = S.progress[S.iid]; if(cur){ var c = clone(cur); c.roll = {id:rl.id, at:Date.now()}; setLocal('progress/'+S.iid, c); } render(); },
+  'xl-rolls': function(){ var gid = curGid(); if(gid) xlRolls(gid); },
   'tp-stop': function(){ liveUpdate(curGid(), {active:false, at:Date.now()}); toast('Показ завершён. Открытые слайды остаются доступны.'); },
   'tp-next': function(){ var gid=curGid(); var lv=S.live[gid]; var n=(lv.slide||1)+1; var op=clone(lv.opened); op[lv.deck]=Math.max(op[lv.deck]||1, n); liveUpdate(gid, {slide:n, opened:op, at:Date.now()}); },
   'tp-prev': function(){ var gid=curGid(); var lv=S.live[gid]; liveUpdate(gid, {slide:Math.max(1,(lv.slide||1)-1), at:Date.now()}); },
@@ -2068,6 +2180,13 @@ document.addEventListener('submit', function(e){
       saveProgress(p); (def.questions||[]).forEach(function(q){ delete S.form['sv-'+q.id]; }); toast('Спасибо, ответы отправлены');
     }, writeErr);
   }
+  if(k==='profile'){
+    var pid = form.dataset.id; var pk2 = function(x){ return 'pf-'+x+'-'+pid; }; var pf0 = prof(pid);
+    var tg = String(f(pk2('tg'), pf0.tg||'')).trim(); if(tg && !/^@|^https?:/i.test(tg)) tg = '@'+tg.replace(/^t\.me\//i,'');
+    var ageV = String(f(pk2('age'), pf0.age||'')).trim();
+    saveProfile(pid, {tg:tg.slice(0,64), geo:String(f(pk2('geo'), pf0.geo||'')).trim().slice(0,60), age: ageV ? Number(ageV) : '', note:String(f(pk2('note'), pf0.note||'')).slice(0,5000), updatedAt:Date.now()})
+      .then(function(){ ['tg','geo','age','note'].forEach(function(x){ delete S.form[pk2(x)]; }); toast('Данные стажёра сохранены'); });
+  }
   if(k==='feedback'){
     var txt = String(f('fb-text')).trim(); if(!txt){ toast('Напишите комментарий'); return; }
     var iid2 = S.ui.rsel; var cur = S.feedback[iid2]; var entries = ((cur&&cur.entries)||[]).concat([{at:Date.now(), text:txt.slice(0,2000)}]);
@@ -2149,12 +2268,13 @@ function pollLive(){
   var now = Date.now();
   if(S.role==='intern' && me()){
     var path = 'live/'+me().groupId;
-    if(S.view==='pres' || now-(S.ui.lastLivePoll||0) > 15000){
+    if(S.view==='pres' || now-(S.ui.lastLivePoll||0) > 5000){
       S.ui.lastLivePoll = now;
       sb.from('docs').select('path,data').eq('path', path).maybeSingle().then(function(r){ if(r && r.data && !sameJson(r.data.data, CACHE[path])) setLocal(path, r.data.data); });
     }
   }
-  if(S.role==='trainer' && S.view==='t-pres' && now-(S.ui.lastProgPoll||0) > 10000){
+  var rollOn = S.role==='trainer' && S.view==='t-roll' && liveOf(curGid()).roll && liveOf(curGid()).roll.active;
+  if(S.role==='trainer' && (S.view==='t-pres' || rollOn) && now-(S.ui.lastProgPoll||0) > (rollOn ? 2500 : 10000)){
     S.ui.lastProgPoll = now;
     sb.from('docs').select('path,data').like('path', 'progress/%').then(function(r){ ((r && r.data)||[]).forEach(function(row){ if(!sameJson(row.data, CACHE[row.path])) setLocal(row.path, row.data); }); });
   }
@@ -2177,7 +2297,7 @@ if(!window.supabase || !CFG.url || !CFG.anonKey || /ВСТАВЬТЕ|XXXX/.test(
   ['program','slides','tests','knowledge','org','settings','surveys'].forEach(function(k){
     S.db.doc('content/'+k).onSnapshot(function(s){ S.content[k] = s.exists ? s.data() : null; S.loaded[k]=true; schedule(); });
   });
-  [['groups','groups'],['interns','interns'],['progress','progress'],['feedback','feedback'],['live','live'],['sims','sims'],['requests','requests']].forEach(function(c){
+  [['groups','groups'],['interns','interns'],['progress','progress'],['feedback','feedback'],['live','live'],['sims','sims'],['requests','requests'],['rolls','rolls'],['profiles','profiles']].forEach(function(c){
     S.db.collection(c[0]).onSnapshot(function(snap){ var o={}; snap.docs.forEach(function(d){ o[d.id]=d.data(); }); S[c[1]]=o; S.loaded[c[0]]=true; if(c[0]==='interns'){ checkApproved(); checkSuspended(); } if(c[0]==='live') followLive(); schedule(); });
   });
   S.db.collection('surveys').onSnapshot(function(snap){ S.surveys = snap.docs.map(function(d){ return d.data(); }); schedule(); });
