@@ -177,6 +177,32 @@ td:first-child,th:first-child{padding-left:0}
 .rating label{width:44px;height:44px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:600}
 .rating input{position:absolute;opacity:0;pointer-events:none}
 .rating label.sel{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.rating.nps label{width:40px}
+.q-opt.multi input{border-radius:4px}
+.svq{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.svq legend{font-weight:600;margin-bottom:10px;line-height:1.4}
+.svq .req{color:var(--danger);margin-left:3px}
+.scalebox{display:flex;flex-direction:column;gap:6px;align-self:flex-start;max-width:100%}
+.scale-hint{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.svlist .li{flex-wrap:wrap;row-gap:8px}
+.svlist .li .ttl{flex:1 1 220px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.kpi{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--surface);display:flex;flex-direction:column;gap:4px}
+.kpi .v{font-family:var(--f-display);font-size:26px;font-weight:500;line-height:1.1}
+.bars2{display:flex;flex-direction:column;gap:6px}
+.bar2{display:grid;grid-template-columns:minmax(120px,260px) 1fr 70px;gap:10px;align-items:center;font-size:13.5px}
+.bar2 .tr{height:10px;border-radius:999px;background:var(--line2);overflow:hidden}
+.bar2 .tr i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.bar2 .c{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.svres{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--line2);padding-top:14px}
+.texts{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto}
+.texts p{margin:0;padding:10px 12px;border-radius:10px;background:var(--surface2);line-height:1.5;white-space:pre-line}
+.ansrow td{vertical-align:top}
+.ok-ink{color:var(--ok-ink);font-weight:600}
+.bad-ink{color:var(--danger);font-weight:600}
+td.pct-ok{color:var(--accent-ink);font-weight:600}
+td.pct-bad{color:var(--danger);font-weight:600}
+@media (max-width:640px){.bar2{grid-template-columns:1fr 60px}.bar2 .tr{grid-column:1 / -1;order:3}}
 
 .kb{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
 .kb aside{flex:1 1 230px;padding:10px;gap:2px}
@@ -398,7 +424,7 @@ function authErrText(e){ var m = (e && e.message) || ''; if(/invalid login crede
 
 var S = {
   db:null, user:null, canEdit:false, canEditKnown:false, dbState:'loading',
-  content:{program:null, slides:null, tests:null, knowledge:null, org:null, settings:null},
+  content:{program:null, slides:null, tests:null, knowledge:null, org:null, settings:null, surveys:null},
   loaded:{},
   groups:{}, interns:{}, progress:{}, feedback:{}, live:{}, surveys:[], sims:{},
   role:null, iid:null, view:'home', ui:{dayOpen:{}, edOpen:{}}, form:{}, draft:{}, dirty:{}, player:null, assets:null, pendingDel:[], requests:{}
@@ -442,7 +468,7 @@ var TONE_ORDER = ['theory','practice','check','summary','crm','org','meeting'];
 function toneOf(it){ return it && TONES[it.tone] ? it.tone : 'none'; }
 function slideRef(it){ if(!it.deck || !it.slide) return ''; return 'Слайд '+it.slide+(it.slideTo && it.slideTo>it.slide ? '–'+it.slideTo : ''); }
 function toneLegend(items){ var used = {}; (items||[]).forEach(function(i){ if(TONES[i.tone]) used[i.tone]=1; }); var ks = TONE_ORDER.filter(function(t){ return used[t]; }); if(!ks.length) return ''; return '<div class="legend" aria-label="Цвета блоков">'+ks.map(function(t){ return '<span class="lg tone-'+t+'"><i aria-hidden="true"></i>'+esc(TONES[t])+'</span>'; }).join('')+'</div>'; }
-var TABS = [['home','Главная'],['plan','План обучения'],['sims','Тренажёры'],['tests','Тесты и опросы'],['pres','Презентация'],['kb','База знаний'],['org','Структура компании'],['progress','Мой прогресс']];
+var TABS = [['home','Главная'],['plan','План обучения'],['sims','Тренажёры'],['tests','Тесты'],['surveys','Опросы'],['pres','Презентация'],['kb','База знаний'],['org','Структура компании'],['progress','Мой прогресс']];
 
 /* ---------- content accessors ---------- */
 function days(){ return (S.content.program && S.content.program.days) || []; }
@@ -624,7 +650,7 @@ function viewShell(){
       '<div class="nav">'+TABS.filter(function(t){ return !tabHidden(t[0]); }).map(function(t){ return navItem(t[0], tabTitle(t[0]), t[0]==='pres'?liveTag:null); }).join('')+'</div>'+
       '<div class="me"><div class="ava">'+esc(initials(m.name))+'</div><div class="who"><b>'+esc(m.name)+'</b><small>Стажёр · день '+(dIdx+1)+' из '+days().length+'</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
-    body = ({home:vHome, plan:vPlan, sims:vSims, tests:vTests, pres:vPres, kb:vKb, org:vOrg, progress:vProgress}[S.view] || vHome)();
+    body = ({home:vHome, plan:vPlan, sims:vSims, tests:vTests, surveys:vSurveys, pres:vPres, kb:vKb, org:vOrg, progress:vProgress}[S.view] || vHome)();
   } else {
     var anyLive = Object.keys(S.live).some(function(k){ return S.live[k] && S.live[k].active; });
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
@@ -743,22 +769,19 @@ function vSims(){
     }).join('')+'</div>' : noContent());
 }
 
+function testItems(){ var seen = {}; return allItems().filter(function(i){ if(i.type!=='test' || !i.test || !test(i.test) || seen[i.test]) return false; seen[i.test]=1; return true; }); }
 function vTests(){
-  var t = S.ui.test, sv = S.ui.survey;
-  var items = allItems().filter(function(i){ return (i.type==='test' && i.test) || i.type==='survey'; });
+  var t = S.ui.test;
+  var items = allItems().filter(function(i){ return i.type==='test' && i.test; });
   var left = '<section class="card" style="flex:1 1 380px;min-width:0;padding-block:8px" aria-label="Список тестов"><div class="list">'+
     (items.length ? items.map(function(it){
-      var o = isOpen(it);
-      var tt = it.type==='test' ? test(it.test) : null;
-      var meta = it.type==='test' ? (tt ? tt.questions.length+' вопросов · проходной '+tt.pass+'%' : 'тест не найден') : 'Анонимно';
-      return '<div class="li'+(o?'':' locked')+'"><span class="ttl"><b>'+esc(it.title)+'</b><span class="small muted">День '+(it.dayIdx+1)+' · '+esc(meta)+'</span></span>'+statusChip(it)+
-        (o && (tt || it.type==='survey') ? '<button class="btn sm" type="button" data-act="open-item" data-id="'+esc(it.id)+'">'+(isDone(it)?'Открыть':'Начать')+'</button>' : '')+'</div>';
+      var o = isOpen(it); var tt = test(it.test);
+      var meta = tt ? tt.questions.length+' вопросов · проходной '+tt.pass+'%' : 'тест не найден';
+      return '<div class="li tone-'+toneOf(it)+(o?'':' locked')+'"><span class="ttl"><b>'+esc(it.title)+'</b><span class="small muted">День '+(it.dayIdx+1)+' · '+esc(meta)+'</span></span>'+statusChip(it)+
+        (o && tt ? '<button class="btn sm" type="button" data-act="open-item" data-id="'+esc(it.id)+'">'+(isDone(it)?'Открыть':'Начать')+'</button>' : '')+'</div>';
     }).join('') : '<p class="muted">Тестов пока нет.</p>')+'</div></section>';
-  var right;
-  if(t) right = testPanel(t);
-  else if(sv) right = surveyPanel(sv);
-  else right = '<section class="card" style="flex:999 1 440px;min-width:0"><div class="empty" style="border:0"><h2>Выберите тест</h2><p style="margin:0">Тест открывается после того, как тренер откроет его в плане. Проходной балл и число попыток указаны в тесте.</p></div></section>';
-  return head(tabTitle('tests'),'Опросник по итогам дня, финальный тест и анонимные опросы')+'<div class="cols">'+left+right+'</div>';
+  var right = t ? testPanel(t) : '<section class="card" style="flex:999 1 440px;min-width:0"><div class="empty" style="border:0"><h2>Выберите тест</h2><p style="margin:0">Тест открывается после того, как тренер откроет его в плане. Проходной балл и число попыток указаны в тесте.</p></div></section>';
+  return head(tabTitle('tests'),'Опросники по итогам дней и финальный тест — с проходным баллом')+'<div class="cols">'+left+right+'</div>';
 }
 function testPanel(t){
   var tt = test(t.tid); if(!tt) return '<section class="card wide"><p>Тест не найден.</p></section>';
@@ -794,13 +817,49 @@ function testPanel(t){
   '</section>';
 }
 var SURVEY_Q = [['clarity','Насколько понятным был материал дня?'],['trainer','Как вы оцениваете работу тренера?'],['pace','Подходил ли темп обучения?']];
+var SV_TYPES = {rating:'Оценка 1–5', nps:'Шкала 0–10', choice:'Один вариант', multi:'Несколько вариантов', text:'Свободный ответ'};
+var LEGACY_SV = {title:'Опрос по итогам дня', anonymous:true, questions: SURVEY_Q.map(function(q){ return {id:q[0], type:'rating', q:q[1], required:true}; }).concat([{id:'comment', type:'text', q:'Что улучшить?'}])};
+function svDefs(){ return (S.content.surveys && S.content.surveys.surveys) || {}; }
+function svDef(id){ return id ? svDefs()[id] || null : LEGACY_SV; }
+function svKey(sv){ return sv.itemId || ('sv:'+sv.sid); }
+function svDone(sv, iid){ var p = P(iid); if(p.surveys && p.surveys[svKey(sv)]) return true; if(sv.itemId){ var it = itemById(sv.itemId); return !!(it && isDone(it, iid)); } return false; }
+function respAnswers(r){ return r.answers || Object.assign({}, r.ratings||{}, r.comment ? {comment:r.comment} : {}); }
+function respSid(r){ return r.survey || '__legacy'; }
+function surveyEntries(){
+  var out = [];
+  allItems().filter(function(i){ return i.type==='survey'; }).forEach(function(i){ var sid = i.survey && svDef(i.survey) ? i.survey : ''; out.push({key:i.id, itemId:i.id, sid:sid, title:i.title, day:i.dayIdx, open:isOpen(i), def:svDef(sid)}); });
+  Object.keys(svDefs()).forEach(function(id){ var d = svDefs()[id]; if(d.always) out.push({key:'sv:'+id, sid:id, title:d.title||'Опрос', day:null, open:true, def:d}); });
+  return out;
+}
+function vSurveys(){
+  var sv = S.ui.survey; var list = surveyEntries();
+  var left = '<section class="card svlist" style="flex:1 1 380px;min-width:0;padding-block:8px" aria-label="Список опросов"><div class="list">'+
+    (list.length ? list.map(function(e){ var dn = svDone(e);
+      return '<div class="li tone-summary'+(e.open?'':' locked')+'"><span class="ttl"><b>'+esc(e.title)+'</b><span class="small muted">'+(e.day!=null?'День '+(e.day+1)+' · ':'')+(e.def.questions||[]).length+' вопросов · '+(e.def.anonymous===false?'с именем':'анонимно')+'</span></span>'+
+        (!e.open ? '<span class="chip">Закрыто</span>' : (dn ? '<span class="chip ok">Заполнен</span>' : '<span class="chip warn">Ждёт ответа</span>'))+
+        (e.open ? '<button class="btn sm" type="button" data-act="sv-open" data-k="'+esc(e.key)+'">'+(dn?'Открыть':'Заполнить')+'</button>' : '')+'</div>'; }).join('') : '<p class="muted">Опросов пока нет.</p>')+'</div></section>';
+  var right = sv ? surveyPanel(sv) : '<section class="card" style="flex:999 1 440px;min-width:0"><div class="empty" style="border:0"><h2>Выберите опрос</h2><p style="margin:0">Анкеты обратной связи помогают тренеру сделать стажировку лучше. Правильных и неправильных ответов здесь нет.</p></div></section>';
+  return head(tabTitle('surveys'),'Анкеты обратной связи — без оценок и проходного балла')+'<div class="cols">'+left+right+'</div>';
+}
+function svInput(q){
+  var k = 'sv-'+q.id; var v = S.form[k];
+  var req = q.required ? '<span class="req" aria-hidden="true">*</span>' : '';
+  if(q.type==='rating' || q.type==='nps'){
+    var ns = q.type==='nps' ? [0,1,2,3,4,5,6,7,8,9,10] : [1,2,3,4,5];
+    return '<fieldset class="svq"><legend>'+esc(q.q)+req+'</legend><div class="scalebox"><div class="rating'+(q.type==='nps'?' nps':'')+'">'+ns.map(function(n){ var on = String(v)===String(n); return '<label class="'+(on?'sel':'')+'"><input type="radio" name="'+esc(k)+'" data-act="rate" data-q="'+esc(q.id)+'" data-n="'+n+'"'+(on?' checked':'')+'>'+n+'</label>'; }).join('')+'</div>'+
+      '<div class="scale-hint"><span>'+(q.type==='nps'?'0 — точно нет':'1 — плохо')+'</span><span>'+(q.type==='nps'?'10 — точно да':'5 — отлично')+'</span></div></div></fieldset>';
+  }
+  if(q.type==='choice') return '<fieldset class="svq"><legend>'+esc(q.q)+req+'</legend>'+(q.options||[]).map(function(o,i){ var on = v===i; return '<label class="q-opt'+(on?' sel':'')+'"><input type="radio" name="'+esc(k)+'" data-act="sv-pick" data-q="'+esc(q.id)+'" data-i="'+i+'"'+(on?' checked':'')+'>'+esc(o)+'</label>'; }).join('')+'</fieldset>';
+  if(q.type==='multi'){ var arr = Array.isArray(v) ? v : []; return '<fieldset class="svq"><legend>'+esc(q.q)+req+' <span class="small muted" style="font-weight:400">· можно несколько</span></legend>'+(q.options||[]).map(function(o,i){ var on = arr.indexOf(i)>=0; return '<label class="q-opt multi'+(on?' sel':'')+'"><input type="checkbox" data-act="sv-multi" data-q="'+esc(q.id)+'" data-i="'+i+'"'+(on?' checked':'')+'>'+esc(o)+'</label>'; }).join('')+'</fieldset>'; }
+  return '<label class="field" style="font-weight:600">'+esc(q.q)+req+'<textarea id="'+esc(k)+'" data-keep rows="3" style="font-weight:400">'+esc(f(k))+'</textarea></label>';
+}
 function surveyPanel(sv){
-  var it = itemById(sv.itemId); if(!it) return '';
-  if(isDone(it)) return '<section class="card" style="flex:999 1 440px;min-width:0"><h2>Спасибо!</h2><p style="margin:0" class="muted">Вы уже заполнили этот опрос. Ответы анонимны — тренер видит только общую картину.</p></section>';
-  return '<section class="card" style="flex:999 1 440px;min-width:0"><span class="lbl">Анонимный опрос · день '+(it.dayIdx+1)+'</span><h2>'+esc(it.title)+'</h2>'+
-    '<form data-form="survey" class="stack" style="gap:18px">'+
-    SURVEY_Q.map(function(q){ var v = S.form['sv-'+q[0]]; return '<fieldset style="border:0;margin:0;padding:0" class="stack"><legend style="font-weight:600;margin-bottom:8px">'+q[1]+'</legend><div class="rating">'+[1,2,3,4,5].map(function(n){ return '<label class="'+(String(v)===String(n)?'sel':'')+'"><input type="radio" name="'+q[0]+'" data-act="rate" data-q="'+q[0]+'" data-n="'+n+'"'+(String(v)===String(n)?' checked':'')+'>'+n+'</label>'; }).join('')+'</div></fieldset>'; }).join('')+
-    '<label class="field">Что улучшить? (необязательно)<textarea id="sv-comment" data-keep>'+esc(f('sv-comment'))+'</textarea></label>'+
+  var def = svDef(sv.sid); if(!def) return '<section class="card wide"><p>Опрос не найден.</p></section>';
+  var it = sv.itemId ? itemById(sv.itemId) : null;
+  var title = it ? it.title : def.title; var anon = def.anonymous !== false;
+  if(svDone(sv)) return '<section class="card" style="flex:999 1 440px;min-width:0"><h2>Спасибо!</h2><p style="margin:0" class="muted">Вы уже заполнили «'+esc(title)+'». '+(anon?'Ответы анонимны — тренер видит только общую картину.':'Тренер увидит ваши ответы.')+'</p></section>';
+  return '<section class="card" style="flex:999 1 440px;min-width:0"><span class="lbl">'+(anon?'Анонимный опрос':'Опрос · тренер увидит ваше имя')+(it?' · день '+(it.dayIdx+1):'')+'</span><h2>'+esc(title)+'</h2>'+(def.desc?'<p style="margin:0" class="muted">'+esc(def.desc)+'</p>':'')+
+    '<form data-form="survey" class="stack" style="gap:22px">'+(def.questions||[]).map(svInput).join('')+
     '<button class="btn primary" type="submit" style="align-self:flex-start">Отправить</button></form></section>';
 }
 
@@ -1021,36 +1080,242 @@ function tPres(){
 }
 
 /* ---------- trainer: results ---------- */
+function fmtDT(t){ if(!t) return ''; var d = new Date(t); function z(n){ return (n<10?'0':'')+n; } return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear()+' '+z(d.getHours())+':'+z(d.getMinutes()); }
+function testRec(iid, tid){ return P(iid).tests && P(iid).tests[tid]; }
+function internStatus(iid){
+  var ti = testItems(); var rs = ti.map(function(i){ return testRec(iid, i.test); });
+  var passed = rs.filter(function(r){ return r && r.passed; }).length; var started = rs.filter(Boolean).length;
+  if(!ti.length) return {key:'none', label:'Тестов нет'};
+  if(passed===ti.length) return {key:'ok', label:'Все тесты сданы'};
+  var failed = rs.filter(function(r, k){ return r && !r.passed && (r.attempts||0) >= ((test(ti[k].test)||{}).attempts||3); }).length;
+  if(failed) return {key:'bad', label:'Не сдан тест'};
+  if(!started) return {key:'', label:'Тесты не начаты'};
+  return {key:'warn', label:'Сдано '+passed+' из '+ti.length};
+}
+function statusChipR(st){ return '<span class="chip '+(st.key||'')+'">'+esc(st.label)+'</span>'; }
+function pctCell(r, tt){ if(!r) return '<td class="num muted">—</td>'; return '<td class="num '+(r.passed?'pct-ok':'pct-bad')+'">'+r.best+'%<span class="small muted" style="font-weight:400"> ×'+(r.attempts||0)+'</span></td>'; }
+function groupStats(gid){
+  var list = internsOf(gid); var ti = testItems();
+  var st = list.map(function(i){ return internStats(i.id); });
+  var avgP = list.length ? Math.round(st.reduce(function(a,x){ return a+x.pct; },0)/list.length) : null;
+  var avs = st.filter(function(x){ return x.avg!=null; }); var avgT = avs.length ? Math.round(avs.reduce(function(a,x){ return a+x.avg; },0)/avs.length) : null;
+  var allOk = list.filter(function(i){ return ti.length && internStatus(i.id).key==='ok'; }).length;
+  var resp = S.surveys.filter(function(x){ return x.groupId===gid; }).length;
+  var active = list.filter(function(i){ var s2 = P(i.id).seen; return s2 && Date.now()-s2 < 86400000; }).length;
+  return {n:list.length, avgP:avgP, avgT:avgT, allOk:allOk, resp:resp, active:active};
+}
+function questionStats(tid, iids){
+  var tt = test(tid); if(!tt) return [];
+  return tt.questions.map(function(q, qi){ var n=0, ok=0; iids.forEach(function(id){ var r = testRec(id, tid); if(r && r.ans && r.ans[qi]!=null){ n++; if(r.ans[qi]===q.correct) ok++; } }); return {qi:qi, q:q, n:n, ok:ok, err: n ? Math.round((n-ok)/n*100) : null}; });
+}
 function tResults(){
+  var mode = S.ui.rmode || 'group';
+  var segs = [['all','Все группы'],['group','Группа'],['intern','Стажёр'],['surveys','Опросы']];
+  var seg = '<div class="seg" role="group" aria-label="Режим">'+segs.map(function(x){ return '<button type="button" class="'+(mode===x[0]?'on':'')+'" data-act="rmode" data-m="'+x[0]+'" aria-pressed="'+(mode===x[0])+'">'+x[1]+'</button>'; }).join('')+'</div>';
+  if(mode==='all') return head('Результаты','Сравнение групп', '<div class="row" style="align-items:flex-end">'+seg+'<button class="btn" type="button" data-act="xl-all">Выгрузить в Excel</button></div>')+rAll();
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
-  if(!g) return head('Результаты','')+'<div class="empty"><b>Сначала создайте группу</b></div>';
+  if(!g) return head('Результаты','', seg)+'<div class="empty"><b>Сначала создайте группу</b></div>';
+  var right = '<div class="row" style="align-items:flex-end">'+seg+groupPicker(false);
+  if(mode==='intern') return head('Результаты', esc(g.name)+' · карта стажёра', right+'</div>')+rIntern(gid);
+  if(mode==='surveys') return head('Результаты', esc(g.name)+' · опросы', right+'<button class="btn" type="button" data-act="xl-surveys">Выгрузить в Excel</button></div>')+rSurveys(gid);
+  return head('Результаты', esc(g.name), right+'<button class="btn" type="button" data-act="xl-group">Выгрузить группу в Excel</button></div>')+rGroup(gid);
+}
+function rAll(){
+  var gl = groupList(); if(!gl.length) return '<div class="empty"><b>Групп пока нет</b></div>';
+  var ti = testItems();
+  var rows = gl.map(function(g){ var st = groupStats(g.id); var list = internsOf(g.id);
+    return '<tr><td><b>'+esc(g.name)+'</b><br><span class="small muted">старт '+esc(g.start||'—')+'</span></td><td class="num">'+st.n+'</td><td class="num">'+(st.avgP==null?'—':st.avgP+'%')+'</td><td class="num">'+(st.avgT==null?'—':st.avgT+'%')+'</td>'+
+      ti.map(function(i){ var rs = list.map(function(x){ return testRec(x.id, i.test); }).filter(Boolean); var pass = rs.filter(function(r){ return r.passed; }).length; return '<td class="num">'+(rs.length? pass+' / '+list.length : '<span class="muted">—</span>')+'</td>'; }).join('')+
+      '<td class="num">'+(ti.length? st.allOk+' / '+st.n : '—')+'</td><td class="num">'+st.resp+'</td><td style="text-align:right"><button class="btn sm" type="button" data-act="rgo" data-g="'+esc(g.id)+'">Открыть</button></td></tr>'; }).join('');
+  return '<section class="card" aria-label="Группы"><div class="table-wrap"><table><thead><tr><th>Группа</th><th>Стажёров</th><th>Прогресс</th><th>Ср. балл</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+' сдали</th>'; }).join('')+'<th>Сдали все</th><th>Ответов в опросах</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="hint">«Д2 сдали» — сколько стажёров группы сдали тест, стоящий в плане в день 2.</p></section>';
+}
+function rGroup(gid){
+  var list = internsOf(gid); var ti = testItems(); var st = groupStats(gid);
+  var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">Стажёров</span><span class="v num">'+st.n+'</span><span class="small muted">в сети за сутки: '+st.active+'</span></div>'+
+    '<div class="kpi"><span class="small muted">Средний прогресс</span><span class="v num">'+(st.avgP==null?'—':st.avgP+'%')+'</span><div class="meter"><i style="width:'+(st.avgP||0)+'%"></i></div></div>'+
+    '<div class="kpi"><span class="small muted">Средний балл тестов</span><span class="v num" style="color:var(--accent-ink)">'+(st.avgT==null?'—':st.avgT+'%')+'</span><span class="small muted">по лучшим попыткам</span></div>'+
+    '<div class="kpi"><span class="small muted">Сдали все тесты</span><span class="v num">'+(ti.length? st.allOk+' / '+st.n : '—')+'</span><span class="small muted">'+ti.length+' тестов в плане</span></div>'+
+    '<div class="kpi"><span class="small muted">Ответов в опросах</span><span class="v num">'+st.resp+'</span><span class="small muted">все анкеты группы</span></div></div>';
+  var table = list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Прогресс</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+'</th>'; }).join('')+'<th>Ср. балл</th><th>Статус</th><th>Был в ЛК</th><th></th></tr></thead><tbody>'+list.map(function(i){
+    var s2 = internStats(i.id);
+    return '<tr'+(i.suspended?' style="opacity:.6"':'')+'><td><b>'+esc(i.name)+'</b>'+(i.suspended?' <span class="chip bad">приостановлен</span>':'')+'</td><td class="num">'+s2.pct+'%</td>'+ti.map(function(t){ return pctCell(testRec(i.id, t.test), test(t.test)); }).join('')+'<td class="num">'+(s2.avg==null?'—':s2.avg+'%')+'</td><td>'+statusChipR(internStatus(i.id))+'</td><td>'+ago(P(i.id).seen)+'</td><td style="text-align:right;white-space:nowrap"><button class="btn sm" type="button" data-act="rsel" data-id="'+i.id+'">Карта</button> <button class="btn sm" type="button" data-act="xl-intern" data-id="'+i.id+'" title="Карта стажёра в Excel">Excel</button></td></tr>';
+  }).join('')+'</tbody></table></div>' : '<p class="muted" style="margin:0">В группе нет стажёров.</p>';
+  var ids = list.map(function(i){ return i.id; });
+  var tsum = ti.length ? '<section class="card" aria-labelledby="h-ts"><h2 id="h-ts">Тесты группы</h2><div class="table-wrap"><table><thead><tr><th>Тест</th><th>Проходили</th><th>Сдали</th><th>Средний</th><th>Лучший</th><th>Худший</th><th>Ср. попыток</th></tr></thead><tbody>'+ti.map(function(i){
+      var rs = ids.map(function(id){ return testRec(id, i.test); }).filter(Boolean); var b = rs.map(function(r){ return r.best; });
+      return '<tr><td><b>'+esc(i.title)+'</b><br><span class="small muted">День '+(i.dayIdx+1)+' · проходной '+test(i.test).pass+'%</span></td><td class="num">'+rs.length+' / '+ids.length+'</td><td class="num">'+rs.filter(function(r){ return r.passed; }).length+'</td><td class="num">'+(b.length?Math.round(b.reduce(function(a,x){return a+x;},0)/b.length)+'%':'—')+'</td><td class="num">'+(b.length?Math.max.apply(null,b)+'%':'—')+'</td><td class="num">'+(b.length?Math.min.apply(null,b)+'%':'—')+'</td><td class="num">'+(rs.length?(rs.reduce(function(a,r){ return a+(r.attempts||0); },0)/rs.length).toFixed(1):'—')+'</td></tr>'; }).join('')+'</tbody></table></div></section>' : '';
+  var hard = [];
+  ti.forEach(function(i){ questionStats(i.test, ids).forEach(function(x){ if(x.n && x.err>0) hard.push({t:i, x:x}); }); });
+  hard.sort(function(a,b){ return b.x.err-a.x.err || b.x.n-a.x.n; });
+  var hardBox = hard.length ? '<section class="card" aria-labelledby="h-hq"><h2 id="h-hq">Где чаще ошибаются</h2><p class="hint" style="margin:0">По последним попыткам. Вопросы с самой высокой долей ошибок — стоит повторить на занятии.</p><div class="bars2">'+hard.slice(0,8).map(function(h){ return '<div class="bar2"><span><b>Д'+(h.t.dayIdx+1)+' · №'+(h.x.qi+1)+'</b> '+esc(h.x.q.q)+'</span><span class="tr"><i style="width:'+h.x.err+'%;background:var(--danger)"></i></span><span class="c">'+h.x.err+'% · '+(h.x.n-h.x.ok)+' из '+h.x.n+'</span></div>'; }).join('')+'</div></section>' : '';
+  return kpi+'<section class="card" aria-label="Стажёры группы"><h2>Стажёры</h2>'+table+'</section>'+tsum+hardBox;
+}
+function rIntern(gid){
   var list = internsOf(gid);
-  var tests = allItems().filter(function(i){ return i.type==='test' && i.test; });
-  var sel = S.ui.rsel && S.interns[S.ui.rsel] ? S.ui.rsel : null;
-  var table = list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Пройдено</th>'+tests.map(function(t){ return '<th>Д'+(t.dayIdx+1)+'</th>'; }).join('')+'<th>Был в ЛК</th><th></th></tr></thead><tbody>'+list.map(function(i){
-    var st = internStats(i.id);
-    return '<tr><td><b>'+esc(i.name)+'</b></td><td class="num">'+st.pct+'%</td>'+tests.map(function(t){ var r = P(i.id).tests && P(i.id).tests[t.test]; return '<td class="num">'+(r?'<b style="color:'+(r.passed?'var(--accent-ink)':'var(--danger)')+'">'+r.best+'%</b><span class="small muted"> ×'+r.attempts+'</span>':'<span class="muted">—</span>')+'</td>'; }).join('')+'<td>'+ago(P(i.id).seen)+'</td><td style="text-align:right"><button class="btn sm'+(sel===i.id?' outline':'')+'" type="button" data-act="rsel" data-id="'+i.id+'">Подробнее</button></td></tr>';
-  }).join('')+'</tbody></table></div>' : '<p class="muted">В группе нет стажёров.</p>';
-  var detail = '';
-  if(sel){
-    var it = S.interns[sel]; var fb = ((S.feedback[sel]&&S.feedback[sel].entries)||[]).slice().sort(function(a,b){ return b.at-a.at; });
-    var notes = P(sel).notes||{}; var nk = Object.keys(notes).filter(function(k){ return notes[k]&&String(notes[k]).trim(); });
-    detail = '<div class="cols"><section class="card wide" aria-labelledby="h-det"><h2 id="h-det">'+esc(it.name)+': темы</h2>'+days().map(function(d,di){ return '<div class="stack" style="gap:6px;padding-top:10px;border-top:1px solid var(--line2)"><span class="lbl">День '+(di+1)+' · '+esc(d.title)+'</span><div class="row" style="gap:6px">'+(d.items||[]).map(function(x){ var dn=isDone(x, sel); var op=isOpen(x, sel); return '<span class="chip '+(dn?'ok':(op?'warn':''))+'" title="'+esc(x.title)+'">'+esc(x.title.length>28?x.title.slice(0,28)+'…':x.title)+'</span>'; }).join('')+'</div></div>'; }).join('')+
-      '<p class="hint">Зелёные — пройдены, жёлтые — открыты, серые — закрыты.</p>'+
-      (nk.length?'<h3 style="margin-top:8px">Заметки стажёра</h3>'+nk.map(function(k){ return '<p class="small" style="margin:0;white-space:pre-line"><b>'+esc(k.replace('_',' · слайд '))+':</b> '+esc(notes[k])+'</p>'; }).join(''):'')+
-    '</section><form class="card narrow" style="display:flex" data-form="feedback" aria-labelledby="h-fbf"><h2 id="h-fbf">Обратная связь</h2><label class="field">Комментарий для стажёра<textarea id="fb-text" data-keep placeholder="Что получилось, на что обратить внимание">'+esc(f('fb-text'))+'</textarea></label><button class="btn primary" type="submit">Отправить стажёру</button>'+
-      fb.map(function(e){ return '<div class="stack" style="gap:4px;padding-top:10px;border-top:1px solid var(--line2)"><span class="small muted">'+fmtTime(e.at)+'</span><p style="margin:0" class="small">'+esc(e.text)+'</p></div>'; }).join('')+'</form></div>';
-  }
-  var sv = S.surveys.filter(function(x){ return x.groupId===gid; });
-  var byDay = {}; sv.forEach(function(x){ (byDay[x.day]=byDay[x.day]||[]).push(x); });
-  var surveys = '<section class="card" aria-labelledby="h-sv"><h2 id="h-sv">Анонимные опросы</h2>'+(sv.length ? '<div class="table-wrap"><table><thead><tr><th>День</th><th>Ответов</th><th>Понятность</th><th>Тренер</th><th>Темп</th><th>Комментарии</th></tr></thead><tbody>'+days().filter(function(d){ return byDay[d.id]; }).map(function(d){ var arr=byDay[d.id];
-      return '<tr><td>'+esc(d.title)+'</td><td class="num">'+arr.length+'</td>'+SURVEY_Q.map(function(q){ var v=arr.map(function(a){ return a.ratings&&a.ratings[q[0]]; }).filter(Boolean); return '<td class="num"><b>'+(v.length?(v.reduce(function(a,b){return a+b;},0)/v.length).toFixed(1):'—')+'</b></td>'; }).join('')+'<td class="small">'+arr.map(function(a){ return a.comment; }).filter(Boolean).map(esc).join('<br>')+'</td></tr>'; }).join('')+'</tbody></table></div>' : '<p class="muted" style="margin:0">Ответов пока нет. Чтобы собрать отзывы, добавьте в план тему с типом «Опрос».</p>')+'</section>';
-  return head('Результаты', esc(g.name), groupPicker(false))+'<section class="card" aria-label="Результаты группы">'+table+'</section>'+detail+surveys;
+  if(!list.length) return '<div class="empty"><b>В группе нет стажёров</b></div>';
+  var sel = S.ui.rsel && S.interns[S.ui.rsel] && S.interns[S.ui.rsel].groupId===gid ? S.ui.rsel : list[0].id;
+  var it = S.interns[sel]; var st = internStats(sel); var ti = testItems(); var g = S.groups[gid];
+  var pick = '<div class="row" style="align-items:flex-end"><label class="field" style="min-width:260px">Стажёр<select id="r-int" data-act-change="r-int">'+list.map(function(i){ return '<option value="'+i.id+'"'+(i.id===sel?' selected':'')+'>'+esc(i.name)+'</option>'; }).join('')+'</select></label><button class="btn primary" type="button" data-act="xl-intern" data-id="'+sel+'">Карта стажёра в Excel</button></div>';
+  var stt = internStatus(sel);
+  var info = '<section class="card"><div class="row between" style="align-items:flex-start"><div class="row" style="flex-wrap:nowrap;gap:14px"><div class="ava">'+esc(initials(it.name))+'</div><div class="stack" style="gap:2px"><h2 style="font-size:22px">'+esc(it.name)+'</h2><span class="small muted">Логин '+esc(it.login)+(it.contact?' · '+esc(it.contact):'')+' · группа «'+esc(g.name)+'» · в кабинете с '+esc(fmtDay(it.createdAt||Date.now()))+'</span></div></div><div class="stack" style="align-items:flex-end;gap:6px">'+statusChipR(stt)+'<span class="small muted">Был в ЛК: '+ago(P(sel).seen)+'</span></div></div>'+
+    '<div class="kpis"><div class="kpi"><span class="small muted">Программа</span><span class="v num">'+st.pct+'%</span><span class="small muted">'+st.done+' из '+st.total+' тем</span></div><div class="kpi"><span class="small muted">Средний балл</span><span class="v num" style="color:var(--accent-ink)">'+(st.avg==null?'—':st.avg+'%')+'</span><span class="small muted">'+st.testsDone+' из '+ti.length+' тестов пройдено</span></div><div class="kpi"><span class="small muted">Сдано тестов</span><span class="v num">'+ti.filter(function(i){ var r = testRec(sel, i.test); return r && r.passed; }).length+' / '+ti.length+'</span><span class="small muted">с проходным баллом</span></div><div class="kpi"><span class="small muted">Тренажёры</span><span class="v num">'+st.simsDone+' / '+st.simsTotal+'</span><span class="small muted">пройдено</span></div></div></section>';
+  var daysT = '<section class="card"><h2>По дням</h2><div class="table-wrap"><table><thead><tr><th>День</th><th>Тема дня</th><th>Темы</th><th>Тест</th><th>Статус</th></tr></thead><tbody>'+days().map(function(d,di){ var s3 = dayState(d, sel); var dn = (d.items||[]).filter(function(x){ return isDone(x, sel); }).length; var t = (d.items||[]).filter(function(x){ return x.type==='test'&&x.test; })[0]; var r = t && testRec(sel, t.test);
+      return '<tr><td><b>'+(di+1)+'</b></td><td>'+esc(d.title)+'</td><td class="num">'+dn+' / '+(d.items||[]).length+'</td>'+(r?pctCell(r):'<td class="muted">—</td>')+'<td>'+(s3==='done'?'<span class="chip ok">Пройден</span>':(s3==='cur'?'<span class="chip warn">Открыт</span>':'Закрыт'))+'</td></tr>'; }).join('')+'</tbody></table></div></section>';
+  var tests = ti.length ? '<section class="card"><h2>Тесты</h2>'+ti.map(function(i){ var tt = test(i.test); var r = testRec(sel, i.test);
+      var hd = '<div class="row between"><div class="stack" style="gap:2px"><b>'+esc(i.title)+'</b><span class="small muted">День '+(i.dayIdx+1)+' · проходной '+tt.pass+'% · попыток '+(r?r.attempts:0)+' из '+(tt.attempts||3)+(r&&r.hist&&r.hist.length?' · по попыткам: '+r.hist.map(function(h){ return h.pct+'%'; }).join(' → '):'')+'</span></div>'+(r?'<span class="chip '+(r.passed?'ok':'bad')+'">'+r.best+'%'+(r.passed?' · сдан':' · не сдан')+'</span>':'<span class="chip">Не начат</span>')+'</div>';
+      if(!r || !r.ans) return '<div class="stack" style="gap:8px;padding-top:12px;border-top:1px solid var(--line2)">'+hd+(r?'<p class="small muted" style="margin:0">Ответы по вопросам сохраняются с этой версии кабинета — у ранних попыток их нет.</p>':'')+'</div>';
+      var open = !!S.ui.edOpen['ra:'+i.test];
+      return '<div class="stack" style="gap:8px;padding-top:12px;border-top:1px solid var(--line2)">'+hd+'<button class="linkbtn small" type="button" style="align-self:flex-start" data-act="ed-open" data-id="ra:'+esc(i.test)+'" aria-expanded="'+open+'">'+(open?'Скрыть ответы':'Ответы последней попытки ('+r.last+'%)')+'</button>'+
+        (open ? '<div class="table-wrap"><table><thead><tr><th>№</th><th>Вопрос</th><th>Ответ стажёра</th><th>Правильный</th></tr></thead><tbody>'+tt.questions.map(function(q, qi){ var a = r.ans[qi]; var ok = a===q.correct;
+          return '<tr class="ansrow"><td class="num">'+(qi+1)+'</td><td>'+esc(q.q)+'</td><td class="'+(ok?'ok-ink':'bad-ink')+'">'+(a==null?'нет ответа':esc(q.options[a]||''))+(ok?' ✓':' ✗')+'</td><td>'+(ok?'':esc(q.options[q.correct]||''))+'</td></tr>'; }).join('')+'</tbody></table></div>' : '')+'</div>'; }).join('')+'</section>' : '';
+  var mine = S.surveys.filter(function(x){ return x.iid===sel; }).sort(function(a,b){ return b.at-a.at; });
+  var svs = mine.length ? '<section class="card"><h2>Ответы в опросах с именем</h2>'+mine.map(function(r){ var def = svDef(r.survey) || {title:'Опрос', questions:[]}; var a = respAnswers(r);
+      return '<div class="stack" style="gap:6px;padding-top:12px;border-top:1px solid var(--line2)"><b>'+esc(def.title)+'</b><span class="small muted">'+fmtDT(r.at)+'</span>'+(def.questions||[]).map(function(q){ return '<p class="small" style="margin:0"><span class="muted">'+esc(q.q)+'</span><br>'+esc(svAnsText(q, a[q.id]))+'</p>'; }).join('')+'</div>'; }).join('')+'</section>' : '';
+  var fb = ((S.feedback[sel]&&S.feedback[sel].entries)||[]).slice().sort(function(a,b){ return b.at-a.at; });
+  var notes = P(sel).notes||{}; var nk = Object.keys(notes).filter(function(k){ return notes[k]&&String(notes[k]).trim(); });
+  var side = '<form class="card narrow" style="display:flex" data-form="feedback" aria-labelledby="h-fbf"><h2 id="h-fbf">Обратная связь</h2><label class="field">Комментарий для стажёра<textarea id="fb-text" data-keep placeholder="Что получилось, на что обратить внимание">'+esc(f('fb-text'))+'</textarea></label><button class="btn primary" type="submit">Отправить стажёру</button>'+
+    fb.map(function(e){ return '<div class="stack" style="gap:4px;padding-top:10px;border-top:1px solid var(--line2)"><span class="small muted">'+fmtTime(e.at)+'</span><p style="margin:0" class="small">'+esc(e.text)+'</p></div>'; }).join('')+
+    (nk.length?'<h3 style="margin-top:8px">Заметки стажёра к слайдам</h3>'+nk.map(function(k){ var parts = k.split('_'); var dk = deck(parts[0]); return '<p class="small" style="margin:0;white-space:pre-line"><b>'+esc((dk?dk.title:'')+' · слайд '+parts[1])+':</b> '+esc(notes[k])+'</p>'; }).join(''):'')+'</form>';
+  S.ui.rsel = sel;
+  return pick+info+'<div class="cols"><div class="wide stack" style="gap:20px">'+daysT+tests+svs+'</div>'+side+'</div>';
+}
+function svAnsText(q, v){
+  if(v==null || v==='' || (Array.isArray(v)&&!v.length)) return '—';
+  if(q.type==='choice') return (q.options||[])[v] || String(v);
+  if(q.type==='multi') return (Array.isArray(v)?v:[v]).map(function(i){ return (q.options||[])[i]; }).filter(Boolean).join('; ');
+  return String(v);
+}
+function svGroups(gid){
+  var resp = S.surveys.filter(function(x){ return !gid || x.groupId===gid; });
+  var by = {}; resp.forEach(function(r){ (by[respSid(r)] = by[respSid(r)] || []).push(r); });
+  var ids = Object.keys(svDefs()).concat(by.__legacy ? ['__legacy'] : []);
+  return ids.map(function(id){ return {id:id, def: id==='__legacy' ? LEGACY_SV : svDefs()[id], resp: by[id] || []}; }).filter(function(x){ return x.def; });
+}
+function svQSummary(q, rs){
+  var vals = rs.map(function(r){ return respAnswers(r)[q.id]; }).filter(function(v){ return !(v==null || v==='' || (Array.isArray(v)&&!v.length)); });
+  if(q.type==='rating' || q.type==='nps'){ var ns = q.type==='nps' ? [0,1,2,3,4,5,6,7,8,9,10] : [1,2,3,4,5]; var nums = vals.map(Number); var avg = nums.length ? nums.reduce(function(a,b){ return a+b; },0)/nums.length : null;
+    var out = {n:nums.length, avg:avg, dist:ns.map(function(x){ return [String(x), nums.filter(function(v){ return v===x; }).length]; })};
+    if(q.type==='nps' && nums.length){ var pro = nums.filter(function(v){ return v>=9; }).length, det = nums.filter(function(v){ return v<=6; }).length; out.nps = Math.round((pro-det)/nums.length*100); }
+    return out; }
+  if(q.type==='choice' || q.type==='multi'){ return {n:vals.length, dist:(q.options||[]).map(function(o, i){ return [o, vals.filter(function(v){ return Array.isArray(v) ? v.indexOf(i)>=0 : v===i; }).length]; })}; }
+  return {n:vals.length, texts: rs.map(function(r){ var v = respAnswers(r)[q.id]; return v ? {t:String(v), name:r.name||'', at:r.at} : null; }).filter(Boolean)};
+}
+function rSurveys(gid){
+  var all = svGroups(gid);
+  if(!all.length) return '<div class="empty"><b>Опросников пока нет</b><span>Создайте анкету в «Настройка → Опросники» и поставьте её в план темой с типом «Опрос».</span><button class="btn primary" type="button" data-act="st-go" data-s="surveys">Создать опросник</button></div>';
+  var cur = S.ui.rsv && all.filter(function(x){ return x.id===S.ui.rsv; })[0] ? S.ui.rsv : all[0].id;
+  var sv = all.filter(function(x){ return x.id===cur; })[0];
+  var dayIds = {}; sv.resp.forEach(function(r){ if(r.day) dayIds[r.day]=1; });
+  var dsel = S.ui.rsvDay && dayIds[S.ui.rsvDay] ? S.ui.rsvDay : '';
+  var rs = sv.resp.filter(function(r){ return !dsel || r.day===dsel; });
+  var tabs = '<div class="subnav" aria-label="Опросники">'+all.map(function(x){ return '<button type="button" class="'+(x.id===cur?'on':'')+'" data-act="rsv" data-id="'+esc(x.id)+'">'+esc(x.def.title||'Опрос')+' · '+x.resp.length+'</button>'; }).join('')+'</div>';
+  var dayPick = Object.keys(dayIds).length > 1 ? '<label class="field" style="min-width:220px">День<select id="rsv-day" data-act-change="rsv-day"><option value="">Все дни</option>'+days().filter(function(d){ return dayIds[d.id]; }).map(function(d){ return '<option value="'+esc(d.id)+'"'+(d.id===dsel?' selected':'')+'>День '+(days().indexOf(d)+1)+' · '+esc(d.title)+'</option>'; }).join('')+'</select></label>' : '';
+  var body = (sv.def.questions||[]).map(function(q, qi){ var sm = svQSummary(q, rs); var hd = '<div class="row between"><b>'+(qi+1)+'. '+esc(q.q)+'</b><span class="small muted">'+esc(SV_TYPES[q.type]||'')+' · ответов '+sm.n+'</span></div>';
+    if(sm.dist){ var mx = Math.max.apply(null, sm.dist.map(function(d){ return d[1]; }).concat([1]));
+      return '<div class="svres">'+hd+(sm.avg!=null?'<span>Среднее: <b class="num" style="font-size:20px;color:var(--accent-ink)">'+sm.avg.toFixed(1)+'</b>'+(q.type==='nps'&&sm.nps!=null?' · индекс NPS: <b class="num">'+sm.nps+'</b>':'')+'</span>':'')+'<div class="bars2">'+sm.dist.map(function(d){ return '<div class="bar2"><span>'+esc(d[0])+'</span><span class="tr"><i style="width:'+Math.round(d[1]/mx*100)+'%"></i></span><span class="c">'+d[1]+(sm.n?' · '+Math.round(d[1]/sm.n*100)+'%':'')+'</span></div>'; }).join('')+'</div></div>'; }
+    return '<div class="svres">'+hd+(sm.texts.length?'<div class="texts">'+sm.texts.map(function(x){ return '<p>'+esc(x.t)+'<br><span class="small muted">'+(x.name?esc(x.name)+' · ':'')+fmtDT(x.at)+'</span></p>'; }).join('')+'</div>':'<span class="muted small">Пока нет ответов.</span>')+'</div>'; }).join('');
+  return tabs+'<section class="card"><div class="row between" style="align-items:flex-end"><div class="stack" style="gap:4px"><h2>'+esc(sv.def.title||'Опрос')+'</h2><span class="small muted">'+(sv.def.anonymous===false?'С именем':'Анонимный')+' · ответов: '+rs.length+(gid?' в группе':'')+'</span></div>'+dayPick+'</div>'+(rs.length?body:'<p class="muted" style="margin:0">Ответов пока нет.</p>')+'</section>';
+}
+
+/* ---------- Excel export (SheetJS, loaded on demand) ---------- */
+function loadXLSX(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise(function(res, rej){ var sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = function(){ window.XLSX ? res(window.XLSX) : rej(); }; sc.onerror = function(){ rej(); }; document.head.appendChild(sc); });
+}
+function xlName(n){ return String(n||'Лист').replace(/[\[\]\*\?\/\\:]/g,' ').slice(0,31); }
+function fileSafe(n){ return String(n||'').replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().slice(0,80); }
+function xlSave(filename, sheets){
+  toast('Готовлю Excel…');
+  return loadXLSX().then(function(X){
+    var wb = X.utils.book_new(); var used = {};
+    sheets.forEach(function(sh){ var ws = X.utils.aoa_to_sheet(sh.rows);
+      var w = sh.cols || []; if(!w.length && sh.rows.length){ var nc = Math.max.apply(null, sh.rows.map(function(r){ return r.length; })); for(var c=0;c<nc;c++){ var mx = 8; sh.rows.forEach(function(r){ var v = r[c]; if(v!=null) mx = Math.max(mx, Math.min(60, String(v).length+2)); }); w.push(mx); } }
+      ws['!cols'] = w.map(function(x){ return {wch:x}; });
+      if(sh.filter && sh.rows.length > 1) ws['!autofilter'] = {ref: X.utils.encode_range({s:{r:sh.filter-1,c:0}, e:{r:sh.rows.length-1, c:Math.max.apply(null, sh.rows.map(function(r){ return r.length; }))-1}})};
+      var nm = xlName(sh.name); var k = 2; while(used[nm]){ nm = xlName(sh.name).slice(0,28)+' '+(k++); } used[nm]=1;
+      X.utils.book_append_sheet(wb, ws, nm); });
+    var out = X.write(wb, {bookType:'xlsx', type:'array'}); var blob = new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = fileSafe(filename)+'.xlsx'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 4000);
+    toast('Файл Excel скачан');
+  }).catch(function(){ toast('Не удалось подготовить Excel. Проверьте интернет и попробуйте ещё раз.'); });
+}
+function pctN(r){ return r ? r.best : ''; }
+function yesNo(b){ return b ? 'да' : 'нет'; }
+function itemStatusText(it, iid){ if(isDone(it, iid)) return 'пройдено'; if(isOpen(it, iid)) return 'открыто'; return 'закрыто'; }
+function doneAt(it, iid){ var p = P(iid); if(it.type==='test' && it.test){ var r = testRec(iid, it.test); return r && r.passed ? fmtDT(r.at) : ''; } var x = p.items && p.items[it.id]; return x && x.at ? fmtDT(x.at) : ''; }
+function sheetSummary(list){
+  var ti = testItems();
+  var rows = [['ФИО','Логин','Группа','Доступ','Прогресс, %','Тем пройдено','Всего тем','Сдано тестов','Средний балл, %'].concat(ti.map(function(i){ return 'Д'+(i.dayIdx+1)+' · '+i.title+', %'; })).concat(['Статус','Последний вход'])];
+  list.forEach(function(i){ var st = internStats(i.id); var g = S.groups[i.groupId];
+    rows.push([i.name, i.login, g?g.name:'', i.suspended?'приостановлен':'активен', st.pct, st.done, st.total, ti.filter(function(t){ var r = testRec(i.id, t.test); return r && r.passed; }).length+' из '+ti.length, st.avg==null?'':st.avg].concat(ti.map(function(t){ return pctN(testRec(i.id, t.test)); })).concat([internStatus(i.id).label, fmtDT(P(i.id).seen)])); });
+  return {name:'Сводка', rows:rows, filter:1};
+}
+function sheetTests(list){
+  var rows = [['ФИО','Группа','День','Тест','Попыток','Лучший, %','Последний, %','Проходной, %','Сдан','Попытки по порядку, %','Дата последней попытки']];
+  list.forEach(function(i){ testItems().forEach(function(t){ var tt = test(t.test); var r = testRec(i.id, t.test); var g = S.groups[i.groupId];
+    rows.push([i.name, g?g.name:'', t.dayIdx+1, t.title, r?r.attempts:0, r?r.best:'', r?r.last:'', tt.pass, r?yesNo(r.passed):'не проходил', r&&r.hist?r.hist.map(function(h){ return h.pct; }).join(' → '):'', r?fmtDT(r.at):'']); }); });
+  return {name:'Тесты', rows:rows, filter:1};
+}
+function sheetAnswers(list){
+  var rows = [['ФИО','Тест','№','Вопрос','Ответ стажёра','Правильный ответ','Верно']];
+  list.forEach(function(i){ testItems().forEach(function(t){ var tt = test(t.test); var r = testRec(i.id, t.test); if(!r || !r.ans) return;
+    tt.questions.forEach(function(q, qi){ var a = r.ans[qi]; rows.push([i.name, t.title, qi+1, q.q, a==null?'нет ответа':(q.options[a]||''), q.options[q.correct]||'', yesNo(a===q.correct)]); }); }); });
+  return {name:'Ответы на тесты', rows:rows, filter:1, cols:[24,30,5,60,40,40,8]};
+}
+function sheetQuestions(list){
+  var ids = list.map(function(i){ return i.id; });
+  var rows = [['Тест','№','Вопрос','Правильный ответ','Ответили','Верно','Ошибок, %']];
+  testItems().forEach(function(t){ questionStats(t.test, ids).forEach(function(x){ rows.push([t.title, x.qi+1, x.q.q, x.q.options[x.q.correct]||'', x.n, x.ok, x.err==null?'':x.err]); }); });
+  return {name:'Вопросы тестов', rows:rows, filter:1, cols:[30,5,60,40,10,8,10]};
+}
+function sheetTopics(list){
+  var rows = [['ФИО','День','Тема','Тип','Статус','Дата выполнения']];
+  list.forEach(function(i){ allItems().forEach(function(it){ rows.push([i.name, it.dayIdx+1, it.title, TYPE[it.type]||'', itemStatusText(it, i.id), doneAt(it, i.id)]); }); });
+  return {name:'Темы плана', rows:rows, filter:1};
+}
+function surveySheets(gid){
+  var groups = svGroups(gid); var sumRows = [['Опрос','Вопрос','Тип','Ответов','Среднее','Распределение']];
+  var sheets = [];
+  groups.forEach(function(sv){
+    var qs = sv.def.questions||[];
+    var rows = [['Дата','Группа','День','Стажёр'].concat(qs.map(function(q){ return q.q; }))];
+    sv.resp.slice().sort(function(a,b){ return a.at-b.at; }).forEach(function(r){ var a = respAnswers(r); var g = S.groups[r.groupId]; var d = days().filter(function(x){ return x.id===r.day; })[0];
+      rows.push([fmtDT(r.at), g?g.name:'', d?days().indexOf(d)+1:'', r.name || (sv.def.anonymous===false?'':'анонимно')].concat(qs.map(function(q){ var v = a[q.id]; return (q.type==='rating'||q.type==='nps') && v!=null && v!=='' ? Number(v) : (svAnsText(q, v)==='—'?'':svAnsText(q, v)); }))); });
+    sheets.push({name:sv.def.title||'Опрос', rows:rows, filter:1});
+    qs.forEach(function(q){ var sm = svQSummary(q, sv.resp); sumRows.push([sv.def.title||'Опрос', q.q, SV_TYPES[q.type]||'', sm.n, sm.avg!=null?Math.round(sm.avg*10)/10:'', sm.dist?sm.dist.map(function(d){ return d[0]+': '+d[1]; }).join('; '):'']); });
+  });
+  return [{name:'Сводка опросов', rows:sumRows, filter:1, cols:[30,60,18,10,10,60]}].concat(sheets);
+}
+function xlGroup(gid){ var g = S.groups[gid]; var list = internsOf(gid);
+  return xlSave('Результаты — '+g.name, [sheetSummary(list), sheetTests(list), sheetQuestions(list), sheetAnswers(list), sheetTopics(list)].concat(surveySheets(gid))); }
+function xlAll(){
+  var gl = groupList(); var ti = testItems();
+  var rows = [['Группа','Старт','Стажёров','Средний прогресс, %','Средний балл, %','Сдали все тесты'].concat(ti.map(function(i){ return 'Д'+(i.dayIdx+1)+' сдали'; })).concat(['Ответов в опросах'])];
+  gl.forEach(function(g){ var st = groupStats(g.id); var list = internsOf(g.id); rows.push([g.name, g.start||'', st.n, st.avgP==null?'':st.avgP, st.avgT==null?'':st.avgT, st.allOk].concat(ti.map(function(i){ return list.filter(function(x){ var r = testRec(x.id, i.test); return r && r.passed; }).length; })).concat([st.resp])); });
+  var everyone = []; gl.forEach(function(g){ everyone = everyone.concat(internsOf(g.id)); });
+  return xlSave('Результаты — все группы', [{name:'Группы', rows:rows, filter:1}, sheetSummary(everyone), sheetTests(everyone), sheetQuestions(everyone)]);
+}
+function xlIntern(iid){
+  var i = Object.assign({id:iid}, S.interns[iid]); var g = S.groups[i.groupId]; var st = internStats(iid); var ti = testItems();
+  var card = [['Карта стажёра'],[],['ФИО', i.name],['Логин', i.login],['Группа', g?g.name:''],['Старт группы', g&&g.start||''],['Контакт', i.contact||''],['В кабинете с', fmtDT(i.createdAt)],['Последний вход', fmtDT(P(iid).seen)],['Доступ', i.suspended?'приостановлен':'активен'],[],
+    ['Прогресс программы, %', st.pct],['Тем пройдено', st.done+' из '+st.total],['Сдано тестов', ti.filter(function(t){ var r = testRec(iid, t.test); return r && r.passed; }).length+' из '+ti.length],['Средний балл тестов, %', st.avg==null?'':st.avg],['Тренажёры', st.simsDone+' из '+st.simsTotal],['Итог', internStatus(iid).label],[],
+    ['По дням'],['День','Тема дня','Пройдено тем','Всего тем','Тест, %','Статус дня']];
+  days().forEach(function(d, di){ var dn = (d.items||[]).filter(function(x){ return isDone(x, iid); }).length; var t = (d.items||[]).filter(function(x){ return x.type==='test'&&x.test; })[0]; var r = t && testRec(iid, t.test); var s3 = dayState(d, iid);
+    card.push([di+1, d.title, dn, (d.items||[]).length, r?r.best:'', s3==='done'?'пройден':(s3==='cur'?'открыт':'закрыт')]); });
+  var svRows = [['Опрос','Дата','Вопрос','Ответ']];
+  S.surveys.filter(function(r){ return r.iid===iid; }).forEach(function(r){ var def = svDef(r.survey) || {title:'Опрос', questions:[]}; var a = respAnswers(r); (def.questions||[]).forEach(function(q){ svRows.push([def.title, fmtDT(r.at), q.q, svAnsText(q, a[q.id])]); }); });
+  var fbRows = [['Дата','Комментарий тренера']].concat(((S.feedback[iid]&&S.feedback[iid].entries)||[]).map(function(e){ return [fmtDT(e.at), e.text]; }));
+  var notes = P(iid).notes || {}; var nRows = [['Презентация','Слайд','Заметка']].concat(Object.keys(notes).filter(function(k){ return notes[k]&&String(notes[k]).trim(); }).map(function(k){ var p = k.split('_'); var dk = deck(p[0]); return [dk?dk.title:'', Number(p[1])||p[1], notes[k]]; }));
+  var sheets = [{name:'Карта', rows:card, cols:[26,40,14,12,10,14]}, sheetTopics([i]), sheetTests([i]), sheetAnswers([i])];
+  if(svRows.length>1) sheets.push({name:'Опросы', rows:svRows, cols:[30,18,50,50]});
+  sheets.push({name:'Обратная связь', rows:fbRows, cols:[18,90]});
+  if(nRows.length>1) sheets.push({name:'Заметки', rows:nRows, cols:[34,8,80]});
+  return xlSave('Карта стажёра — '+i.name, sheets);
 }
 
 /* ---------- trainer: settings (constructor) ---------- */
-var DRAFT_SRC = {program:'program', decks:'slides', kb:'knowledge', org:'org', settings:'settings', tests:'tests'};
-var DRAFT_DEF = {program:{days:[]}, decks:{decks:{}}, kb:{cats:[], articles:[], cheat:{title:'', cells:[], note:''}}, org:{people:[]}, settings:{brand:{name:'Старт', sub:'ЛК стажёра · взыскание'}, tabs:{}}, tests:{tests:{}}};
+var DRAFT_SRC = {program:'program', decks:'slides', kb:'knowledge', org:'org', settings:'settings', tests:'tests', surveys:'surveys'};
+var DRAFT_DEF = {program:{days:[]}, decks:{decks:{}}, kb:{cats:[], articles:[], cheat:{title:'', cells:[], note:''}}, org:{people:[]}, settings:{brand:{name:'Старт', sub:'ЛК стажёра · взыскание'}, tabs:{}}, tests:{tests:{}}, surveys:{surveys:{}}};
 function draft(k){
   if(!S.draft[k]){
     var d = clone(S.content[DRAFT_SRC[k]] || DRAFT_DEF[k]);
@@ -1060,6 +1325,7 @@ function draft(k){
     if(k==='decks'){ d.decks = d.decks||{}; }
     if(k==='org'){ d.people = d.people||[]; }
     if(k==='tests'){ d.tests = d.tests||{}; }
+    if(k==='surveys'){ d.surveys = d.surveys||{}; }
     S.draft[k] = d;
   }
   return S.draft[k];
@@ -1074,12 +1340,12 @@ function sel(id, k, p, opts, extraCls){ var v = getPath(draft(k), p); v = v==nul
 function saveBar(k, label){
   return '<div class="savebar" data-dirtybar="'+k+'"'+(S.dirty[k]?'':' hidden')+'><span>Есть несохранённые изменения: '+label+'</span><span class="row"><button class="btn sm" type="button" data-act="draft-reset" data-k="'+k+'">Отменить</button><button class="btn sm primary" type="button" data-act="draft-save" data-k="'+k+'">Сохранить</button></span></div>';
 }
-var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['sims','Тренажёры'],['kb','База знаний'],['org','Структура'],['tabs','Вкладки и название'],['import','Импорт программы']];
+var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['surveys','Опросники'],['sims','Тренажёры'],['kb','База знаний'],['org','Структура'],['tabs','Вкладки и название'],['import','Импорт программы']];
 function tSettings(){
   var st = S.ui.st || 'plan';
-  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, org:stOrg, tabs:stTabs, 'import':stImport}[st] || stPlan)();
+  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, org:stOrg, tabs:stTabs, surveys:stSurveys, 'import':stImport}[st] || stPlan)();
   return head('Настройка','Конструктор кабинета: всё, что видит стажёр. Изменения появляются у стажёров сразу после сохранения.')+
-    '<div class="subnav" role="tablist" aria-label="Разделы настройки">'+ST_TABS.map(function(t){ var dk = {plan:'program',decks:'decks',tests:'tests',kb:'kb',org:'org',tabs:'settings'}[t[0]]; return '<button type="button" role="tab" aria-selected="'+(st===t[0])+'" class="'+(st===t[0]?'on':'')+'" data-act="st-go" data-s="'+t[0]+'">'+esc(t[1])+(dk&&S.dirty[dk]?' •':'')+'</button>'; }).join('')+'</div>'+body;
+    '<div class="subnav" role="tablist" aria-label="Разделы настройки">'+ST_TABS.map(function(t){ var dk = {plan:'program',decks:'decks',tests:'tests',surveys:'surveys',kb:'kb',org:'org',tabs:'settings'}[t[0]]; return '<button type="button" role="tab" aria-selected="'+(st===t[0])+'" class="'+(st===t[0]?'on':'')+'" data-act="st-go" data-s="'+t[0]+'">'+esc(t[1])+(dk&&S.dirty[dk]?' •':'')+'</button>'; }).join('')+'</div>'+body;
 }
 
 function stPlan(){
@@ -1116,6 +1382,7 @@ function stPlan(){
         '<label class="field">…по слайд № (необязательно)<input id="pi-'+it.id+'-st" class="input" type="number" min="1"'+bind('program',p+'.slideTo',' data-fmt="num"')+' value="'+esc(it.slideTo||'')+'"></label>'+
         '<label class="field">Цвет блока'+sel('pi-'+it.id+'-tn','program',p+'.tone',[['','Без цвета']].concat(TONE_ORDER.map(function(t){ return [t, TONES[t]]; })))+'</label>'+
         '<label class="field">Тест'+sel('pi-'+it.id+'-ts','program',p+'.test',testOpts)+'</label>'+
+        '<label class="field">Опросник (для типа «Опрос»)'+sel('pi-'+it.id+'-sv','program',p+'.survey',[['','Стандартный опрос по дню']].concat(Object.keys(draft('surveys').surveys).map(function(id){ return [id, draft('surveys').surveys[id].title||'Опрос без названия']; })))+'</label>'+
         '<label class="field">Тренажёр'+sel('pi-'+it.id+'-sm','program',p+'.sim',simOpts)+'</label>'+
         '<label class="field">Статья базы знаний'+sel('pi-'+it.id+'-ar','program',p+'.article',artOpts)+'</label>'+
         '<label class="field wide">Описание для стажёра'+area('pi-'+it.id+'-ds','program',p+'.desc','', 'Что сделать, на что обратить внимание', 2)+'</label>'+
@@ -1198,6 +1465,39 @@ function stTests(){
     '<section class="stack" style="gap:8px"><div class="row between"><h2>Вопросы · '+(t.questions||[]).length+'</h2><button class="btn primary sm" type="button" data-act="q-add">+ Вопрос</button></div>'+qs+'<button class="btn" type="button" data-act="q-add" style="align-self:flex-start">+ Добавить вопрос</button></section>';
 }
 
+var SV_TEMPLATE = function(){ return {title:'Анкета обратной связи по дню', desc:'Ответы анонимные. Помогите нам сделать стажировку лучше.', anonymous:true, always:false, questions:[
+  {id:uid('q'), type:'rating', q:'Насколько понятным был материал дня?', required:true},
+  {id:uid('q'), type:'rating', q:'Как вы оцениваете работу тренера?', required:true},
+  {id:uid('q'), type:'choice', q:'Темп занятий был…', options:['Слишком медленным','Комфортным','Слишком быстрым'], required:true},
+  {id:uid('q'), type:'multi', q:'Что было самым полезным?', options:['Презентация','Симуляции с тренером','Прослушка звонков','Тренажёры','Разбор кейсов']},
+  {id:uid('q'), type:'nps', q:'Насколько вероятно, что вы порекомендуете стажировку знакомому?', required:true},
+  {id:uid('q'), type:'text', q:'Что понравилось?'},
+  {id:uid('q'), type:'text', q:'Что улучшить?'}]}; };
+function stSurveys(){
+  var ss = draft('surveys').surveys; var ids = Object.keys(ss);
+  var cur = S.ui.ssv && ss[S.ui.ssv] ? S.ui.ssv : ids[0];
+  var used = {}; allItems().forEach(function(i){ if(i.type==='survey' && i.survey) (used[i.survey]=used[i.survey]||[]).push('День '+(i.dayIdx+1)+': '+i.title); });
+  var tabs = '<div class="subnav" aria-label="Опросники">'+ids.map(function(id){ return '<button type="button" class="'+(id===cur?'on':'')+'" data-act="ssv" data-id="'+esc(id)+'">'+esc(ss[id].title||'Опрос без названия')+'</button>'; }).join('')+'<button type="button" data-act="sv-add">+ Опросник</button><button type="button" data-act="sv-tpl">+ Из шаблона «Обратная связь»</button></div>';
+  if(!cur) return saveBar('surveys','опросники')+tabs+'<div class="empty"><b>Опросников пока нет</b><span>Опросник — это анкета без правильных ответов: оценки, выбор вариантов, свободный ответ. Начните с шаблона анкеты обратной связи.</span><div class="row" style="justify-content:center"><button class="btn primary" type="button" data-act="sv-tpl">Создать из шаблона</button><button class="btn" type="button" data-act="sv-add">Пустой опросник</button></div></div>';
+  var sv = ss[cur]; var base = 'surveys.'+cur; var conf = S.ui.confirm==='sv:'+cur;
+  var typeOpts = Object.keys(SV_TYPES).map(function(k){ return [k, SV_TYPES[k]]; });
+  var qs = (sv.questions||[]).map(function(q, i){
+    var p = base+'.questions.'+i; var qc = S.ui.confirm==='svq:'+cur+':'+i; var needOpts = q.type==='choice' || q.type==='multi';
+    return '<div class="ed"><div class="ed-row"><span class="n num">'+(i+1)+'</span><span class="t">'+inp('sq-'+q.id+'-q','surveys',p+'.q','Текст вопроса')+'</span><span class="ty">'+sel('sq-'+q.id+'-ty','surveys',p+'.type',typeOpts)+'</span>'+
+      '<span class="acts">'+(qc ? '<button class="btn sm danger" type="button" data-act="svq-del-yes" data-i="'+i+'">Удалить</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>' :
+        '<button class="iconbtn" type="button" data-act="svq-mv" data-i="'+i+'" data-dir="-1" aria-label="Выше"'+(i===0?' disabled':'')+'>↑</button><button class="iconbtn" type="button" data-act="svq-mv" data-i="'+i+'" data-dir="1" aria-label="Ниже"'+(i===sv.questions.length-1?' disabled':'')+'>↓</button><button class="iconbtn danger" type="button" data-act="confirm" data-c="svq:'+esc(cur)+':'+i+'" aria-label="Удалить вопрос">✕</button>')+'</span></div>'+
+      '<div class="ed-more">'+(needOpts ? '<label class="field">Варианты ответа — каждый с новой строки'+area('sq-'+q.id+'-o','surveys',p+'.options','lines','Вариант 1\nВариант 2',4)+'</label>' : '<span class="small muted" style="align-self:center">'+(q.type==='text'?'Стажёр пишет ответ своими словами.':(q.type==='nps'?'Шкала от 0 до 10, в результатах считается индекс NPS.':'Оценка от 1 до 5, в результатах — среднее и распределение.'))+'</span>')+
+      '<label class="check" style="align-self:center"><input type="checkbox" id="sq-'+q.id+'-r"'+bind('surveys',p+'.required',' data-fmt="bool"')+(q.required?' checked':'')+'>Обязательный вопрос</label></div></div>';
+  }).join('');
+  return saveBar('surveys','опросники')+tabs+
+    '<section class="card"><div class="row" style="align-items:flex-end"><label class="field" style="flex:2 1 280px">Название опросника'+inp('sv-'+cur+'-t','surveys',base+'.title','Например, Анкета обратной связи по дню')+'</label>'+
+      (conf ? '<button class="btn sm danger" type="button" data-act="sv-del-yes">Удалить опросник</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>' : '<button class="btn sm danger" type="button" data-act="confirm" data-c="sv:'+esc(cur)+'">Удалить опросник</button>')+'</div>'+
+      '<label class="field">Пояснение для стажёра'+inp('sv-'+cur+'-d','surveys',base+'.desc','Например, ответы анонимные')+'</label>'+
+      '<div class="row" style="gap:20px"><label class="check"><input type="checkbox" id="sv-'+cur+'-an"'+bind('surveys',base+'.anonymous',' data-fmt="bool" data-rerender="1"')+(sv.anonymous!==false?' checked':'')+'>Анонимный — тренер не видит, кто ответил</label>'+
+      '<label class="check"><input type="checkbox" id="sv-'+cur+'-al"'+bind('surveys',base+'.always',' data-fmt="bool" data-rerender="1"')+(sv.always?' checked':'')+'>Доступен всегда, без темы в плане</label></div>'+
+      '<p class="hint" style="margin:0">'+(used[cur]?'В плане: '+esc(used[cur].join('; '))+'. ':'')+'Чтобы опросник открывался в нужный день, добавьте в план тему с типом «Опрос» и выберите этот опросник: «План стажировки → ⋯ → Опросник». Один опросник можно поставить в несколько дней — в результатах ответы делятся по дням.</p></section>'+
+    '<section class="stack" style="gap:8px"><div class="row between"><h2>Вопросы · '+(sv.questions||[]).length+'</h2><button class="btn primary sm" type="button" data-act="svq-add">+ Вопрос</button></div>'+qs+'<button class="btn" type="button" data-act="svq-add" style="align-self:flex-start">+ Добавить вопрос</button></section>';
+}
 function stSims(){
   var ids = Object.keys(S.sims).sort(function(a,b){ return (S.sims[a].title||'').localeCompare(S.sims[b].title||'','ru'); });
   var used = {}; allItems().forEach(function(i){ if(i.sim) (used[i.sim]=used[i.sim]||[]).push('День '+(i.dayIdx+1)+': '+i.title); });
@@ -1388,9 +1688,12 @@ function importRun(){
 }
 
 function cleanDraft(k, d){
-  if(k==='program'){ d.days.forEach(function(day){ (day.items||[]).forEach(function(it){ ['deck','test','sim','article','desc'].forEach(function(x){ if(it[x]==='' ) delete it[x]; }); if(!it.slide) delete it.slide; if(!it.slideTo || !it.slide || it.slideTo<=it.slide) delete it.slideTo; if(!it.tone) delete it.tone; if(it.url==='' && !it.material) delete it.url; }); }); }
+  if(k==='program'){ d.days.forEach(function(day){ (day.items||[]).forEach(function(it){ ['deck','test','sim','article','desc','survey'].forEach(function(x){ if(it[x]==='' ) delete it[x]; }); if(!it.slide) delete it.slide; if(!it.slideTo || !it.slide || it.slideTo<=it.slide) delete it.slideTo; if(!it.tone) delete it.tone; if(it.url==='' && !it.material) delete it.url; }); }); }
   if(k==='decks'){ Object.keys(d.decks).forEach(function(id){ (d.decks[id].slides||[]).forEach(function(s){ s.points = (s.points||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); }); }); }
   if(k==='tests'){ Object.keys(d.tests).forEach(function(id){ var t = d.tests[id]; t.pass = Number(t.pass==null||t.pass===''?80:t.pass); t.attempts = Math.max(1, Number(t.attempts==null||t.attempts===''?3:t.attempts)); t.questions = (t.questions||[]).map(function(q){ var opts = (q.options||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); var o = {q:String(q.q||'').trim(), options:opts, correct:Math.min(Math.max(0, Number(q.correct)||0), Math.max(0, opts.length-1))}; if(q.src && String(q.src).trim()) o.src = String(q.src).trim(); return o; }).filter(function(q){ return q.q && q.options.length >= 2; }); }); }
+  if(k==='surveys'){ Object.keys(d.surveys).forEach(function(id){ var v = d.surveys[id]; v.title = String(v.title||'').trim() || 'Опрос'; v.desc = String(v.desc||'').trim(); v.anonymous = v.anonymous !== false; v.always = !!v.always;
+    v.questions = (v.questions||[]).map(function(q){ var o = {id:q.id||uid('q'), type:SV_TYPES[q.type]?q.type:'rating', q:String(q.q||'').trim(), required:!!q.required}; if(o.type==='choice'||o.type==='multi') o.options = (q.options||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); return o; })
+      .filter(function(q){ return q.q && ((q.type!=='choice' && q.type!=='multi') || q.options.length>=2); }); }); }
   if(k==='kb'){ d.articles.forEach(function(a){ a.body = (a.body||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); }); d.cheat.cells = (d.cheat.cells||[]).filter(function(c){ return c[0]||c[1]; }); }
   return d;
 }
@@ -1444,13 +1747,14 @@ function closePlayer(){ S.player = null; playerEl.innerHTML = ''; document.body.
 function openItem(id){
   var it = itemById(id); if(!it || (S.role==='intern' && !isOpen(it))) return;
   if(it.type==='test' && it.test && test(it.test)){ S.view='tests'; S.ui.survey=null; S.ui.test = {tid:it.test, itemId:it.id, idx:0, answers:{}, started:false}; }
-  else if(it.type==='survey'){ S.view='tests'; S.ui.test=null; S.ui.survey = {itemId:it.id}; SURVEY_Q.forEach(function(q){ delete S.form['sv-'+q[0]]; }); }
+  else if(it.type==='survey'){ openSurvey({itemId:it.id, sid: it.survey && svDef(it.survey) ? it.survey : ''}); return; }
   else if(it.sim){ openPlayer(it.sim, it.id); return; }
   else if(it.deck && deck(it.deck) && !tabHidden('pres')){ S.view='pres'; S.ui.freeDeck = it.deck; S.ui.slide = it.slide||1; S.ui.unsynced = true; if(S.role==='intern' && !isDone(it) && slideLimit(it.deck) >= (it.slide||1)){ var p={items:{}}; p.items[it.id]={status:'done', at:Date.now()}; saveProgress(p); } presencePing(); }
   else if(it.article && article(it.article)){ S.ui.modal = {type:'article', id:it.article, itemId:it.id}; }
   else { S.ui.modal = {type:'task', itemId:it.id}; }
   render(); window.scrollTo(0,0);
 }
+function openSurvey(sv){ var def = svDef(sv.sid); (def && def.questions || []).forEach(function(q){ delete S.form['sv-'+q.id]; }); S.view='surveys'; S.ui.test=null; S.ui.survey = sv; render(); window.scrollTo(0,0); }
 function markDone(id){ var patch = {items:{}}; patch.items[id] = {status:'done', at:Date.now()}; saveProgress(patch); S.ui.modal=null; toast('Отмечено как выполненное'); }
 function presencePing(){
   if(S.role!=='intern' || S.view!=='pres') return;
@@ -1507,7 +1811,8 @@ var A = {
     var pct = Math.round(right/tt.questions.length*100);
     var rec = (P().tests && P().tests[t.tid]) || {};
     var best = Math.max(rec.best||0, pct); var passed = best >= tt.pass;
-    var patch = {tests:{}}; patch.tests[t.tid] = {best:best, last:pct, attempts:(rec.attempts||0)+1, passed:passed, at:Date.now()};
+    var ans = tt.questions.map(function(q,i){ return t.answers[i]==null ? null : t.answers[i]; });
+    var patch = {tests:{}}; patch.tests[t.tid] = {best:best, last:pct, attempts:(rec.attempts||0)+1, passed:passed, at:Date.now(), ans:ans, hist:(rec.hist||[]).concat([{pct:pct, at:Date.now()}]).slice(-20)};
     if(passed){ patch.items = {}; patch.items[t.itemId] = {status:'done', at:Date.now()}; }
     saveProgress(patch);
     t.result = {pct:pct, right:right, total:tt.questions.length, wrong:wrong}; render();
@@ -1515,6 +1820,9 @@ var A = {
   'test-retry': function(){ var t=S.ui.test; S.ui.test = {tid:t.tid, itemId:t.itemId, idx:0, answers:{}, started:true}; render(); },
   'test-close': function(){ S.ui.test=null; render(); },
   rate: function(el){ S.form['sv-'+el.dataset.q] = Number(el.dataset.n); render(); },
+  'sv-pick': function(el){ S.form['sv-'+el.dataset.q] = Number(el.dataset.i); render(); },
+  'sv-multi': function(el){ var k = 'sv-'+el.dataset.q; var a = Array.isArray(S.form[k]) ? S.form[k].slice() : []; var i = Number(el.dataset.i); var x = a.indexOf(i); if(x>=0) a.splice(x,1); else a.push(i); a.sort(function(p,q){ return p-q; }); S.form[k] = a; render(); },
+  'sv-open': function(el){ var e = surveyEntries().filter(function(x){ return x.key===el.dataset.k; })[0]; if(e && e.open) openSurvey({itemId:e.itemId, sid:e.sid}); },
   'slide-prev': function(){ if(S.role==='intern' && presLocked()) return; var c = curSlide(); S.ui.unsynced = true; S.ui.slide = Math.max(1, c-1); render(); presencePing(); },
   'slide-next': function(){ if(S.role==='intern' && presLocked()) return; var c = curSlide(); S.ui.unsynced = true; S.ui.slide = c+1; render(); presencePing(); },
   'slide-go': function(el){ if(S.role==='intern' && presLocked()) return; S.ui.unsynced = true; S.ui.slide = Number(el.dataset.n); render(); presencePing(); },
@@ -1560,7 +1868,14 @@ var A = {
   'tp-sync': function(){ var gid=curGid(); liveUpdate(gid, {sync:!(S.live[gid]||{}).sync}); },
   'tp-openall': function(){ var gid=curGid(); var ids=Object.keys(decksMap()); var deckId = S.ui.tdeck && deck(S.ui.tdeck) ? S.ui.tdeck : ids[0]; var lv=S.live[gid]||{}; var op=clone(lv.opened); op[deckId]=deck(deckId).slides.length; liveUpdate(gid, {opened:op, active:!!lv.active, deck: lv.active?lv.deck:deckId}); toast('Все слайды открыты группе'); },
   'tp-closeall': function(){ var gid=curGid(); var ids=Object.keys(decksMap()); var deckId = S.ui.tdeck && deck(S.ui.tdeck) ? S.ui.tdeck : ids[0]; var lv=S.live[gid]||{}; var op=clone(lv.opened); op[deckId]=0; liveUpdate(gid, {opened:op, active:!!lv.active, deck: lv.active?lv.deck:deckId}); toast('Слайды закрыты для группы'); },
-  rsel: function(el){ S.ui.rsel = S.ui.rsel===el.dataset.id ? null : el.dataset.id; S.form['fb-text']=''; render(); },
+  rsel: function(el){ S.ui.rsel = el.dataset.id; S.ui.rmode = 'intern'; S.form['fb-text']=''; render(); window.scrollTo(0,0); },
+  rmode: function(el){ S.ui.rmode = el.dataset.m; render(); },
+  rgo: function(el){ S.ui.gid = el.dataset.g; S.ui.rmode = 'group'; render(); window.scrollTo(0,0); },
+  rsv: function(el){ S.ui.rsv = el.dataset.id; S.ui.rsvDay = ''; render(); },
+  'xl-group': function(){ var gid = curGid(); if(gid) xlGroup(gid); },
+  'xl-all': function(){ xlAll(); },
+  'xl-intern': function(el){ if(S.interns[el.dataset.id]) xlIntern(el.dataset.id); },
+  'xl-surveys': function(){ var gid = curGid(); var g = S.groups[gid]; xlSave('Опросы — '+(g?g.name:'все группы'), surveySheets(gid)); },
 
   /* settings */
   'st-go': function(el){ S.view='t-settings'; S.ui.st = el.dataset.s; S.ui.confirm=null; render(); window.scrollTo(0,0); },
@@ -1582,6 +1897,13 @@ var A = {
   'slide-del-yes': function(el){ var dd = draft('decks').decks; var cur = curDeckDraftId(); var rm = dd[cur].slides.splice(Number(el.dataset.i),1)[0]; if(rm && rm.image) S.pendingDel.push(rm.image); S.ui.confirm=null; markDirty('decks'); render(); },
   'slide-mv': function(el){ var dd = draft('decks').decks; var cur = curDeckDraftId(); mv(dd[cur].slides, Number(el.dataset.i), Number(el.dataset.dir)); markDirty('decks'); render(); },
   stest: function(el){ S.ui.stest = el.dataset.id; S.ui.confirm=null; render(); },
+  ssv: function(el){ S.ui.ssv = el.dataset.id; S.ui.confirm=null; render(); },
+  'sv-add': function(){ var ss = draft('surveys').surveys; var id = uid('sv'); ss[id] = {title:'', desc:'', anonymous:true, always:false, questions:[{id:uid('q'), type:'rating', q:'', required:true}]}; S.ui.ssv = id; S.ui.st='surveys'; markDirty('surveys'); render(); },
+  'sv-tpl': function(){ var ss = draft('surveys').surveys; var id = uid('sv'); ss[id] = SV_TEMPLATE(); S.ui.ssv = id; S.ui.st='surveys'; markDirty('surveys'); render(); },
+  'sv-del-yes': function(){ var ss = draft('surveys').surveys; var ids = Object.keys(ss); var cur = S.ui.ssv && ss[S.ui.ssv] ? S.ui.ssv : ids[0]; delete ss[cur]; S.ui.ssv=null; S.ui.confirm=null; markDirty('surveys'); render(); },
+  'svq-add': function(){ var ss = draft('surveys').surveys; var ids = Object.keys(ss); var cur = S.ui.ssv && ss[S.ui.ssv] ? S.ui.ssv : ids[0]; ss[cur].questions = ss[cur].questions||[]; ss[cur].questions.push({id:uid('q'), type:'rating', q:'', required:false}); markDirty('surveys'); render(); },
+  'svq-del-yes': function(el){ var ss = draft('surveys').surveys; var ids = Object.keys(ss); var cur = S.ui.ssv && ss[S.ui.ssv] ? S.ui.ssv : ids[0]; ss[cur].questions.splice(Number(el.dataset.i),1); S.ui.confirm=null; markDirty('surveys'); render(); },
+  'svq-mv': function(el){ var ss = draft('surveys').surveys; var ids = Object.keys(ss); var cur = S.ui.ssv && ss[S.ui.ssv] ? S.ui.ssv : ids[0]; mv(ss[cur].questions, Number(el.dataset.i), Number(el.dataset.dir)); markDirty('surveys'); render(); },
   'test-add': function(){ var tt = draft('tests').tests; var id = uid('t'); tt[id] = {title:'', pass:80, attempts:3, questions:[{q:'', options:[], correct:0}]}; S.ui.stest = id; markDirty('tests'); render(); },
   'test-del-yes': function(){ var tt = draft('tests').tests; var ids = Object.keys(tt); var cur = S.ui.stest && tt[S.ui.stest] ? S.ui.stest : ids[0]; delete tt[cur]; S.ui.stest=null; S.ui.confirm=null; markDirty('tests'); render(); },
   'q-add': function(){ var tt = draft('tests').tests; var ids = Object.keys(tt); var cur = S.ui.stest && tt[S.ui.stest] ? S.ui.stest : ids[0]; tt[cur].questions = tt[cur].questions||[]; tt[cur].questions.push({q:'', options:[], correct:0}); markDirty('tests'); render(); },
@@ -1660,6 +1982,8 @@ var CHANGE = {
   'deck-pick': function(el){ if(S.role==='intern' && presLocked()) return; S.ui.freeDeck = el.value; S.ui.slide=1; S.ui.unsynced=true; render(); },
   'g-pick': function(el){ S.ui.gid = el.value; S.ui.scope='group'; S.ui.rsel=null; render(); },
   'scope-pick': function(el){ S.ui.scope = el.value; render(); },
+  'r-int': function(el){ S.ui.rsel = el.value; S.form['fb-text']=''; render(); },
+  'rsv-day': function(el){ S.ui.rsvDay = el.value; render(); },
   'tdeck': function(el){ S.ui.tdeck = el.value; S.ui.tslide=1; render(); },
   'sim-file': function(el){
     var file = el.files && el.files[0]; var id = el.dataset.id; if(!file) return;
@@ -1728,11 +2052,20 @@ document.addEventListener('submit', function(e){
     }, function(e){ S.ui.busy=false; S.ui.niErr = (e && e.message) || 'Не удалось создать доступ.'; render(); });
   }
   if(k==='survey'){
-    var sv = S.ui.survey; var it = itemById(sv.itemId); var ratings = {}; var ok = true;
-    SURVEY_Q.forEach(function(q){ var v=S.form['sv-'+q[0]]; if(!v) ok=false; ratings[q[0]]=v; });
-    if(!ok){ toast('Поставьте оценку по каждому вопросу'); return; }
-    S.db.collection('surveys').add({groupId:me().groupId, day:it.day, itemId:it.id, ratings:ratings, comment:String(f('sv-comment')).slice(0,1000), at:Date.now()}).then(function(){
-      var p={items:{}}; p.items[it.id]={status:'done', at:Date.now()}; saveProgress(p); delete S.form['sv-comment']; toast('Спасибо, ответы отправлены');
+    var sv = S.ui.survey; var def = svDef(sv.sid); if(!def) return; var it = sv.itemId ? itemById(sv.itemId) : null;
+    var ans = {}; var miss = null;
+    (def.questions||[]).forEach(function(q){ var v = S.form['sv-'+q.id];
+      if(q.type==='text') v = String(v||'').trim().slice(0,2000);
+      var empty = v==null || v==='' || (Array.isArray(v) && !v.length);
+      if(empty){ if(q.required && !miss) miss = q.q; return; }
+      ans[q.id] = v; });
+    if(miss){ toast('Ответьте на вопрос: «'+(miss.length>60?miss.slice(0,60)+'…':miss)+'»'); return; }
+    var m = me(); var doc = {survey:sv.sid||'', itemId:sv.itemId||'', groupId:m.groupId, day:it?it.day:'', answers:ans, at:Date.now()};
+    if(!sv.sid){ doc.ratings = {}; SURVEY_Q.forEach(function(q){ if(ans[q[0]]!=null) doc.ratings[q[0]] = ans[q[0]]; }); doc.comment = ans.comment || ''; }
+    if(def.anonymous === false){ doc.iid = S.iid; doc.name = m.name; }
+    S.db.collection('surveys').add(doc).then(function(){
+      var p = {surveys:{}}; p.surveys[svKey(sv)] = Date.now(); if(sv.itemId){ p.items = {}; p.items[sv.itemId] = {status:'done', at:Date.now()}; }
+      saveProgress(p); (def.questions||[]).forEach(function(q){ delete S.form['sv-'+q.id]; }); toast('Спасибо, ответы отправлены');
     }, writeErr);
   }
   if(k==='feedback'){
@@ -1841,7 +2174,7 @@ if(!window.supabase || !CFG.url || !CFG.anonKey || /ВСТАВЬТЕ|XXXX/.test(
 } else {
   sb = supabase.createClient(CFG.url, CFG.anonKey);
   S.db = DB; S.assets = ASSETS; S.canEdit = true; S.dbState = 'ok';
-  ['program','slides','tests','knowledge','org','settings'].forEach(function(k){
+  ['program','slides','tests','knowledge','org','settings','surveys'].forEach(function(k){
     S.db.doc('content/'+k).onSnapshot(function(s){ S.content[k] = s.exists ? s.data() : null; S.loaded[k]=true; schedule(); });
   });
   [['groups','groups'],['interns','interns'],['progress','progress'],['feedback','feedback'],['live','live'],['sims','sims'],['requests','requests']].forEach(function(c){
