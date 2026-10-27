@@ -387,6 +387,11 @@ a.mat.link:hover{text-decoration:underline}
 .simres-it{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:4px}
 .simres-it:first-child{border-top:0}
 .simres-it ul{margin:4px 0 0;padding-left:18px;font-size:13px}
+
+.dirpick{display:flex;flex-direction:column;gap:4px;margin:0 0 14px;font-size:12px;color:var(--side-muted,#b9b3d6)}
+.dirpick select{height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;padding:0 10px;font:inherit;font-size:14px;font-weight:600}
+.dirpick select option{color:#1d1b2e}
+.dirchip{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--accent-soft,#ede9fe);color:var(--accent-ink,#5b21b6);margin-left:6px;vertical-align:middle}
 </style>
 
 <style>body{margin:0}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
@@ -458,7 +463,7 @@ var S = {
   content:{program:null, slides:null, tests:null, knowledge:null, org:null, settings:null, surveys:null},
   loaded:{},
   groups:{}, interns:{}, progress:{}, feedback:{}, live:{}, surveys:[], sims:{},
-  role:null, iid:null, view:'home', ui:{dayOpen:{}, edOpen:{}}, form:{}, draft:{}, dirty:{}, player:null, assets:null, pendingDel:[], requests:{}, rolls:{}, profiles:{}
+  role:null, iid:null, view:'home', ui:{dayOpen:{}, edOpen:{}}, form:{}, draft:{}, dirty:{}, player:null, assets:null, pendingDel:[], requests:{}, rolls:{}, profiles:{}, cAll:{}
 };
 
 /* ---------- helpers ---------- */
@@ -572,6 +577,7 @@ function writeErr(e){
 var rq = false;
 function schedule(){ if(rq) return; rq = true; requestAnimationFrame(function(){ rq=false; render(); }); }
 function render(){
+  applyDir();
   var a = document.activeElement; var aid = a && a.id; var ss=null, se=null;
   try{ ss = a.selectionStart; se = a.selectionEnd; }catch(e){}
   document.body.classList.toggle('trainer', S.role==='trainer');
@@ -659,9 +665,9 @@ function requestsBlock(){
   var pend = reqs.filter(function(r){ return r.status==='pending'; }).sort(function(a,b){ return (a.at||0)-(b.at||0); });
   var rej = reqs.filter(function(r){ return r.status==='rejected'; }).sort(function(a,b){ return (b.decidedAt||0)-(a.decidedAt||0); });
   if(!pend.length && !rej.length) return '';
-  var gl = groupList();
+  var gl = groupList(true);
   var rows = pend.map(function(r){
-    var gsel = gl.length ? '<select id="rq-g-'+esc(r.id)+'" data-keep class="input" style="width:auto;min-width:200px" aria-label="Группа для '+esc(r.name)+'">'+gl.map(function(g){ return '<option value="'+esc(g.id)+'"'+(f('rq-g-'+r.id, curGid())===g.id?' selected':'')+'>'+esc(g.name)+'</option>'; }).join('')+'</select>' : '<span class="small err">Сначала создайте группу</span>';
+    var gsel = gl.length ? '<select id="rq-g-'+esc(r.id)+'" data-keep class="input" style="width:auto;min-width:200px" aria-label="Группа для '+esc(r.name)+'">'+gl.map(function(g){ return '<option value="'+esc(g.id)+'"'+(f('rq-g-'+r.id, curGid())===g.id?' selected':'')+'>'+esc(dirName(g.dir||'soft'))+' · '+esc(g.name)+'</option>'; }).join('')+'</select>' : '<span class="small err">Сначала создайте группу</span>';
     var rejOpen = S.ui.rejOpen===r.id;
     return '<div class="ed" style="gap:10px"><div class="row between" style="align-items:flex-start"><div class="stack" style="gap:2px;min-width:0;flex:1 1 260px"><b>'+esc(r.name)+'</b><span class="small muted">Логин '+esc(r.login)+(r.contact?' · '+esc(r.contact):'')+' · '+fmtTime(r.at)+'</span>'+(r.note?'<span class="small">'+esc(r.note)+'</span>':'')+'</div>'+
       (rejOpen ? '<div class="row" style="flex:1 1 320px"><input id="rq-r-'+esc(r.id)+'" data-keep class="input" style="flex:1;min-width:0" placeholder="Причина (увидит заявитель)" value="'+esc(f('rq-r-'+r.id))+'"><button class="btn sm danger" type="button" data-act="req-reject" data-id="'+esc(r.id)+'">Отклонить</button><button class="btn sm" type="button" data-act="req-reject-cancel">Отмена</button></div>'
@@ -693,14 +699,14 @@ function viewShell(){
     side = '<nav class="side" aria-label="Разделы">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>'+esc(b.sub)+'</small></div></div>'+
       '<div class="nav">'+TABS.filter(function(t){ return !tabHidden(t[0]) && (t[0]!=='sim' || simAvail()); }).map(function(t){ return navItem(t[0], tabTitle(t[0]), t[0]==='pres'?liveTag:null); }).join('')+'</div>'+
-      '<div class="me"><div class="ava">'+esc(initials(m.name))+'</div><div class="who"><b>'+esc(m.name)+'</b><small>Стажёр · день '+(dIdx+1)+' из '+days().length+'</small></div><button type="button" data-act="logout">Выйти</button></div>'+
+      '<div class="me"><div class="ava">'+esc(initials(m.name))+'</div><div class="who"><b>'+esc(m.name)+'</b><small>'+esc(dirName(activeDir()))+' · день '+(dIdx+1)+' из '+days().length+'</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
     body = ({home:vHome, plan:vPlan, sims:vSims, sim:vSim, tests:vTests, surveys:vSurveys, pres:vPres, kb:vKb, org:vOrg, progress:vProgress}[S.view] || vHome)();
   } else {
     var anyLive = Object.keys(S.live).some(function(k){ return S.live[k] && S.live[k].active; });
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
     side = '<nav class="side" aria-label="Разделы тренера">'+
-      '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+
+      '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+dirPicker()+
       '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
       '<div class="me"><div class="ava amber">Т</div><div class="who"><b>Тренер</b><small>Управление стажировкой</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
@@ -1034,8 +1040,8 @@ function vProgress(){
 /* ---------- trainer: groups / access ---------- */
 function ngDefName(){ return 'Группа от '+new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}); }
 function ngDefStart(){ return new Date().toISOString().slice(0,10); }
-function groupList(){ return Object.keys(S.groups).map(function(k){ return Object.assign({id:k}, S.groups[k]); }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); }); }
-function curGid(){ var gl = groupList(); if(S.ui.gid && S.groups[S.ui.gid]) return S.ui.gid; return gl[0] ? gl[0].id : null; }
+function groupList(all){ var gl = Object.keys(S.groups).map(function(k){ return Object.assign({id:k}, S.groups[k]); }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); }); if(S.role==='trainer' && !all){ var d = activeDir(); gl = gl.filter(function(g){ return (g.dir||'soft')===d; }); } return gl; }
+function curGid(){ var gl = groupList(); if(S.ui.gid && S.groups[S.ui.gid] && (S.role!=='trainer' || gDir(S.ui.gid)===activeDir())) return S.ui.gid; return gl[0] ? gl[0].id : null; }
 function internsOf(gid){ return Object.keys(S.interns).map(function(k){ return Object.assign({id:k}, S.interns[k]); }).filter(function(i){ return i.groupId===gid; }).sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'ru'); }); }
 function groupPicker(withNew){
   var gl = groupList(); var gid = curGid();
@@ -1434,6 +1440,29 @@ function xlIntern(iid){
   return xlSave('Карта стажёра — '+i.name, sheets);
 }
 
+
+/* ---------- направления (Софт / Софт+ / Хард …) ---------- */
+var DIR_KEYS = ['program','slides','tests','knowledge','surveys'];
+var DIR_DEF = [{id:'soft', name:'Софт'},{id:'softplus', name:'Софт+'},{id:'hard', name:'Хард'}];
+function dirsList(){ var d = (S.content.settings||{}).dirs; return (d && d.length) ? d : DIR_DEF; }
+function dirName(id){ var d = dirsList().filter(function(x){ return x.id===id; })[0]; return d ? d.name : (id==='soft'?'Софт':id); }
+function dirPath(k, dir){ return 'content/'+k+((dir||'soft')==='soft' ? '' : '~'+dir); }
+function gDir(gid){ var g = S.groups[gid]; return (g && g.dir) || 'soft'; }
+function activeDir(){ if(S.role==='intern'){ var m = me(); return m ? gDir(m.groupId) : 'soft'; } return S.ui.dir || 'soft'; }
+function applyDir(){ var d = activeDir(); DIR_KEYS.forEach(function(k){ var p = dirPath(k, d); S.content[k] = S.cAll[p]!==undefined ? S.cAll[p] : null; }); }
+function srcPath(k){ var c = DRAFT_SRC[k]; return DIR_KEYS.indexOf(c)>=0 ? dirPath(c, activeDir()) : 'content/'+c; }
+function setContent(c, data){ if(DIR_KEYS.indexOf(c)>=0) S.cAll[dirPath(c, activeDir())] = data; S.content[c] = data; }
+var SUBD = {};
+function subDirs(){ if(!S.db) return; dirsList().concat(DIR_DEF).forEach(function(d){ DIR_KEYS.forEach(function(k){ var p = dirPath(k, d.id); if(SUBD[p]) return; SUBD[p] = 1;
+  S.db.doc(p).onSnapshot(function(sn){ S.cAll[p] = sn.exists ? sn.data() : null; S.loaded[k] = true; applyDir(); schedule(); }); }); }); }
+function simDir(id){ var x = S.sims[id]; return (x && x.dir) || 'soft'; }
+function dirPicker(){ var ds = dirsList(); var cur = activeDir();
+  return '<label class="dirpick">Направление<select id="dir-pick" data-act-change="dir-pick">'+ds.map(function(d){ var n = Object.keys(S.groups).filter(function(k){ return gDir(k)===d.id; }).length; return '<option value="'+esc(d.id)+'"'+(d.id===cur?' selected':'')+'>'+esc(d.name)+(n?' · групп: '+n:'')+'</option>'; }).join('')+'</select></label>'; }
+function dirEmpty(dir){ return !DIR_KEYS.some(function(k){ var v = S.cAll[dirPath(k, dir)]; return v && Object.keys(v).length; }); }
+function dirCard(){ var cur = activeDir(); var others = dirsList().filter(function(d){ return d.id!==cur && !dirEmpty(d.id); });
+  if(!dirEmpty(cur) || !others.length) return '<p class="small muted" style="margin:0">Направление: <b>'+esc(dirName(cur))+'</b>. План, презентации, тесты, опросники, база знаний и тренажёры — свои у каждого направления. Структура компании и название кабинета — общие.</p>';
+  return '<section class="card" style="border-color:var(--amber)"><h2>Направление «'+esc(dirName(cur))+'» пока пустое</h2><p style="margin:0">Можно заполнить с нуля или взять за основу материалы другого направления (план, презентации, тесты, опросники, базу знаний) и потом поправить.</p><div class="row" style="align-items:flex-end"><label class="field" style="min-width:220px">Скопировать из<select id="dir-src" data-keep>'+others.map(function(d){ return '<option value="'+esc(d.id)+'">'+esc(d.name)+'</option>'; }).join('')+'</select></label><button class="btn primary" type="button" data-act="dir-copy">Скопировать материалы</button></div></section>'; }
+
 /* ---------- trainer: settings (constructor) ---------- */
 var DRAFT_SRC = {program:'program', decks:'slides', kb:'knowledge', org:'org', settings:'settings', tests:'tests', surveys:'surveys'};
 var DRAFT_DEF = {program:{days:[]}, decks:{decks:{}}, kb:{cats:[], articles:[], cheat:{title:'', cells:[], note:''}}, org:{people:[]}, settings:{brand:{name:'Старт', sub:'ЛК стажёра · взыскание'}, tabs:{}}, tests:{tests:{}}, surveys:{surveys:{}}};
@@ -1441,7 +1470,7 @@ function draft(k){
   if(!S.draft[k]){
     var d = clone(S.content[DRAFT_SRC[k]] || DRAFT_DEF[k]);
     if(k==='kb'){ d.cats = d.cats||[]; d.articles = d.articles||[]; d.cheat = d.cheat||{title:'',cells:[],note:''}; d.cheat.cells = d.cheat.cells||[]; }
-    if(k==='settings'){ d.brand = d.brand||{}; d.tabs = d.tabs||{}; }
+    if(k==='settings'){ d.brand = d.brand||{}; d.tabs = d.tabs||{}; d.dirs = (d.dirs && d.dirs.length) ? d.dirs : clone(DIR_DEF); }
     if(k==='program'){ d.days = d.days||[]; }
     if(k==='decks'){ d.decks = d.decks||{}; }
     if(k==='org'){ d.people = d.people||[]; }
@@ -1465,7 +1494,7 @@ var ST_TABS = [['plan','План стажировки'],['decks','Презент
 function tSettings(){
   var st = S.ui.st || 'plan';
   var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, org:stOrg, tabs:stTabs, surveys:stSurveys, 'import':stImport}[st] || stPlan)();
-  return head('Настройка','Конструктор кабинета: всё, что видит стажёр. Изменения появляются у стажёров сразу после сохранения.')+
+  return head('Настройка · '+dirName(activeDir()),'Конструктор кабинета: всё, что видит стажёр. Изменения появляются у стажёров сразу после сохранения.')+dirCard()+
     '<div class="subnav" role="tablist" aria-label="Разделы настройки">'+ST_TABS.map(function(t){ var dk = {plan:'program',decks:'decks',tests:'tests',surveys:'surveys',kb:'kb',org:'org',tabs:'settings'}[t[0]]; return '<button type="button" role="tab" aria-selected="'+(st===t[0])+'" class="'+(st===t[0]?'on':'')+'" data-act="st-go" data-s="'+t[0]+'">'+esc(t[1])+(dk&&S.dirty[dk]?' •':'')+'</button>'; }).join('')+'</div>'+body;
 }
 
@@ -1478,7 +1507,7 @@ function stPlan(){
   var deckOpts = [['','— нет —']].concat(Object.keys(draft('decks').decks).map(function(id){ return [id, draft('decks').decks[id].title||id]; }));
   var tdr = draft('tests').tests;
   var testOpts = [['','— нет —']].concat(Object.keys(tdr).map(function(id){ return [id, tdr[id].title||'Тест без названия']; }));
-  var simOpts = [['','— нет —']].concat(Object.keys(S.sims).map(function(id){ return [id, (S.sims[id].title||id)+(S.sims[id].html?'':' (не загружен)')]; }));
+  var simOpts = [['','— нет —']].concat(Object.keys(S.sims).filter(function(id){ return simDir(id)===activeDir(); }).map(function(id){ return [id, (S.sims[id].title||id)+(S.sims[id].html?'':' (не загружен)')]; }));
   var artOpts = [['','— нет —']].concat((draft('kb').articles||[]).map(function(a){ return [a.id, a.title]; }));
   var typeOpts = TYPE_ORDER.map(function(t){ return [t, TYPE[t]]; });
   var items = (day.items||[]).map(function(it, ii){
@@ -1620,7 +1649,7 @@ function stSurveys(){
     '<section class="stack" style="gap:8px"><div class="row between"><h2>Вопросы · '+(sv.questions||[]).length+'</h2><button class="btn primary sm" type="button" data-act="svq-add">+ Вопрос</button></div>'+qs+'<button class="btn" type="button" data-act="svq-add" style="align-self:flex-start">+ Добавить вопрос</button></section>';
 }
 function stSims(){
-  var ids = Object.keys(S.sims).sort(function(a,b){ return (S.sims[a].title||'').localeCompare(S.sims[b].title||'','ru'); });
+  var ids = Object.keys(S.sims).filter(function(id){ return simDir(id)===activeDir(); }).sort(function(a,b){ return (S.sims[a].title||'').localeCompare(S.sims[b].title||'','ru'); });
   var used = {}; allItems().forEach(function(i){ if(i.sim) (used[i.sim]=used[i.sim]||[]).push('День '+(i.dayIdx+1)+': '+i.title); });
   return '<section class="card"><h2>Тренажёры в кабинете</h2><p class="hint">Загрузите тренажёр одним HTML-файлом до 240 КБ, и он откроется у стажёра прямо в кабинете. Чтобы тренажёр появился в плане, выберите его в теме: «План стажировки → ⋯ → Тренажёр». Отметку «выполнено» стажёр ставит сам после прохождения.</p><button class="btn primary" type="button" data-act="sim-add" style="align-self:flex-start">+ Добавить тренажёр</button></section>'+
     ids.map(function(id){
@@ -1678,6 +1707,8 @@ function stTabs(){
     '<section class="card"><h2>Название кабинета</h2><div class="row" style="align-items:flex-end"><label class="field" style="flex:1 1 200px">Название'+inp('sb-n','settings','brand.name','Старт')+'</label><label class="field" style="flex:2 1 280px">Подпись'+inp('sb-s','settings','brand.sub','ЛК стажёра · взыскание')+'</label></div>'+
     '<label class="field">Кнопка «Связь с тренером» у стажёра — Telegram тренера'+inp('sb-tg','settings','trainerContact','@zzuboff')+'</label><p class="hint" style="margin:0">Укажите @username. Стажёр увидит кнопку внизу справа, по ней откроется чат с тренером. Чтобы скрыть кнопку, поставьте «-».</p>'+
     '<label class="check"><input type="checkbox" id="sb-apply"'+bind('settings','allowApply',' data-fmt="bool" data-rerender="1"')+(d.allowApply===false?'':' checked')+'>Разрешить стажёрам подавать заявку на доступ со страницы входа</label></section>'+
+    '<section class="card"><h2>Направления</h2><p class="hint" style="margin:0">У каждого направления свои план, презентации, тесты, опросники, база знаний и тренажёры. Группа привязывается к направлению при создании. Переключатель направления — вверху слева.</p><div class="stack" style="gap:8px">'+d.dirs.map(function(x, i){ var n = Object.keys(S.groups).filter(function(k){ return gDir(k)===x.id; }).length;
+      return '<div class="ed-row" style="border-top:1px solid var(--line2);padding-top:8px"><span class="t"><label class="field">Название<input id="dr-'+i+'" class="input"'+bind('settings','dirs.'+i+'.name')+' value="'+esc(x.name)+'"></label></span><span class="small muted">'+(n?'групп: '+n:'групп нет')+'</span>'+(x.id==='soft'||n?'':'<button class="btn sm danger" type="button" data-act="dir-del" data-i="'+i+'">Удалить</button>')+'</div>'; }).join('')+'</div><button class="btn" type="button" data-act="dir-add" style="align-self:flex-start">+ Направление</button></section>'+
     '<section class="card"><h2>Вкладки стажёра</h2><p class="hint">Переименуйте вкладку или скройте её. Главная видна всегда.</p><div class="stack" style="gap:8px">'+TABS.map(function(t){
       var k = t[0]; var tab = d.tabs[k] || {};
       return '<div class="ed-row" style="border-top:1px solid var(--line2);padding-top:8px"><span class="t"><label class="field">'+esc(t[1])+'<input id="tb-'+k+'" class="input"'+bind('settings','tabs.'+k+'.title')+' value="'+esc(tab.title||'')+'" placeholder="'+esc(t[1])+'"></label></span>'+
@@ -1783,18 +1814,18 @@ function importRun(){
         if(prev) (prev.slides||[]).forEach(function(sl){ if(sl.image){ oldImgs.push(sl.image); if(sl.note) prevNotes[sl.image] = sl.note; } });
         doc.decks[k] = {title:m.decks[k].title, slides:(m.decks[k].slides||[]).map(function(sl){ var name = 'imp-'+ver+'-'+safeName(sl.file); newImgs[name]=1; return {image:name, title:sl.title||'', note:prevNotes[name] || sl.note || ''}; })};
       });
-      return S.db.doc('content/slides').set(doc).then(function(){ S.content.slides = clone(doc); im.done++; });
+      return S.db.doc(dirPath('slides', activeDir())).set(doc).then(function(){ setContent('slides', clone(doc)); im.done++; });
     });
     if(o.tests) chain = chain.then(function(){
       im.step = 'Сохраняю опросники…'; schedule();
       var doc = clone(S.content.tests || {tests:{}}); doc.tests = doc.tests || {};
       Object.keys(m.tests).forEach(function(k){ doc.tests[k] = clone(m.tests[k]); });
-      return S.db.doc('content/tests').set(doc).then(function(){ S.content.tests = clone(doc); im.done++; });
+      return S.db.doc(dirPath('tests', activeDir())).set(doc).then(function(){ setContent('tests', clone(doc)); im.done++; });
     });
     if(o.program) chain = chain.then(function(){
       im.step = 'Сохраняю план стажировки…'; schedule();
       var doc = clone(m.program);
-      return S.db.doc('content/program').set(doc).then(function(){ S.content.program = clone(doc); im.done++; });
+      return S.db.doc(dirPath('program', activeDir())).set(doc).then(function(){ setContent('program', clone(doc)); im.done++; });
     });
     return chain.then(function(){
       ['program','decks','tests'].forEach(function(k){ S.draft[k] = null; S.dirty[k] = false; });
@@ -2000,6 +2031,10 @@ var A = {
   'sim-test': function(el){ var id = el.dataset.id; S.db.doc('interns/'+id).update({simTest:{id:'t'+Date.now(), at:Date.now()}}).then(function(){ toast('Тест запущен: у стажёра открылся симулятор'); }, writeErr); },
   'sim-test-all': function(){ var gid = curGid(); var ts = Date.now(); var list = internsOf(gid).filter(function(i){ return !i.suspended && !simTestActive(i.id); }); Promise.all(list.map(function(i){ return S.db.doc('interns/'+i.id).update({simTest:{id:'t'+ts, at:ts}}); })).then(function(){ toast('Тест запущен у '+list.length+' стаж.'); }, writeErr); },
   'sim-test-cancel': function(el){ var id = el.dataset.id; S.db.doc('interns/'+id).update({simTest:{id:null, at:null}}).then(function(){ toast('Тест отменён'); }, writeErr); },
+  'dir-add': function(){ var d = draft('settings'); d.dirs.push({id:'d'+Date.now().toString(36), name:'Новое направление'}); markDirty('settings'); render(); },
+  'dir-del': function(el){ var d = draft('settings'); d.dirs.splice(Number(el.dataset.i), 1); markDirty('settings'); render(); },
+  'dir-copy': function(){ var se = document.getElementById('dir-src'); var src = se ? se.value : ''; var cur = activeDir(); if(!src) return; var ps = DIR_KEYS.map(function(k){ var v = S.cAll[dirPath(k, src)]; return v ? S.db.doc(dirPath(k, cur)).set(clone(v)).then(function(){ S.cAll[dirPath(k, cur)] = clone(v); }) : null; }).filter(Boolean);
+    Promise.all(ps).then(function(){ S.draft = {}; S.dirty = {}; toast('Материалы направления «'+dirName(src)+'» скопированы в «'+dirName(cur)+'»'); render(); }, writeErr); },
   'modal-close': function(){ S.ui.modal=null; render(); },
   'modal-close-bg': function(el, e){ if(e.target===el){ S.ui.modal=null; render(); } },
   article: function(el){ S.ui.modal={type:'article', id:el.dataset.id}; render(); },
@@ -2132,7 +2167,7 @@ var A = {
   'art-del-yes': function(el){ draft('kb').articles.splice(Number(el.dataset.i),1); S.ui.confirm=null; markDirty('kb'); render(); },
   'org-add': function(){ var ps = draft('org').people; ps.push({id:uid('p'), name:'', role:'', area:'', parent:(ps.filter(function(p){ return !p.parent; })[0]||{}).id||'', help:'', contact:'', kind:''}); markDirty('org'); render(); },
   'org-del-yes': function(el){ var ps = draft('org').people; var rm = ps[Number(el.dataset.i)]; ps.splice(Number(el.dataset.i),1); ps.forEach(function(p){ if(p.parent===rm.id) p.parent=rm.parent||''; }); S.ui.confirm=null; markDirty('org'); render(); },
-  'sim-add': function(){ var id = uid('sim'); S.db.doc('sims/'+id).set({title:'Новый тренажёр', desc:'', html:'', size:0, updatedAt:0}).then(function(){ toast('Тренажёр добавлен — загрузите HTML-файл'); }, writeErr); },
+  'sim-add': function(){ var id = uid('sim'); S.db.doc('sims/'+id).set({title:'Новый тренажёр', desc:'', html:'', size:0, updatedAt:0, dir:activeDir()}).then(function(){ toast('Тренажёр добавлен — загрузите HTML-файл'); }, writeErr); },
   'sim-save': function(el){ var id = el.dataset.id; S.db.doc('sims/'+id).update({title:String(f('sm-'+id+'-t', S.sims[id].title)).trim()||'Тренажёр', desc:String(f('sm-'+id+'-d', S.sims[id].desc))}).then(function(){ delete S.form['sm-'+id+'-t']; delete S.form['sm-'+id+'-d']; toast('Сохранено'); }, writeErr); },
   'sim-preview': function(el){ openPlayer(el.dataset.id, null); },
   'imp-run': function(){ importRun(); },
@@ -2143,8 +2178,8 @@ var A = {
 function saveDraft(k, msg){
   var data = cleanDraft(k, clone(draft(k)));
   var size = JSON.stringify(data).length; if(size > 250000){ toast('Слишком много текста для одного раздела ('+kb(size)+'). Сократите содержимое.'); return Promise.resolve(false); }
-  return S.db.doc('content/'+DRAFT_SRC[k]).set(data).then(function(){
-    S.content[DRAFT_SRC[k]] = clone(data); S.dirty[k]=false; S.draft[k]=null;
+  return S.db.doc(srcPath(k)).set(data).then(function(){
+    setContent(DRAFT_SRC[k], clone(data)); S.dirty[k]=false; S.draft[k]=null;
     if(k==='decks' && S.pendingDel.length && S.assets){
       var still = {}; Object.keys(data.decks||{}).forEach(function(id){ (data.decks[id].slides||[]).forEach(function(s){ if(s.image) still[s.image]=1; }); });
       var del = S.pendingDel.filter(function(a){ return !still[a]; }); S.pendingDel = [];
@@ -2193,6 +2228,7 @@ function replaceSlideImage(i, file){
 }
 
 var CHANGE = {
+  'dir-pick': function(el){ if(Object.keys(S.dirty).some(function(k){ return S.dirty[k]; })){ el.value = activeDir(); toast('Сначала сохраните или отмените изменения в настройке'); return; } S.ui.dir = el.value; S.draft = {}; S.dirty = {}; S.ui.gid = null; S.ui.rsel = null; applyDir(); render(); toast('Направление: '+dirName(el.value)); },
   'sim-from': function(el){ A['sim-from-x'](el); },
   'imp-file': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; if(fs.length) importParse(fs); },
   'slides-files': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; addSlideImages(fs); },
@@ -2257,7 +2293,7 @@ document.addEventListener('submit', function(e){
   }
   if(k==='newgroup'){
     var name = String(f('ng-name', ngDefName())).trim() || 'Новая группа'; var gid = uid('g');
-    S.db.doc('groups/'+gid).set({name:name, start:f('ng-start', ngDefStart()), access:{}, createdAt:Date.now()}).then(function(){ S.ui.gid=gid; S.ui.newGroup=false; delete S.form['ng-name']; toast('Группа создана'); }, writeErr);
+    S.db.doc('groups/'+gid).set({name:name, start:f('ng-start', ngDefStart()), access:{}, dir:activeDir(), createdAt:Date.now()}).then(function(){ S.ui.gid=gid; S.ui.newGroup=false; delete S.form['ng-name']; toast('Группа создана'); }, writeErr);
   }
   if(k==='newintern'){
     var nm = String(f('ni-name')).trim(); var lg = String(S.form['ni-login']!=null?S.form['ni-login']:makeLogin(nm)).trim().toLowerCase(); var pw = String(f('ni-pw', S.ui.genPw)).trim();
@@ -2400,9 +2436,10 @@ if(!window.supabase || !CFG.url || !CFG.anonKey || /ВСТАВЬТЕ|XXXX/.test(
 } else {
   sb = supabase.createClient(CFG.url, CFG.anonKey);
   S.db = DB; S.assets = ASSETS; S.canEdit = true; S.dbState = 'ok';
-  ['program','slides','tests','knowledge','org','settings','surveys'].forEach(function(k){
-    S.db.doc('content/'+k).onSnapshot(function(s){ S.content[k] = s.exists ? s.data() : null; S.loaded[k]=true; schedule(); });
+  ['org','settings'].forEach(function(k){
+    S.db.doc('content/'+k).onSnapshot(function(s){ S.content[k] = s.exists ? s.data() : null; S.loaded[k]=true; if(k==='settings') subDirs(); schedule(); });
   });
+  subDirs();
   [['groups','groups'],['interns','interns'],['progress','progress'],['feedback','feedback'],['live','live'],['sims','sims'],['requests','requests'],['rolls','rolls'],['profiles','profiles']].forEach(function(c){
     S.db.collection(c[0]).onSnapshot(function(snap){ var o={}; snap.docs.forEach(function(d){ o[d.id]=d.data(); }); S[c[1]]=o; S.loaded[c[0]]=true; if(c[0]==='interns'){ checkApproved(); checkSuspended(); } if(c[0]==='live') followLive(); schedule(); });
   });
