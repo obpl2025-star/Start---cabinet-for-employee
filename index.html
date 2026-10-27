@@ -377,6 +377,16 @@ a.mat.link:hover{text-decoration:underline}
 .file input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .check{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
 .check input{width:18px;height:18px;accent-color:var(--accent)}
+
+.fsx{position:fixed;inset:0;z-index:60;background:#000;display:flex;flex-direction:column}
+.fsx[hidden]{display:none}
+.fsx-in{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:8px}
+.fsx-in .slide{height:100%;max-height:100%;width:auto;max-width:100%;border-radius:0}
+.fsx-bar{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px));color:#fff;background:#111}
+.fsx-bar .btn{min-height:36px}
+.simres-it{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:4px}
+.simres-it:first-child{border-top:0}
+.simres-it ul{margin:4px 0 0;padding-left:18px;font-size:13px}
 </style>
 
 <style>body{margin:0}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
@@ -385,7 +395,7 @@ a.mat.link:hover{text-decoration:underline}
 </head>
 <body>
 <div id="app"></div>
-<div id="player"></div>
+<div id="player"></div><div id="fsx" class="fsx" hidden></div>
 
 <script>
 (function(){
@@ -489,7 +499,7 @@ var TONE_ORDER = ['theory','practice','check','summary','crm','org','meeting'];
 function toneOf(it){ return it && TONES[it.tone] ? it.tone : 'none'; }
 function slideRef(it){ if(!it.deck || !it.slide) return ''; return 'Слайд '+it.slide+(it.slideTo && it.slideTo>it.slide ? '–'+it.slideTo : ''); }
 function toneLegend(items){ var used = {}; (items||[]).forEach(function(i){ if(TONES[i.tone]) used[i.tone]=1; }); var ks = TONE_ORDER.filter(function(t){ return used[t]; }); if(!ks.length) return ''; return '<div class="legend" aria-label="Цвета блоков">'+ks.map(function(t){ return '<span class="lg tone-'+t+'"><i aria-hidden="true"></i>'+esc(TONES[t])+'</span>'; }).join('')+'</div>'; }
-var TABS = [['home','Главная'],['plan','План обучения'],['sims','Тренажёры'],['tests','Тесты'],['surveys','Опросы'],['pres','Презентация'],['kb','База знаний'],['org','Структура компании'],['progress','Мой прогресс']];
+var TABS = [['home','Главная'],['plan','План обучения'],['sims','Тренажёры'],['sim','Симулятор'],['tests','Тесты'],['surveys','Опросы'],['pres','Презентация'],['kb','База знаний'],['org','Структура компании'],['progress','Мой прогресс']];
 
 /* ---------- content accessors ---------- */
 function days(){ return (S.content.program && S.content.program.days) || []; }
@@ -569,6 +579,7 @@ function render(){
   if(S.ui.modal) html += viewModal();
   if(S.ui.toast) html += '<div class="toast" role="status">'+esc(S.ui.toast)+'</div>';
   app.innerHTML = html;
+  if(S.fs) fsUpdate();
   if(aid){ var n = document.getElementById(aid); if(n && n !== document.body){ try{ n.focus({preventScroll:true}); if(ss!=null && n.setSelectionRange) n.setSelectionRange(ss,se); }catch(e){} } }
 }
 
@@ -672,25 +683,28 @@ function viewShell(){
     if(!m){ return '<div class="login"><div class="login-card"><h1>Аккаунт не найден</h1><p class="muted">Тренер мог удалить этот доступ. Обратитесь к тренеру.</p><button class="btn" data-act="logout">Выйти</button></div></div>'; }
     var rl = liveOf(m.groupId).roll;
     if(rl && rl.active){ if(S.player) closePlayer(); S.ui.modal = null; return rollScreen(m, rl); }
-    if(tabHidden(S.view)) S.view = 'home';
+    var stt = m.simTest;
+    if(S.player && S.player.lock && !(stt && stt.id===S.player.test)) closePlayer();
+    if(stt && stt.id && !((P().simres||{})[stt.id])){ if(!S.player || S.player.test!==stt.id) setTimeout(function(){ openInari({test:stt.id}); }, 0); return simLockScreen(m); }
+    if(tabHidden(S.view) || (S.view==='sim' && !simAvail())) S.view = 'home';
     var lv = liveOf(m.groupId);
     var liveTag = lv.active ? '<span class="live-tag">идёт</span>' : null;
     var dIdx = currentDayIdx();
     side = '<nav class="side" aria-label="Разделы">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>'+esc(b.sub)+'</small></div></div>'+
-      '<div class="nav">'+TABS.filter(function(t){ return !tabHidden(t[0]); }).map(function(t){ return navItem(t[0], tabTitle(t[0]), t[0]==='pres'?liveTag:null); }).join('')+'</div>'+
+      '<div class="nav">'+TABS.filter(function(t){ return !tabHidden(t[0]) && (t[0]!=='sim' || simAvail()); }).map(function(t){ return navItem(t[0], tabTitle(t[0]), t[0]==='pres'?liveTag:null); }).join('')+'</div>'+
       '<div class="me"><div class="ava">'+esc(initials(m.name))+'</div><div class="who"><b>'+esc(m.name)+'</b><small>Стажёр · день '+(dIdx+1)+' из '+days().length+'</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
-    body = ({home:vHome, plan:vPlan, sims:vSims, tests:vTests, surveys:vSurveys, pres:vPres, kb:vKb, org:vOrg, progress:vProgress}[S.view] || vHome)();
+    body = ({home:vHome, plan:vPlan, sims:vSims, sim:vSim, tests:vTests, surveys:vSurveys, pres:vPres, kb:vKb, org:vOrg, progress:vProgress}[S.view] || vHome)();
   } else {
     var anyLive = Object.keys(S.live).some(function(k){ return S.live[k] && S.live[k].active; });
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
     side = '<nav class="side" aria-label="Разделы тренера">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+
-      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
+      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
       '<div class="me"><div class="ava amber">Т</div><div class="who"><b>Тренер</b><small>Управление стажировкой</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
-    body = ({'t-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
+    body = ({'t-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
   }
   return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>'+(S.role==='intern' ? contactFab() : '');
 }
@@ -928,7 +942,7 @@ function vPres(){
   var avail = Object.keys(decksMap()).filter(deckOk);
   var deckPick = (avail.length > 1 && !locked) ? '<label class="field" style="min-width:240px">Презентация<select id="deck-pick" data-act-change="deck-pick">'+avail.map(function(id){ return '<option value="'+esc(id)+'"'+(id===deckId?' selected':'')+'>'+esc(deck(id).title)+'</option>'; }).join('')+'</select></label>' : '';
   var status = locked ? '<span class="chip warn" style="padding:8px 12px"><span class="pulse" aria-hidden="true"></span>Идёт показ · слайды переключает тренер</span>' : liveMode ? '<span class="chip warn" style="padding:8px 12px"><span class="pulse" aria-hidden="true"></span>Тренер на слайде '+(lv.slide||1)+'</span>' + (view !== (lv.slide||1) ? ' <button class="btn outline sm" type="button" data-act="pres-follow">К слайду тренера</button>' : '') : '<span class="chip">Самостоятельный просмотр</span>';
-  var hd = head(tabTitle('pres'), esc(dk.title), '<div class="row" style="align-items:flex-end">'+deckPick+status+'</div>');
+  var hd = head(tabTitle('pres'), esc(dk.title), '<div class="row" style="align-items:flex-end">'+deckPick+status+(slideLimit(deckId)>=1?'<button class="btn outline" type="button" data-act="pres-fs">⛶ На весь экран</button>':'')+'</div>');
   if(limit < 1) return hd + '<section class="slide locked" aria-label="Слайды закрыты"><h2 style="font-size:24px">Слайды откроются во время показа</h2><p style="margin:0">Тренер открывает слайды по одному. Как только он начнёт, они появятся здесь.</p></section>';
   var s = dk.slides[view-1];
   var key = deckId+'_'+view;
@@ -1090,7 +1104,7 @@ function tRoll(){
     var here = list.filter(function(i){ return rollMarkAt(i.id, rl.id); }).length;
     var mins = Math.max(0, Math.round((Date.now()-(rl.startedAt||Date.now()))/60000));
     top = '<section class="card" aria-labelledby="h-rl"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-rl"><span class="pulse" aria-hidden="true"></span>Перекличка идёт</h2><span class="small muted">Началась в '+hhmm(rl.startedAt)+(mins?' · '+mins+' мин назад':'')+'. У стажёров на экране только кнопка «Я на месте».</span></div>'+
-      '<div class="row" style="align-items:center"><span class="num" style="font-family:var(--f-display);font-size:28px">'+here+' / '+list.length+'</span><button class="btn danger" type="button" data-act="roll-stop">Завершить перекличку</button></div></div>'+
+      '<div class="row" style="align-items:center"><span class="num" style="font-family:var(--f-display);font-size:28px">'+here+' / '+list.length+'</span><button class="btn sm" type="button" data-act="roll-view" data-id="live" title="Кто отметился" aria-label="Кто отметился">👁</button><button class="btn danger" type="button" data-act="roll-stop">Завершить перекличку</button></div></div>'+
       '<div class="meter"><i style="width:'+(list.length?Math.round(here/list.length*100):0)+'%"></i></div>'+
       (list.length ? '<div>'+list.map(function(i){ var at = rollMarkAt(i.id, rl.id);
         return '<div class="rollrow"><span class="row" style="gap:12px;flex-wrap:nowrap"><span class="rmark '+(at?'yes':'no')+'" aria-hidden="true">'+(at?'✓':'✕')+'</span><b>'+esc(i.name)+'</b></span><span class="small '+(at?'':'muted')+'">'+(at?'на месте · '+hhmm(at):'не отметился')+'</span></div>'; }).join('')+'</div>' : '<p class="muted" style="margin:0">В группе нет активных стажёров.</p>')+
@@ -1100,8 +1114,8 @@ function tRoll(){
       '<div class="row"><button class="btn primary" type="button" data-act="roll-start"'+(list.length?'':' disabled')+'>Начать перекличку · '+list.length+' стаж.</button></div></section>';
   }
   var histBox = '<section class="card" aria-labelledby="h-rh"><div class="row between"><h2 id="h-rh">Журнал перекличек</h2>'+(hist.length?'<button class="btn sm" type="button" data-act="xl-rolls">Выгрузить в Excel</button>':'')+'</div>'+
-    (hist.length ? '<div class="table-wrap"><table><thead><tr><th>Дата</th><th>Время</th><th>На месте</th><th>Не отметились</th></tr></thead><tbody>'+hist.map(function(r){ var ls = r.list||[]; var yes = ls.filter(function(x){ return x.at; }); var no = ls.filter(function(x){ return !x.at; });
-        return '<tr><td>'+esc(fmtDay(r.startedAt))+'</td><td class="num">'+hhmm(r.startedAt)+'–'+hhmm(r.endedAt)+'</td><td class="num"><b>'+yes.length+' / '+ls.length+'</b></td><td class="small">'+(no.length?no.map(function(x){ return esc(x.name); }).join(', '):'<span class="muted">все на месте</span>')+'</td></tr>'; }).join('')+'</tbody></table></div>' : '<p class="muted" style="margin:0">Перекличек в этой группе ещё не было.</p>')+'</section>';
+    (hist.length ? '<div class="table-wrap"><table><thead><tr><th>Дата</th><th>Время</th><th>На месте</th><th>Не отметились</th><th></th></tr></thead><tbody>'+hist.map(function(r){ var ls = r.list||[]; var yes = ls.filter(function(x){ return x.at; }); var no = ls.filter(function(x){ return !x.at; });
+        return '<tr><td>'+esc(fmtDay(r.startedAt))+'</td><td class="num">'+hhmm(r.startedAt)+'–'+hhmm(r.endedAt)+'</td><td class="num"><b>'+yes.length+' / '+ls.length+'</b></td><td class="small">'+(no.length?no.map(function(x){ return esc(x.name); }).join(', '):'<span class="muted">все на месте</span>')+'</td><td><button class="btn sm" type="button" data-act="roll-view" data-id="'+esc(r.id)+'" title="Кто отметился" aria-label="Кто отметился">👁</button></td></tr>'; }).join('')+'</tbody></table></div>' : '<p class="muted" style="margin:0">Перекличек в этой группе ещё не было.</p>')+'</section>';
   return head('Перекличка', esc(g.name), groupPicker(false))+top+histBox;
 }
 function xlRolls(gid){
@@ -1272,7 +1286,7 @@ function rIntern(gid){
     fb.map(function(e){ return '<div class="stack" style="gap:4px;padding-top:10px;border-top:1px solid var(--line2)"><span class="small muted">'+fmtTime(e.at)+'</span><p style="margin:0" class="small">'+esc(e.text)+'</p></div>'; }).join('')+
     (nk.length?'<h3 style="margin-top:8px">Заметки стажёра к слайдам</h3>'+nk.map(function(k){ var parts = k.split('_'); var dk = deck(parts[0]); return '<p class="small" style="margin:0;white-space:pre-line"><b>'+esc((dk?dk.title:'')+' · слайд '+parts[1])+':</b> '+esc(notes[k])+'</p>'; }).join(''):'')+'</form>';
   S.ui.rsel = sel;
-  return pick+info+'<div class="cols"><div class="wide stack" style="gap:20px">'+daysT+tests+svs+'</div><div class="narrow stack" style="gap:20px">'+profCard+side+'</div></div>';
+  return pick+info+'<div class="cols"><div class="wide stack" style="gap:20px">'+daysT+tests+svs+'</div><div class="narrow stack" style="gap:20px">'+simCardFor(sel)+profCard+side+'</div></div>';
 }
 function svAnsText(q, v){
   if(v==null || v==='' || (Array.isArray(v)&&!v.length)) return '—';
@@ -1315,7 +1329,8 @@ function rSurveys(gid){
 /* ---------- Excel export (SheetJS, loaded on demand) ---------- */
 function loadXLSX(){
   if(window.XLSX) return Promise.resolve(window.XLSX);
-  return new Promise(function(res, rej){ var sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = function(){ window.XLSX ? res(window.XLSX) : rej(); }; sc.onerror = function(){ rej(); }; document.head.appendChild(sc); });
+  function ld(src){ return new Promise(function(res, rej){ var sc = document.createElement('script'); sc.src = src; sc.onload = function(){ window.XLSX ? res(window.XLSX) : rej(); }; sc.onerror = function(){ rej(); }; document.head.appendChild(sc); }); }
+  return ld('https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js').catch(function(){ return ld('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); });
 }
 function xlName(n){ return String(n||'Лист').replace(/[\[\]\*\?\/\\:]/g,' ').slice(0,31); }
 function fileSafe(n){ return String(n||'').replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().slice(0,80); }
@@ -1326,6 +1341,10 @@ function xlSave(filename, sheets){
     sheets.forEach(function(sh){ var ws = X.utils.aoa_to_sheet(sh.rows);
       var w = sh.cols || []; if(!w.length && sh.rows.length){ var nc = Math.max.apply(null, sh.rows.map(function(r){ return r.length; })); for(var c=0;c<nc;c++){ var mx = 8; sh.rows.forEach(function(r){ var v = r[c]; if(v!=null) mx = Math.max(mx, Math.min(60, String(v).length+2)); }); w.push(mx); } }
       ws['!cols'] = w.map(function(x){ return {wch:x}; });
+      if(sh.filter){ var hr = sh.filter-1, ncol = Math.max.apply(null, sh.rows.map(function(r){ return r.length; })); var thin = {style:'thin', color:{rgb:'D9D2E9'}};
+        for(var cc=0; cc<ncol; cc++){ var ad = X.utils.encode_cell({r:hr, c:cc}); if(ws[ad]) ws[ad].s = {fill:{patternType:'solid', fgColor:{rgb:'5B3F8F'}}, font:{bold:true, color:{rgb:'FFFFFF'}}, alignment:{wrapText:true, vertical:'center'}, border:{bottom:thin, right:thin}}; }
+        if(sh.wrap){ for(var rr2=hr+1; rr2<sh.rows.length; rr2++){ for(var c2=0; c2<ncol; c2++){ var a2 = X.utils.encode_cell({r:rr2, c:c2}); if(ws[a2]) ws[a2].s = {alignment:{wrapText:true, vertical:'center'}, border:{bottom:thin}}; } } }
+        ws['!rows'] = []; ws['!rows'][hr] = {hpt: sh.wrap ? 72 : 30}; }
       if(sh.filter && sh.rows.length > 1) ws['!autofilter'] = {ref: X.utils.encode_range({s:{r:sh.filter-1,c:0}, e:{r:sh.rows.length-1, c:Math.max.apply(null, sh.rows.map(function(r){ return r.length; }))-1}})};
       var nm = xlName(sh.name); var k = 2; while(used[nm]){ nm = xlName(sh.name).slice(0,28)+' '+(k++); } used[nm]=1;
       X.utils.book_append_sheet(wb, ws, nm); });
@@ -1374,18 +1393,19 @@ function sheetTopics(list){
   list.forEach(function(i){ allItems().forEach(function(it){ rows.push([i.name, it.dayIdx+1, it.title, TYPE[it.type]||'', itemStatusText(it, i.id), doneAt(it, i.id)]); }); });
   return {name:'Темы плана', rows:rows, filter:1};
 }
+function fmtStamp(t){ if(!t) return ''; var d = new Date(t); function z(n){ return (n<10?'0':'')+n; } return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear()+' '+d.getHours()+':'+z(d.getMinutes())+':'+z(d.getSeconds()); }
 function surveySheets(gid){
   var groups = svGroups(gid); var sumRows = [['Опрос','Вопрос','Тип','Ответов','Среднее','Распределение']];
   var sheets = [];
   groups.forEach(function(sv){
     var qs = sv.def.questions||[];
-    var rows = [['Дата','Группа','День','Стажёр'].concat(qs.map(function(q){ return q.q; }))];
+    var rows = [['Отметка времени','ФИО'].concat(qs.map(function(q){ return q.q; })).concat(['Группа','День'])];
     sv.resp.slice().sort(function(a,b){ return a.at-b.at; }).forEach(function(r){ var a = respAnswers(r); var g = S.groups[r.groupId]; var d = days().filter(function(x){ return x.id===r.day; })[0];
-      rows.push([fmtDT(r.at), g?g.name:'', d?days().indexOf(d)+1:'', r.name || (sv.def.anonymous===false?'':'анонимно')].concat(qs.map(function(q){ var v = a[q.id]; return (q.type==='rating'||q.type==='nps') && v!=null && v!=='' ? Number(v) : (svAnsText(q, v)==='—'?'':svAnsText(q, v)); }))); });
-    sheets.push({name:sv.def.title||'Опрос', rows:rows, filter:1});
+      rows.push([fmtStamp(r.at), r.name || (sv.def.anonymous===false?'':'анонимно')].concat(qs.map(function(q){ var v = a[q.id]; return (q.type==='rating'||q.type==='nps') && v!=null && v!=='' ? Number(v) : (svAnsText(q, v)==='—'?'':svAnsText(q, v)); })).concat([g?g.name:'', d?days().indexOf(d)+1:''])); });
+    sheets.push({name:sv.def.title||'Опрос', rows:rows, filter:1, wrap:true, cols:[20,24].concat(qs.map(function(q){ return (q.type==='rating'||q.type==='nps') ? 22 : 34; })).concat([16,7])});
     qs.forEach(function(q){ var sm = svQSummary(q, sv.resp); sumRows.push([sv.def.title||'Опрос', q.q, SV_TYPES[q.type]||'', sm.n, sm.avg!=null?Math.round(sm.avg*10)/10:'', sm.dist?sm.dist.map(function(d){ return d[0]+': '+d[1]; }).join('; '):'']); });
   });
-  return [{name:'Сводка опросов', rows:sumRows, filter:1, cols:[30,60,18,10,10,60]}].concat(sheets);
+  return sheets.concat([{name:'Сводка опросов', rows:sumRows, filter:1, cols:[30,60,18,10,10,60]}]);
 }
 function xlGroup(gid){ var g = S.groups[gid]; var list = internsOf(gid);
   return xlSave('Результаты — '+g.name, [sheetSummary(list), sheetAttendance(list), sheetTests(list), sheetQuestions(list), sheetAnswers(list), sheetTopics(list)].concat(surveySheets(gid))); }
@@ -1819,6 +1839,15 @@ function viewModal(){
       (it && S.role==='intern' ? (isDone(it) ? '<span class="chip ok" style="align-self:flex-start">Прочитано</span>' : '<button class="btn primary" style="align-self:flex-start" type="button" data-act="mark-done" data-id="'+esc(it.id)+'">Отметить как прочитано</button>') : '')+
     '</div></div>';
   }
+  if(m.type==='rollview'){ var gid0 = curGid(); var rr, ls;
+    if(m.id==='live'){ var lr = liveOf(gid0).roll || {}; ls = internsOf(gid0).filter(function(i){ return !i.suspended; }).map(function(i){ return {name:i.name, at:rollMarkAt(i.id, lr.id)}; }); rr = {startedAt:lr.startedAt}; }
+    else { rr = rollsOf(gid0).filter(function(x){ return x.id===m.id; })[0] || {}; ls = rr.list || []; }
+    var yes = ls.filter(function(x){ return x.at; }).sort(function(a,b){ return a.at-b.at; }), no = ls.filter(function(x){ return !x.at; });
+    return '<div class="modal-back" data-act="modal-close-bg"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="h-rv"><div class="row between"><h2 id="h-rv" style="margin:0">Перекличка · '+esc(fmtDay(rr.startedAt))+' '+hhmm(rr.startedAt)+'</h2><button class="btn sm" type="button" data-act="modal-close">Закрыть</button></div>'+
+      '<p class="small muted" style="margin:0">Отметились '+yes.length+' из '+ls.length+'</p><div class="stack" style="gap:2px">'+yes.map(function(x){ return '<div class="rollrow"><span class="row" style="gap:12px;flex-wrap:nowrap"><span class="rmark yes" aria-hidden="true">✓</span><b>'+esc(x.name)+'</b></span><span class="small">на месте · '+hhmm(x.at)+'</span></div>'; }).join('')+no.map(function(x){ return '<div class="rollrow"><span class="row" style="gap:12px;flex-wrap:nowrap"><span class="rmark no" aria-hidden="true">✕</span><b>'+esc(x.name)+'</b></span><span class="small muted">не отметился</span></div>'; }).join('')+'</div></div></div>'; }
+  if(m.type==='simres'){ var it0 = S.interns[m.id] || {}; var rs0 = simResList(m.id);
+    return '<div class="modal-back" data-act="modal-close-bg"><div class="modal article" role="dialog" aria-modal="true" aria-labelledby="h-sr"><div class="row between"><h2 id="h-sr" style="margin:0">Симулятор · '+esc(it0.name||'')+'</h2><button class="btn sm" type="button" data-act="modal-close">Закрыть</button></div>'+
+      '<span class="small muted">Обучение: '+(P(m.id).simLearn?'пройдено '+esc(fmtDT(P(m.id).simLearn)):'не пройдено')+'</span>'+(rs0.length ? rs0.map(function(x){ return simResHtml(x, true); }).join('') : '<p class="muted">Результатов пока нет.</p>')+'</div></div>'; }
   if(m.type==='task'){
     var t = itemById(m.itemId); if(!t) return '';
     var dn = isDone(t);
@@ -1829,6 +1858,70 @@ function viewModal(){
   }
   return '';
 }
+
+
+/* ---------- Симулятор Inari ---------- */
+var SIM_FILE = 'inari-simulator.html';
+function simCfg(gid){ var g = S.groups[gid]; return (g && g.sim) || {}; }
+function simAvailFor(iid){ var it = S.interns[iid]; if(!it) return false; var c = simCfg(it.groupId); return !!(c.open || (c.fromDay && currentDayIdx(iid)+1 >= c.fromDay)); }
+function simAvail(){ return S.role==='intern' && simAvailFor(S.iid); }
+function simTestActive(iid){ var it = S.interns[iid]; var st = it && it.simTest; return !!(st && st.id && !((P(iid).simres||{})[st.id])); }
+function simResList(iid){ var r = P(iid).simres || {}; return Object.keys(r).map(function(k){ return Object.assign({id:k}, r[k]); }).filter(function(x){ return x && x.at; }).sort(function(a,b){ return b.at-a.at; }); }
+function simSecs(t){ t = Math.max(0, Math.round(t||0)); var h = Math.floor(t/3600), m = Math.floor(t%3600/60), s2 = t%60; return (h?h+':':'')+(h&&m<10?'0':'')+m+':'+(s2<10?'0':'')+s2; }
+function simResLine(x){ return '<b class="'+(x.pass?'':'')+'" style="color:'+(x.pass?'var(--ok,#1e8f4e)':'var(--danger,#d23a3a)')+'">'+(x.pass?'Сдано':'Не сдано')+'</b> · '+(x.okN!=null?x.okN+' из '+x.total+' пунктов':'')+' · '+simSecs(x.sec)+' · ошибок '+(x.errs||0)+(x.viol?' · сбросов раньше 20 с: '+x.viol:''); }
+function simResHtml(x, full){
+  return '<div class="simres-it"><div class="row between"><span class="small muted">'+fmtDT(x.at)+' · '+(x.byTrainer?'тест от тренера':'самостоятельно')+'</span></div><span>'+simResLine(x)+'</span>'+
+    (full ? ((x.items||[]).length ? '<ul>'+x.items.map(function(i){ return '<li style="color:'+(i[1]?'var(--ok,#1e8f4e)':'var(--danger,#d23a3a)')+'">'+(i[1]?'✓ ':'✕ ')+esc(i[0])+'</li>'; }).join('')+'</ul>' : '')+
+      ((x.errList||[]).length ? '<details><summary class="small" style="cursor:pointer">Ошибки ('+x.errList.length+')</summary><ol class="small" style="margin:4px 0 0;padding-left:18px">'+x.errList.map(function(e){ return '<li><span class="muted">'+esc(e.t)+'</span> — '+esc(e.x)+'</li>'; }).join('')+'</ol></details>' : '') : '')+'</div>'; }
+function vSim(){
+  var rs = simResList(S.iid); var learn = P().simLearn;
+  return head(tabTitle('sim'), 'Учебный рабочий стол оператора: MicroSIP, Inari, удалённый стол LD1 и Telegram')+
+    '<section class="card"><h2>Как устроен симулятор</h2><p style="margin:0;line-height:1.6">Три режима: <b>Свободный</b> — изучаете всё сами; <b>Обучение</b> — пошаговый инструктаж от начала до конца смены; <b>Тестирование</b> — задание без подсказок с итоговой оценкой. Результаты тестирования сохраняются здесь и видны тренеру.</p>'+
+    '<div class="row"><button class="btn primary" type="button" data-act="inari-open">Открыть симулятор</button>'+(learn?'<span class="chip ok">Обучение пройдено '+esc(fmtDT(learn).slice(0,10))+'</span>':'')+'</div></section>'+
+    '<section class="card"><h2>Мои тестирования</h2>'+(rs.length ? rs.map(function(x){ return simResHtml(x, true); }).join('') : '<p class="muted" style="margin:0">Пока нет. Пройдите режим «Тестирование» в симуляторе.</p>')+'</section>';
+}
+function simLockScreen(m){ var b = brand();
+  return '<div class="login"><div class="login-card"><div class="brand" style="align-self:stretch"><div class="mark">'+esc(b.name[0]||'С')+'</div><div style="text-align:left"><b>'+esc(b.name)+'</b><small>'+esc(m.name)+'</small></div></div><h1>Тест по симулятору</h1><p style="margin:0;line-height:1.55">Тренер запустил тест. Пройдите смену в симуляторе — кабинет откроется после того, как вы нажмёте «Сдать смену».</p><button class="btn primary" type="button" data-act="inari-relock">Открыть тест</button></div></div>'; }
+function openInari(o){ o = o || {};
+  if(S.player && S.player.inari && S.player.test===(o.test||null)) return;
+  S.player = {inari:true, lock:!!o.test, test:o.test||null};
+  var src = SIM_FILE+'?lk=1'+(o.test ? '&lock=1&test='+encodeURIComponent(o.test) : '');
+  playerEl.innerHTML = '<div class="player" role="dialog" aria-modal="true" aria-label="Симулятор Inari"><div class="player-bar"><b>Симулятор Inari'+(o.test?' · тест от тренера':'')+'</b>'+
+    (o.test ? '<span id="inari-slot" class="small">Кабинет откроется после «Сдать смену»</span>' : '<button class="btn" type="button" data-act="inari-fs">На весь экран</button><button class="btn" type="button" data-act="pl-close">Закрыть симулятор</button>')+
+    '</div><iframe class="player-frame" title="Симулятор Inari" src="'+esc(src)+'" allow="fullscreen; clipboard-read; clipboard-write"></iframe></div>';
+  document.body.style.overflow = 'hidden';
+}
+window.addEventListener('message', function(e){ var d = e.data; if(!d || d.type!=='inari-sim' || !S.player || !S.player.inari || S.role!=='intern') return;
+  var fr = playerEl.querySelector('iframe'); if(!fr || e.source!==fr.contentWindow) return;
+  if(d.kind==='exam'){ var id = d.test || ('s'+Date.now()); var rec = Object.assign({at:Date.now(), byTrainer:!!d.test}, d.res||{}); rec.errList = (rec.errList||[]).slice(0,60); var patch = {simres:{}}; patch.simres[id] = rec;
+    saveProgress(patch); if(d.test){ var slot = document.getElementById('inari-slot'); if(slot) slot.innerHTML = '<button class="btn primary" type="button" data-act="pl-close">Вернуться в кабинет</button>'; } else toast('Результат тестирования сохранён во вкладке «Симулятор»'); }
+  if(d.kind==='learn') saveProgress({simLearn:Date.now()});
+});
+function tSim(){
+  var gid = curGid(); var g = gid ? S.groups[gid] : null;
+  if(!g) return head('Симулятор','')+'<div class="empty"><b>Сначала создайте группу</b><button class="btn primary" data-act="nav" data-v="t-access">Перейти к группам</button></div>';
+  var c = simCfg(gid); var list = internsOf(gid).filter(function(i){ return !i.suspended; }); var nd = days().length;
+  var seeN = list.filter(function(i){ return simAvailFor(i.id); }).length;
+  var access = '<section class="card"><h2>Доступ к вкладке «Симулятор»</h2><p class="hint" style="margin:0">Вкладка появится у стажёра только когда вы откроете доступ: с выбранного дня плана (по открытым дням стажёра) или сразу вручную.</p>'+
+    '<div class="row" style="align-items:flex-end"><label class="field" style="min-width:240px">Открыть по плану<select id="sim-from" data-act-change="sim-from"><option value="">Не открывать по плану</option>'+Array.from({length:nd}, function(_, k){ return '<option value="'+(k+1)+'"'+(Number(c.fromDay)===k+1?' selected':'')+'>С дня '+(k+1)+(days()[k]&&days()[k].title?' · '+esc(days()[k].title):'')+'</option>'; }).join('')+'</select></label>'+
+    '<button class="btn '+(c.open?'danger':'primary')+'" type="button" data-act="sim-open">'+(c.open?'Закрыть ручной доступ':'Открыть всем сейчас')+'</button></div>'+
+    '<span class="small muted">Сейчас вкладку видят: <b>'+seeN+' из '+list.length+'</b> стажёров группы.</span></section>';
+  var rows = list.map(function(i){ var rs = simResList(i.id); var last = rs[0]; var act = simTestActive(i.id); var learn = P(i.id).simLearn;
+    return '<tr><td><b>'+esc(i.name)+'</b></td><td>'+(simAvailFor(i.id)?'<span class="chip ok">видит</span>':'<span class="muted small">нет</span>')+'</td><td class="small">'+(learn?esc(fmtDT(learn).slice(0,10)):'<span class="muted">—</span>')+'</td><td class="small">'+(last?simResLine(last)+'<br><span class="muted">'+fmtDT(last.at)+'</span>':'<span class="muted">не проходил</span>')+'</td><td class="num">'+rs.length+'</td>'+
+      '<td><div class="row" style="flex-wrap:nowrap;gap:6px">'+(act?'<span class="chip warn">идёт тест</span><button class="btn sm" type="button" data-act="sim-test-cancel" data-id="'+esc(i.id)+'">Отменить</button>':'<button class="btn sm primary" type="button" data-act="sim-test" data-id="'+esc(i.id)+'">Запустить тест</button>')+(rs.length?'<button class="btn sm" type="button" data-act="sim-res" data-id="'+esc(i.id)+'" aria-label="Все результаты" title="Все результаты">👁</button>':'')+'</div></td></tr>'; }).join('');
+  var tests = '<section class="card"><div class="row between"><h2>Тест по симулятору</h2>'+(list.length?'<button class="btn sm primary" type="button" data-act="sim-test-all">Запустить тест всей группе</button>':'')+'</div><p class="hint" style="margin:0">«Запустить тест» — у стажёра в кабинете сразу открывается симулятор в режиме тестирования, и больше ничего сделать нельзя, пока он не сдаст смену. Результат появляется здесь и в «Результатах».</p>'+
+    (list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Вкладка</th><th>Обучение</th><th>Последнее тестирование</th><th>Всего</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>' : '<p class="muted" style="margin:0">В группе нет стажёров.</p>')+'</section>';
+  return head('Симулятор', esc(g.name), groupPicker(false))+access+tests;
+}
+function simCardFor(iid){ var rs = simResList(iid); var learn = P(iid).simLearn;
+  return '<section class="card"><div class="row between"><h2>Симулятор Inari</h2>'+(rs.length?'<button class="btn sm" type="button" data-act="sim-res" data-id="'+esc(iid)+'">Подробно</button>':'')+'</div><span class="small muted">Обучение: '+(learn?'пройдено '+esc(fmtDT(learn)):'не пройдено')+' · тестирований: '+rs.length+'</span>'+rs.slice(0,3).map(function(x){ return simResHtml(x, false); }).join('')+'</section>'; }
+/* fullscreen presentation (kept outside #app so live updates don't exit fullscreen) */
+function fsUpdate(){ var el = document.getElementById('fsx'); if(!el || !S.fs) return; var m = me(); var deckId = presDeckId(); var dk = deck(deckId); if(!m || !dk){ fsClose(); return; }
+  var total = dk.slides.length, limit = slideLimit(deckId); var view = Math.max(1, Math.min(curSlide(), Math.max(1, limit))); var locked = presLocked();
+  el.innerHTML = '<div class="fsx-in">'+slideHtml(dk.slides[view-1], view, total)+'</div><div class="fsx-bar">'+(locked?'<span class="small">Слайды переключает тренер</span>':'<button class="btn" type="button" data-act="slide-prev"'+(view<=1?' disabled':'')+'>‹ Назад</button><span class="num">'+view+' / '+limit+'</span><button class="btn primary" type="button" data-act="slide-next"'+(view>=limit?' disabled':'')+'>Вперёд ›</button>')+'<button class="btn" type="button" data-act="pres-fs-exit">Выйти из полноэкранного режима</button></div>'; }
+function fsClose(){ S.fs = false; var el = document.getElementById('fsx'); if(el){ el.hidden = true; el.innerHTML = ''; } if(document.fullscreenElement && document.exitFullscreen){ try{ document.exitFullscreen(); }catch(e){} } }
+document.addEventListener('fullscreenchange', function(){ if(S.fs && !document.fullscreenElement){ var el = document.getElementById('fsx'); if(el && !el.dataset.soft){ fsClose(); } } });
+document.addEventListener('keydown', function(e){ if(!S.fs) return; if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){ e.preventDefault(); if(!presLocked()) A['slide-next'](); } else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); if(!presLocked()) A['slide-prev'](); } else if(e.key==='Escape'){ fsClose(); } });
 
 /* ---------- simulator player (kept outside #app so live updates never reload it) ---------- */
 function openPlayer(simId, itemId){
@@ -1842,7 +1935,7 @@ function openPlayer(simId, itemId){
   playerEl.querySelector('iframe').srcdoc = sim.html;
   document.body.style.overflow = 'hidden';
 }
-function closePlayer(){ S.player = null; playerEl.innerHTML = ''; document.body.style.overflow = ''; }
+function closePlayer(){ S.player = null; playerEl.innerHTML = ''; document.body.style.overflow = ''; if(document.fullscreenElement && document.exitFullscreen){ try{ document.exitFullscreen(); }catch(e){} } }
 
 /* ---------- actions ---------- */
 function openItem(id){
@@ -1895,6 +1988,18 @@ var A = {
   'tr-cancel': function(){ S.ui.trainerForm = false; S.ui.trErr = null; delete S.form['tr-pw']; render(); },
   'open-item': function(el){ openItem(el.dataset.id); },
   'mark-done': function(el){ markDone(el.dataset.id); },
+  'inari-open': function(){ if(!simAvail()) return; openInari({}); },
+  'inari-relock': function(){ var m0 = me(); if(m0 && m0.simTest && m0.simTest.id){ S.player = null; openInari({test:m0.simTest.id}); } },
+  'inari-fs': function(){ var el = playerEl.querySelector('.player'); if(el && el.requestFullscreen){ el.requestFullscreen().catch(function(){}); } else toast('Браузер не поддерживает полноэкранный режим'); },
+  'pres-fs': function(){ var el = document.getElementById('fsx'); if(!el) return; S.fs = true; el.hidden = false; fsUpdate(); if(el.requestFullscreen){ el.requestFullscreen().catch(function(){}); } },
+  'pres-fs-exit': function(){ fsClose(); },
+  'roll-view': function(el){ S.ui.modal = {type:'rollview', id:el.dataset.id}; render(); },
+  'sim-res': function(el){ S.ui.modal = {type:'simres', id:el.dataset.id}; render(); },
+  'sim-from-x': function(el){ var gid = curGid(); var v = el.value ? Number(el.value) : null; S.db.doc('groups/'+gid).update({sim:{fromDay:v}}).then(function(){ toast(v ? 'Вкладка «Симулятор» откроется с дня '+v : 'Открытие по плану выключено'); }, writeErr); },
+  'sim-open': function(){ var gid = curGid(); var c = simCfg(gid); S.db.doc('groups/'+gid).update({sim:{open:!c.open}}).then(function(){ toast(!c.open ? 'Вкладка «Симулятор» открыта всей группе' : 'Ручной доступ закрыт'); }, writeErr); },
+  'sim-test': function(el){ var id = el.dataset.id; S.db.doc('interns/'+id).update({simTest:{id:'t'+Date.now(), at:Date.now()}}).then(function(){ toast('Тест запущен: у стажёра открылся симулятор'); }, writeErr); },
+  'sim-test-all': function(){ var gid = curGid(); var ts = Date.now(); var list = internsOf(gid).filter(function(i){ return !i.suspended && !simTestActive(i.id); }); Promise.all(list.map(function(i){ return S.db.doc('interns/'+i.id).update({simTest:{id:'t'+ts, at:ts}}); })).then(function(){ toast('Тест запущен у '+list.length+' стаж.'); }, writeErr); },
+  'sim-test-cancel': function(el){ var id = el.dataset.id; S.db.doc('interns/'+id).update({simTest:{id:null, at:null}}).then(function(){ toast('Тест отменён'); }, writeErr); },
   'modal-close': function(){ S.ui.modal=null; render(); },
   'modal-close-bg': function(el, e){ if(e.target===el){ S.ui.modal=null; render(); } },
   article: function(el){ S.ui.modal={type:'article', id:el.dataset.id}; render(); },
@@ -2088,6 +2193,7 @@ function replaceSlideImage(i, file){
 }
 
 var CHANGE = {
+  'sim-from': function(el){ A['sim-from-x'](el); },
   'imp-file': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; if(fs.length) importParse(fs); },
   'slides-files': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; addSlideImages(fs); },
   'slide-replace': function(el){ var fl = el.files && el.files[0]; var i = Number(el.dataset.i); el.value=''; replaceSlideImage(i, fl); },
