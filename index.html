@@ -392,6 +392,9 @@ a.mat.link:hover{text-decoration:underline}
 .dirpick select{height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;padding:0 10px;font:inherit;font-size:14px;font-weight:600}
 .dirpick select option{color:#1d1b2e}
 .dirchip{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--accent-soft,#ede9fe);color:var(--accent-ink,#5b21b6);margin-left:6px;vertical-align:middle}
+
+.oc{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap;border:0;cursor:pointer}
+.oc.passed{background:#d7f2e3;color:#146c43}.oc.self,.oc.us{background:#fde0e0;color:#a32121}.oc.none{background:var(--line2,#eee);color:var(--muted,#666)}.oc.need{background:#fff1cc;color:#8a5a00}
 </style>
 
 <style>body{margin:0}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
@@ -1052,7 +1055,7 @@ function tAccess(){ var h = tAccessMain(); var i = h.indexOf('</header>'); retur
 function tAccessMain(){
   if(!days().length) return head('Стажёры и доступы','')+'<div class="empty"><b>План стажировки пуст</b><span>Заполните его в разделе «Настройка».</span><button class="btn primary" data-act="nav" data-v="t-settings">Открыть настройку</button></div>';
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
-  var newGroup = (S.ui.newGroup || !gid) ? '<form data-form="newgroup" class="card" aria-labelledby="h-ng"><h2 id="h-ng">'+(gid?'Новая группа':'Создайте первую группу стажёров')+'</h2><div class="row" style="align-items:flex-end"><label class="field" style="flex:1 1 240px">Название<input id="ng-name" data-keep value="'+esc(f('ng-name',ngDefName()))+'"></label><label class="field" style="flex:1 1 180px">Дата старта<input id="ng-start" data-keep type="date" value="'+esc(f('ng-start', ngDefStart()))+'"></label><button class="btn primary" type="submit">Создать группу</button></div></form>' : '';
+  var newGroup = (S.ui.newGroup || !gid) ? '<form data-form="newgroup" class="card" aria-labelledby="h-ng"><h2 id="h-ng">'+(gid?'Новая группа':'Создайте первую группу стажёров')+'</h2><div class="row" style="align-items:flex-end"><label class="field" style="flex:1 1 240px">Название<input id="ng-name" data-keep value="'+esc(f('ng-name',ngDefName()))+'"></label><label class="field" style="flex:1 1 180px">Дата старта<input id="ng-start" data-keep type="date" value="'+esc(f('ng-start', ngDefStart()))+'"></label><label class="field" style="flex:1 1 200px">Тренер группы<select id="ng-trainer" data-keep><option value="">— не выбран —</option>'+trainersList().map(function(t){ return '<option'+(f('ng-trainer','')===t?' selected':'')+'>'+esc(t)+'</option>'; }).join('')+'</select></label><button class="btn primary" type="submit">Создать группу</button></div></form>' : '';
   if(!g) return head('Стажёры и доступы','Создание логинов и пошаговое открытие материалов')+newGroup;
   var list = internsOf(gid);
   var created = S.ui.created ? (S.ui.confirmWarn?'<p class="err" role="alert">В Supabase включено подтверждение почты — стажёр не сможет войти. Отключите «Confirm email» (Authentication → Sign In / Providers → Email).</p>':'')+'<div class="creds" data-copybox role="status"><b>Доступ для «'+esc(S.ui.created.name)+'» '+(S.ui.created.reset?'обновлён':'создан')+'</b><pre style="margin:0;font:600 15px ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;user-select:all">Логин: '+esc(S.ui.created.login)+'\nПароль: '+esc(S.ui.created.pw)+'</pre><span class="small">Пароль показывается один раз. Передайте его стажёру.</span><div class="row"><button class="btn sm" type="button" data-act="copy" data-text="'+esc('Логин: '+S.ui.created.login+'\nПароль: '+S.ui.created.pw)+'">Копировать</button><button class="btn sm" type="button" data-act="creds-close">Скрыть</button></div></div>' : '';
@@ -1089,7 +1092,8 @@ function tAccessMain(){
   }).join('');
   var scopeSel = '<div class="row"><div class="seg" role="group" aria-label="Кому открывать"><button type="button" class="'+(scope==='group'?'on':'')+'" data-act="scope" data-s="group" aria-pressed="'+(scope==='group')+'">Всей группе</button><button type="button" class="'+(scope!=='group'?'on':'')+'" data-act="scope" data-s="'+(list[0]?list[0].id:'group')+'" aria-pressed="'+(scope!=='group')+'"'+(list.length?'':' disabled')+'>Одному стажёру</button></div>'+
     (scope!=='group' ? '<select id="scope-pick" class="input" style="width:auto;min-width:200px" data-act-change="scope-pick" aria-label="Стажёр">'+list.map(function(i){ return '<option value="'+i.id+'"'+(i.id===scope?' selected':'')+'>'+esc(i.name)+'</option>'; }).join('')+'</select>' : '')+'</div>';
-  return head('Стажёры и доступы','Создание логинов и пошаговое открытие материалов', groupPicker(true))+newGroup+created+
+  var trCard = '<section class="card" style="padding-block:14px"><div class="row" style="align-items:flex-end"><label class="field" style="min-width:240px">Тренер группы «'+esc(g.name)+'»<select id="g-trainer" data-act-change="g-trainer"><option value="">— не выбран —</option>'+trainersList().concat(g.trainer && trainersList().indexOf(g.trainer)<0 ? [g.trainer] : []).map(function(t){ return '<option'+(g.trainer===t?' selected':'')+'>'+esc(t)+'</option>'; }).join('')+'</select></label>'+(trainersList().length?'':'<span class="small muted">Список тренеров заполняется в «Настройка → Тренеры и итоги».</span>')+'</div></section>';
+  return head('Стажёры и доступы','Создание логинов и пошаговое открытие материалов', groupPicker(true))+newGroup+trCard+created+
     '<div class="cols"><section class="card wide" aria-labelledby="h-il"><h2 id="h-il">Стажёры группы «'+esc(g.name)+'»</h2>'+table+'</section>'+form+'</div>'+
     '<section class="card" aria-labelledby="h-acc"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-acc">Доступ к материалам</h2><span class="small muted num">'+(scope==='group'?'Группа':esc(S.interns[scope].name))+': открыто '+openCount+' из '+total+'. Открытая тема сразу появляется у стажёров.</span></div>'+scopeSel+'</div>'+
     toneLegend(allItems())+'<div class="grid" style="--min:230px;gap:14px">'+grid+'</div></section>';
@@ -1208,14 +1212,14 @@ function tResults(){
   var mode = S.ui.rmode || 'group';
   var segs = [['all','Все группы'],['group','Группа'],['att','Присутствие'],['intern','Стажёр'],['surveys','Опросы']];
   var seg = '<div class="seg" role="group" aria-label="Режим">'+segs.map(function(x){ return '<button type="button" class="'+(mode===x[0]?'on':'')+'" data-act="rmode" data-m="'+x[0]+'" aria-pressed="'+(mode===x[0])+'">'+x[1]+'</button>'; }).join('')+'</div>';
-  if(mode==='all') return head('Результаты','Сравнение групп', '<div class="row" style="align-items:flex-end">'+seg+'<button class="btn" type="button" data-act="xl-all">Выгрузить в Excel</button></div>')+rAll();
+  if(mode==='all') return head('Результаты','Сравнение групп', '<div class="row" style="align-items:flex-end">'+seg+'<button class="btn primary" type="button" data-act="xl-track-all">Выгрузить стажировки</button><button class="btn" type="button" data-act="xl-all">Сравнение в Excel</button></div>')+rAll();
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
   if(!g) return head('Результаты','', seg)+'<div class="empty"><b>Сначала создайте группу</b></div>';
   var right = '<div class="row" style="align-items:flex-end">'+seg+groupPicker(false);
   if(mode==='intern') return head('Результаты', esc(g.name)+' · карта стажёра', right+'</div>')+rIntern(gid);
-  if(mode==='att') return head('Результаты', esc(g.name)+' · присутствие на стажировке', right+'<button class="btn" type="button" data-act="xl-group">Выгрузить группу в Excel</button></div>')+rAtt(gid);
+  if(mode==='att') return head('Результаты', esc(g.name)+' · присутствие на стажировке', right+'<button class="btn primary" type="button" data-act="xl-track">Выгрузить стажировку</button><button class="btn" type="button" data-act="xl-track-all">Все группы направления</button></div>')+rAtt(gid);
   if(mode==='surveys') return head('Результаты', esc(g.name)+' · опросы', right+'<button class="btn" type="button" data-act="xl-surveys">Выгрузить в Excel</button></div>')+rSurveys(gid);
-  return head('Результаты', esc(g.name), right+'<button class="btn" type="button" data-act="xl-group">Выгрузить группу в Excel</button></div>')+rGroup(gid);
+  return head('Результаты', esc(g.name)+(g.trainer?' · тренер '+esc(g.trainer):''), right+'<button class="btn primary" type="button" data-act="xl-track">Выгрузить стажировку</button><button class="btn" type="button" data-act="xl-group">Подробный Excel</button></div>')+rGroup(gid);
 }
 function rAll(){
   var gl = groupList(); if(!gl.length) return '<div class="empty"><b>Групп пока нет</b></div>';
@@ -1229,9 +1233,9 @@ function rAll(){
 function rAtt(gid){
   var list = internsOf(gid); if(!list.length) return '<div class="empty"><b>В группе нет стажёров</b></div>';
   var ds = days();
-  return '<section class="card" aria-labelledby="h-att"><div class="stack" style="gap:4px"><h2 id="h-att">Присутствие по дням</h2><span class="small muted">Нажмите на клетку: — не отмечено → ✓ присутствовал → ✕ отсутствовал. «Все ✓» отмечает присутствующими всех, у кого день ещё не отмечен.</span></div>'+
-    '<div class="table-wrap"><table class="attgrid"><thead><tr><th>Стажёр</th>'+ds.map(function(d, di){ return '<th><span title="'+esc(d.title)+'">День '+(di+1)+'</span><br><button class="linkbtn small" type="button" data-act="att-day-all" data-d="'+esc(d.id)+'">все ✓</button></th>'; }).join('')+'<th>Был</th><th>Не был</th></tr></thead><tbody>'+
-    list.map(function(i){ var c = attCount(i.id); return '<tr><td><b>'+esc(i.name)+'</b>'+(prof(i.id).geo?'<br><span class="small muted">'+esc(prof(i.id).geo)+'</span>':'')+'</td>'+ds.map(function(d, di){ return '<td>'+attBtn(i.id, d, di)+'</td>'; }).join('')+'<td class="num"><b>'+c.y+'</b></td><td class="num'+(c.n?' pct-bad':'')+'">'+c.n+'</td></tr>'; }).join('')+
+  return '<section class="card" aria-labelledby="h-att"><div class="stack" style="gap:4px"><h2 id="h-att">Присутствие по дням</h2><span class="small muted">Нажмите на клетку: — не отмечено → ✓ присутствовал → ✕ отсутствовал (следующие дни отметятся «не был» автоматически). «Все ✓» отмечает присутствующими всех, у кого день ещё не отмечен.</span></div>'+
+    '<div class="table-wrap"><table class="attgrid"><thead><tr><th>Стажёр</th>'+ds.map(function(d, di){ return '<th><span title="'+esc(d.title)+'">День '+(di+1)+'</span><br><button class="linkbtn small" type="button" data-act="att-day-all" data-d="'+esc(d.id)+'">все ✓</button></th>'; }).join('')+'<th>Был</th><th>Не был</th><th>Итог прохождения</th><th>Фин. тест</th></tr></thead><tbody>'+
+    list.map(function(i){ var c = attCount(i.id); return '<tr><td><b>'+esc(i.name)+'</b>'+(prof(i.id).geo?'<br><span class="small muted">'+esc(prof(i.id).geo)+'</span>':'')+'</td>'+ds.map(function(d, di){ return '<td>'+attBtn(i.id, d, di)+'</td>'; }).join('')+'<td class="num"><b>'+c.y+'</b></td><td class="num'+(c.n?' pct-bad':'')+'">'+c.n+'</td><td>'+ocChip(i.id)+'</td><td class="num">'+(finPct(i.id)==null?'<span class="muted">—</span>':finPct(i.id)+'%<br><span class="small muted">'+prof(i.id).finOk+' из '+prof(i.id).finQ+'</span>')+'</td></tr>'; }).join('')+
     '</tbody></table></div></section>';
 }
 function rGroup(gid){
@@ -1286,6 +1290,7 @@ function rIntern(gid){
     '<div class="row" style="flex-wrap:nowrap"><label class="field" style="flex:2;min-width:0">Гео — страна<input id="'+pk('geo')+'" data-keep list="geo-list" placeholder="например, Молдова" value="'+esc(f(pk('geo'), pf.geo||''))+'" autocomplete="off"></label><label class="field" style="flex:1;min-width:0">Возраст<input id="'+pk('age')+'" data-keep type="number" min="14" max="99" value="'+esc(f(pk('age'), pf.age||''))+'"></label></div>'+
     '<datalist id="geo-list">'+['Молдова','Россия','Украина','Беларусь','Казахстан','Узбекистан','Кыргызстан','Таджикистан','Армения','Грузия','Азербайджан','Польша','Румыния','Латвия','Литва','Эстония','Германия'].map(function(c){ return '<option value="'+c+'">'; }).join('')+'</datalist>'+
     '<label class="field">Общая характеристика<textarea id="'+pk('note')+'" data-keep rows="5" placeholder="Сильные стороны, на что обратить внимание, впечатление тренера">'+esc(f(pk('note'), pf.note||''))+'</textarea></label>'+
+    '<div class="stack" style="gap:10px;padding-top:12px;border-top:1px solid var(--line2)"><b>Итог стажировки и финальное тестирование</b>'+ocForm(sel, 'ocp-'+sel+'-')+'<button class="btn" type="button" data-act="oc-save-card" data-id="'+esc(sel)+'" style="align-self:flex-start">Сохранить итог</button></div>'+
     '<button class="btn primary" type="submit" style="align-self:flex-start">Сохранить данные</button>'+(pf.updatedAt?'<span class="small muted">Обновлено '+esc(fmtDT(pf.updatedAt))+'</span>':'')+
     '<div class="stack" style="gap:8px;padding-top:12px;border-top:1px solid var(--line2)"><div class="row between"><b>Присутствие на стажировке</b><span class="small muted num">был '+ac.y+' · не был '+ac.n+'</span></div><div class="attdays">'+days().map(function(d, di){ return attBtn(sel, d, di, true); }).join('')+'</div><span class="small muted">Нажмите на день: — → ✓ → ✕.</span></div></form>';
   var side = '<form class="card" style="display:flex" data-form="feedback" aria-labelledby="h-fbf"><h2 id="h-fbf">Обратная связь</h2><label class="field">Комментарий для стажёра<textarea id="fb-text" data-keep placeholder="Что получилось, на что обратить внимание">'+esc(f('fb-text'))+'</textarea></label><button class="btn primary" type="submit">Отправить стажёру</button>'+
@@ -1332,6 +1337,50 @@ function rSurveys(gid){
   return tabs+'<section class="card"><div class="row between" style="align-items:flex-end"><div class="stack" style="gap:4px"><h2>'+esc(sv.def.title||'Опрос')+'</h2><span class="small muted">'+(sv.def.anonymous===false?'С именем':'Анонимный')+' · ответов: '+rs.length+(gid?' в группе':'')+'</span></div>'+dayPick+'</div>'+(rs.length?body:'<p class="muted" style="margin:0">Ответов пока нет.</p>')+'</section>';
 }
 
+
+/* ---------- тренеры групп, итог стажировки, финальное тестирование ---------- */
+var OC = {passed:'Прошёл успешно', self:'Отказ от стажёра', us:'Отказ от нас'};
+var OC_X = {passed:'Прошел', self:'Отказ от стажера', us:'Отказ от нас'};
+var REF_SELF_DEF = ['Без причины','Не уверен, что потянет / сложно','Не подходит сфера','Не нужна работа','Не рассматривает работу','Отсутствие ПК / гарнитуры','Слабая скорость интернета','Произошёл форс-мажор','Другое'];
+var REF_US_DEF = ['Слабый уровень подготовки','Дисциплина — пропадает','Не сдал финальное тестирование','Другое'];
+function trainersList(){ return (settings().trainers||[]).filter(Boolean); }
+function refList(kind){ var v = settings()[kind==='us'?'refUs':'refSelf']; return (v && v.length) ? v : (kind==='us' ? REF_US_DEF : REF_SELF_DEF); }
+function finPct(iid){ var p = prof(iid); var q = Number(p.finQ), ok = Number(p.finOk); return q>0 && ok>=0 ? Math.round(ok/q*100) : null; }
+function ocNeeds(iid){ var p = prof(iid); return !p.outcome && days().some(function(d){ return attOf(iid, d.id)==='no'; }); }
+function ocChip(iid){ var p = prof(iid); var k = p.outcome; var t = k ? OC[k] : (ocNeeds(iid) ? 'Укажите итог' : '—');
+  return '<button type="button" class="oc '+(k||(ocNeeds(iid)?'need':'none'))+'" data-act="oc-open" data-id="'+esc(iid)+'" title="'+esc((p.reason?'Причина: '+p.reason:'Итог прохождения — нажмите, чтобы изменить'))+'">'+esc(t)+'</button>'+(p.reason && k!=='passed' ? '<br><span class="small muted">'+esc(p.reason)+'</span>' : ''); }
+function ocForm(iid, pre){ var p = prof(iid); var k = f(pre+'oc', p.outcome||''); var fp = finPct(iid);
+  var reasons = (k==='self'||k==='us') ? refList(k) : [];
+  return '<label class="field">Итог прохождения<select id="'+pre+'oc" data-keep data-act-change="oc-kind"><option value="">— не выбран —</option>'+Object.keys(OC).map(function(x){ return '<option value="'+x+'"'+(k===x?' selected':'')+'>'+OC[x]+'</option>'; }).join('')+'</select></label>'+
+    (reasons.length ? '<label class="field">Причина отказа<select id="'+pre+'rs" data-keep><option value="">— выберите причину —</option>'+reasons.map(function(r){ return '<option'+(f(pre+'rs', p.reason||'')===r?' selected':'')+'>'+esc(r)+'</option>'; }).join('')+'</select></label>' : '')+
+    '<div class="row" style="flex-wrap:nowrap;align-items:flex-end"><label class="field" style="flex:1;min-width:0">Фин. тест: задано вопросов<input id="'+pre+'fq" data-keep type="number" min="0" max="500" value="'+esc(f(pre+'fq', p.finQ==null?'':p.finQ))+'"></label><label class="field" style="flex:1;min-width:0">Правильных ответов<input id="'+pre+'fo" data-keep type="number" min="0" max="500" value="'+esc(f(pre+'fo', p.finOk==null?'':p.finOk))+'"></label></div>'+
+    '<span class="small muted">Результат финального тестирования: <b>'+(fp==null?'—':fp+'%')+'</b> (считается сам: правильных / задано).</span>'; }
+function ocSave(iid, pre){ var p = prof(iid); var k = f(pre+'oc', p.outcome||''); var rs = f(pre+'rs', p.reason||''); var q = String(f(pre+'fq', p.finQ==null?'':p.finQ)).trim(), ok = String(f(pre+'fo', p.finOk==null?'':p.finOk)).trim();
+  if(!k && days().some(function(d){ return attOf(iid, d.id)==='no'; })){ toast('Стажёр пропустил день — выберите итог: «Отказ от стажёра» или «Отказ от нас»'); return false; }
+  if((k==='self'||k==='us') && (!rs || refList(k).indexOf(rs)<0)){ toast('Выберите причину отказа'); return false; }
+  if(q!=='' && ok!=='' && Number(ok) > Number(q)){ toast('Правильных ответов не может быть больше, чем задано вопросов'); return false; }
+  if(k==='passed'){ var miss = days().filter(function(d){ return attOf(iid, d.id)!=='yes'; }); if(miss.length){ toast('«Прошёл успешно» — только если стажёр был на всех днях. Не отмечено или пропущено: день '+miss.map(function(d){ return days().indexOf(d)+1; }).join(', ')); return false; } if(q===''||ok===''){ toast('Для «Прошёл успешно» внесите результат финального тестирования'); return false; } }
+  saveProfile(iid, {outcome:k||null, reason:(k==='self'||k==='us')?rs:null, finQ:q===''?null:Number(q), finOk:ok===''?null:Number(ok), ocAt:Date.now()}).then(function(){ ['oc','rs','fq','fo'].forEach(function(x){ delete S.form[pre+x]; }); toast('Итог стажировки сохранён'); render(); });
+  return true; }
+function linesArea(id, key, def, ph){ var d = draft('settings'); var v = d[key] && d[key].length ? d[key] : def; return '<textarea id="'+id+'" class="input" rows="'+Math.max(4, v.length+1)+'" data-lines="'+key+'" placeholder="'+esc(ph||'')+'">'+esc(v.join('\n'))+'</textarea>'; }
+function stStaff(){ return saveBar('settings','тренеры и итоги')+
+  '<section class="card"><h2>Тренеры</h2><p class="hint" style="margin:0">По одному в строке. Тренера выбирают при создании группы и в «Стажёры и доступы». Список общий для всех направлений.</p>'+linesArea('st-trainers','trainers',[],'Фамилия Имя')+'</section>'+
+  '<section class="card"><h2>Причины отказа</h2><p class="hint" style="margin:0">По одной в строке. При итоге «Отказ от стажёра» или «Отказ от нас» тренер обязательно выбирает причину из своего списка.</p><div class="row" style="align-items:flex-start"><label class="field" style="flex:1 1 280px">Отказ от стажёра'+linesArea('st-rself','refSelf',REF_SELF_DEF)+'</label><label class="field" style="flex:1 1 280px">Отказ от нас'+linesArea('st-rus','refUs',REF_US_DEF)+'</label></div></section>'; }
+function trackSheet(gl){
+  var ds = days(); var ti = testItems();
+  var head = ['ФИО','Телеграмм','Тренер','Гео','Дата начала стажировки'].concat(ds.map(function(d, i){ return 'Закончил '+(i+1)+'-й день?'; })).concat(['Итог прохождения','Причина']).concat(ti.map(function(t){ var same = ti.filter(function(x){ return x.dayIdx===t.dayIdx; }).length>1; var mt = String(t.title||'').match(/дн[яе]\s*(\d+)/i); return 'Результаты опросника после '+(mt?mt[1]:(t.dayIdx+1))+'-го дня в %'+(same?' · '+t.title:''); })).concat(['Результаты фин. тестирования в %','Фин. тест: верно / задано']);
+  var rows = [head];
+  gl.forEach(function(g){ internsOf(g.id).forEach(function(i){ var p = prof(i.id); var fp = finPct(i.id);
+    rows.push([i.name, p.tg||'', g.trainer||'', p.geo||'', fmtDay0(g.start)].concat(ds.map(function(d){ var v = attOf(i.id, d.id); return v==='yes'?'Да':(v==='no'?'Нет':''); })).concat([p.outcome?OC_X[p.outcome]:'', p.outcome && p.outcome!=='passed' ? (p.reason||'') : '']).concat(ti.map(function(t){ var r = testRec(i.id, t.test); return r ? r.best : ''; })).concat([fp==null?'':fp, p.finQ!=null && p.finOk!=null ? p.finOk+' / '+p.finQ : ''])); }); });
+  var nd = ds.length;
+  return {name:'Стажировка', rows:rows, filter:1, wrap:true, headFill:'A0617F', cols:[26,18,20,14,14].concat(ds.map(function(){ return 12; })).concat([18,30]).concat(ti.map(function(){ return 18; })).concat([18,16]),
+    cellStyle:function(r, c, v){ if(r===0) return null; var al = {horizontal:'center', vertical:'center'};
+      if(c>=5 && c<5+nd){ if(v==='Да') return {fill:{patternType:'solid', fgColor:{rgb:'57BB8A'}}, alignment:al}; if(v==='Нет') return {fill:{patternType:'solid', fgColor:{rgb:'F4A7A7'}}, alignment:al}; return {alignment:al}; }
+      if(c===5+nd){ if(v==='Прошел') return {fill:{patternType:'solid', fgColor:{rgb:'57BB8A'}}, alignment:al, font:{bold:true}}; if(v) return {fill:{patternType:'solid', fgColor:{rgb:'F4A7A7'}}, alignment:al}; }
+      if(c>5+nd+1) return {alignment:al}; return null; }};
+}
+function fmtDay0(v){ if(!v) return ''; var m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3]+'.'+m[2]+'.'+m[1] : String(v); }
+
 /* ---------- Excel export (SheetJS, loaded on demand) ---------- */
 function loadXLSX(){
   if(window.XLSX) return Promise.resolve(window.XLSX);
@@ -1348,8 +1397,9 @@ function xlSave(filename, sheets){
       var w = sh.cols || []; if(!w.length && sh.rows.length){ var nc = Math.max.apply(null, sh.rows.map(function(r){ return r.length; })); for(var c=0;c<nc;c++){ var mx = 8; sh.rows.forEach(function(r){ var v = r[c]; if(v!=null) mx = Math.max(mx, Math.min(60, String(v).length+2)); }); w.push(mx); } }
       ws['!cols'] = w.map(function(x){ return {wch:x}; });
       if(sh.filter){ var hr = sh.filter-1, ncol = Math.max.apply(null, sh.rows.map(function(r){ return r.length; })); var thin = {style:'thin', color:{rgb:'D9D2E9'}};
-        for(var cc=0; cc<ncol; cc++){ var ad = X.utils.encode_cell({r:hr, c:cc}); if(ws[ad]) ws[ad].s = {fill:{patternType:'solid', fgColor:{rgb:'5B3F8F'}}, font:{bold:true, color:{rgb:'FFFFFF'}}, alignment:{wrapText:true, vertical:'center'}, border:{bottom:thin, right:thin}}; }
+        for(var cc=0; cc<ncol; cc++){ var ad = X.utils.encode_cell({r:hr, c:cc}); if(ws[ad]) ws[ad].s = {fill:{patternType:'solid', fgColor:{rgb:sh.headFill||'5B3F8F'}}, font:{bold:true, color:{rgb:'FFFFFF'}}, alignment:{wrapText:true, vertical:'center'}, border:{bottom:thin, right:thin}}; }
         if(sh.wrap){ for(var rr2=hr+1; rr2<sh.rows.length; rr2++){ for(var c2=0; c2<ncol; c2++){ var a2 = X.utils.encode_cell({r:rr2, c:c2}); if(ws[a2]) ws[a2].s = {alignment:{wrapText:true, vertical:'center'}, border:{bottom:thin}}; } } }
+        if(sh.cellStyle){ for(var r3=hr+1; r3<sh.rows.length; r3++){ for(var c3=0; c3<ncol; c3++){ var a3 = X.utils.encode_cell({r:r3, c:c3}); var st3 = sh.cellStyle(r3-hr, c3, sh.rows[r3][c3]); if(st3){ if(!ws[a3]) ws[a3] = {t:'s', v:''}; ws[a3].s = Object.assign({}, ws[a3].s||{}, st3, {border:{bottom:thin, right:thin}}); } } } }
         ws['!rows'] = []; ws['!rows'][hr] = {hpt: sh.wrap ? 72 : 30}; }
       if(sh.filter && sh.rows.length > 1) ws['!autofilter'] = {ref: X.utils.encode_range({s:{r:sh.filter-1,c:0}, e:{r:sh.rows.length-1, c:Math.max.apply(null, sh.rows.map(function(r){ return r.length; }))-1}})};
       var nm = xlName(sh.name); var k = 2; while(used[nm]){ nm = xlName(sh.name).slice(0,28)+' '+(k++); } used[nm]=1;
@@ -1490,12 +1540,12 @@ function sel(id, k, p, opts, extraCls){ var v = getPath(draft(k), p); v = v==nul
 function saveBar(k, label){
   return '<div class="savebar" data-dirtybar="'+k+'"'+(S.dirty[k]?'':' hidden')+'><span>Есть несохранённые изменения: '+label+'</span><span class="row"><button class="btn sm" type="button" data-act="draft-reset" data-k="'+k+'">Отменить</button><button class="btn sm primary" type="button" data-act="draft-save" data-k="'+k+'">Сохранить</button></span></div>';
 }
-var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['surveys','Опросники'],['sims','Тренажёры'],['kb','База знаний'],['org','Структура'],['tabs','Вкладки и название'],['import','Импорт программы']];
+var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['surveys','Опросники'],['sims','Тренажёры'],['kb','База знаний'],['org','Структура'],['staff','Тренеры и итоги'],['tabs','Вкладки и название'],['import','Импорт программы']];
 function tSettings(){
   var st = S.ui.st || 'plan';
-  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, org:stOrg, tabs:stTabs, surveys:stSurveys, 'import':stImport}[st] || stPlan)();
+  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, org:stOrg, tabs:stTabs, staff:stStaff, surveys:stSurveys, 'import':stImport}[st] || stPlan)();
   return head('Настройка · '+dirName(activeDir()),'Конструктор кабинета: всё, что видит стажёр. Изменения появляются у стажёров сразу после сохранения.')+dirCard()+
-    '<div class="subnav" role="tablist" aria-label="Разделы настройки">'+ST_TABS.map(function(t){ var dk = {plan:'program',decks:'decks',tests:'tests',surveys:'surveys',kb:'kb',org:'org',tabs:'settings'}[t[0]]; return '<button type="button" role="tab" aria-selected="'+(st===t[0])+'" class="'+(st===t[0]?'on':'')+'" data-act="st-go" data-s="'+t[0]+'">'+esc(t[1])+(dk&&S.dirty[dk]?' •':'')+'</button>'; }).join('')+'</div>'+body;
+    '<div class="subnav" role="tablist" aria-label="Разделы настройки">'+ST_TABS.map(function(t){ var dk = {plan:'program',decks:'decks',tests:'tests',surveys:'surveys',kb:'kb',org:'org',tabs:'settings',staff:'settings'}[t[0]]; return '<button type="button" role="tab" aria-selected="'+(st===t[0])+'" class="'+(st===t[0]?'on':'')+'" data-act="st-go" data-s="'+t[0]+'">'+esc(t[1])+(dk&&S.dirty[dk]?' •':'')+'</button>'; }).join('')+'</div>'+body;
 }
 
 function stPlan(){
@@ -1870,6 +1920,10 @@ function viewModal(){
       (it && S.role==='intern' ? (isDone(it) ? '<span class="chip ok" style="align-self:flex-start">Прочитано</span>' : '<button class="btn primary" style="align-self:flex-start" type="button" data-act="mark-done" data-id="'+esc(it.id)+'">Отметить как прочитано</button>') : '')+
     '</div></div>';
   }
+  if(m.type==='outcome'){ var it1 = S.interns[m.id] || {}; var pre = 'ocm-'+m.id+'-';
+    return '<div class="modal-back" data-act="modal-close-bg"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="h-oc"><div class="row between"><h2 id="h-oc" style="margin:0">Итог стажировки · '+esc(it1.name||'')+'</h2><button class="btn sm" type="button" data-act="modal-close">Закрыть</button></div>'+
+      (m.auto ? '<p style="margin:0;line-height:1.5">Стажёр отмечен как не пришедший — следующие дни тоже отмечены «не был». Укажите итог: кто отказался и почему.</p>' : '')+
+      ocForm(m.id, pre)+'<div class="row"><button class="btn primary" type="button" data-act="oc-save" data-id="'+esc(m.id)+'">Сохранить итог</button><button class="btn" type="button" data-act="modal-close">Позже</button></div></div></div>'; }
   if(m.type==='rollview'){ var gid0 = curGid(); var rr, ls;
     if(m.id==='live'){ var lr = liveOf(gid0).roll || {}; ls = internsOf(gid0).filter(function(i){ return !i.suspended; }).map(function(i){ return {name:i.name, at:rollMarkAt(i.id, lr.id)}; }); rr = {startedAt:lr.startedAt}; }
     else { rr = rollsOf(gid0).filter(function(x){ return x.id===m.id; })[0] || {}; ls = rr.list || []; }
@@ -2098,7 +2152,14 @@ var A = {
     var lv = S.live[gid] || {}; var opened = clone(lv.opened); opened[deckId] = Math.max(1, (typeof opened[deckId]==='number'?opened[deckId]:1));
     liveUpdate(gid, {active:true, deck:deckId, slide:1, opened:opened, sync:true, at:Date.now()});
   },
-  'att-cycle': function(el){ var iid = el.dataset.i, d = el.dataset.d; var v = attOf(iid, d); var nv = v==='' ? 'yes' : (v==='yes' ? 'no' : null); var p = {att:{}}; p.att[d] = nv; saveProfile(iid, p); },
+  'att-cycle': function(el){ var iid = el.dataset.i, d = el.dataset.d; var v = attOf(iid, d); var nv = v==='' ? 'yes' : (v==='yes' ? 'no' : null); var p = {att:{}}; p.att[d] = nv;
+    var later = 0; if(nv==='no'){ var ds = days(); var ix = ds.map(function(x){ return x.id; }).indexOf(d); ds.slice(ix+1).forEach(function(x){ if(attOf(iid, x.id)!=='no'){ p.att[x.id] = 'no'; later++; } }); }
+    saveProfile(iid, p).then(function(){ if(nv==='no' && !prof(iid).outcome){ S.ui.modal = {type:'outcome', id:iid, auto:true}; render(); } else if(later) toast('Следующие дни тоже отмечены «не был»: '+later); }); },
+  'oc-save-card': function(el){ ocSave(el.dataset.id, 'ocp-'+el.dataset.id+'-'); },
+  'oc-open': function(el){ S.ui.modal = {type:'outcome', id:el.dataset.id}; render(); },
+  'oc-save': function(el){ var iid = el.dataset.id; if(ocSave(iid, 'ocm-'+iid+'-')){ S.ui.modal = null; } },
+  'xl-track': function(){ var gid = curGid(); var g = S.groups[gid]; xlSave('Стажировка — '+(g?g.name:''), [trackSheet([Object.assign({id:gid}, g)])]); },
+  'xl-track-all': function(){ xlSave('Стажировки — '+dirName(activeDir()), [trackSheet(groupList())]); },
   'att-day-all': function(el){ var d = el.dataset.d; var gid = curGid(); var n = 0; internsOf(gid).forEach(function(i){ if(!attOf(i.id, d)){ var p = {att:{}}; p.att[d] = 'yes'; saveProfile(i.id, p); n++; } }); toast(n ? 'Отмечено присутствующими: '+n : 'Все уже отмечены'); },
   'roll-start': function(){ var gid = curGid(); if(!gid) return; liveUpdate(gid, {roll:{active:true, id:uid('r'), startedAt:Date.now()}}); toast('Перекличка началась'); },
   'roll-stop': function(){
@@ -2228,6 +2289,8 @@ function replaceSlideImage(i, file){
 }
 
 var CHANGE = {
+  'g-trainer': function(el){ var gid = curGid(); S.db.doc('groups/'+gid).update({trainer:el.value}).then(function(){ toast(el.value ? 'Тренер группы: '+el.value : 'Тренер не выбран'); }, writeErr); },
+  'oc-kind': function(el){ S.form[el.id] = el.value; render(); },
   'dir-pick': function(el){ if(Object.keys(S.dirty).some(function(k){ return S.dirty[k]; })){ el.value = activeDir(); toast('Сначала сохраните или отмените изменения в настройке'); return; } S.ui.dir = el.value; S.draft = {}; S.dirty = {}; S.ui.gid = null; S.ui.rsel = null; applyDir(); render(); toast('Направление: '+dirName(el.value)); },
   'sim-from': function(el){ A['sim-from-x'](el); },
   'imp-file': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; if(fs.length) importParse(fs); },
@@ -2264,6 +2327,7 @@ document.addEventListener('change', function(e){
 });
 document.addEventListener('input', function(e){
   var el = e.target;
+  if(el.dataset && el.dataset.lines){ draft('settings')[el.dataset.lines] = el.value.split('\n').map(function(x){ return x.trim(); }).filter(Boolean); markDirty('settings'); return; }
   if(el.hasAttribute && el.hasAttribute('data-keep')){ S.form[el.id] = el.value; if(el.id==='ni-name' && S.ui.loginAuto!==false){ S.form['ni-login'] = makeLogin(el.value); } if(el.id==='ni-login') S.ui.loginAuto=false; if(el.id==='ap-name' && S.ui.apLoginAuto!==false){ S.form['ap-login'] = makeLogin(el.value); } if(el.id==='ap-login') S.ui.apLoginAuto=false; }
   if(el.dataset && el.dataset.d && el.tagName!=='SELECT' && el.type!=='checkbox'){ setPath(draft(el.dataset.d), el.dataset.p, parseVal(el)); markDirty(el.dataset.d); }
   if(el.dataset && el.dataset.note){ S.form['note-'+el.dataset.note] = el.value; }
@@ -2293,7 +2357,7 @@ document.addEventListener('submit', function(e){
   }
   if(k==='newgroup'){
     var name = String(f('ng-name', ngDefName())).trim() || 'Новая группа'; var gid = uid('g');
-    S.db.doc('groups/'+gid).set({name:name, start:f('ng-start', ngDefStart()), access:{}, dir:activeDir(), createdAt:Date.now()}).then(function(){ S.ui.gid=gid; S.ui.newGroup=false; delete S.form['ng-name']; toast('Группа создана'); }, writeErr);
+    S.db.doc('groups/'+gid).set({name:name, start:f('ng-start', ngDefStart()), access:{}, dir:activeDir(), trainer:String(f('ng-trainer','')), createdAt:Date.now()}).then(function(){ S.ui.gid=gid; S.ui.newGroup=false; delete S.form['ng-name']; toast('Группа создана'); }, writeErr);
   }
   if(k==='newintern'){
     var nm = String(f('ni-name')).trim(); var lg = String(S.form['ni-login']!=null?S.form['ni-login']:makeLogin(nm)).trim().toLowerCase(); var pw = String(f('ni-pw', S.ui.genPw)).trim();
