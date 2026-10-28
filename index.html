@@ -1492,14 +1492,15 @@ function xlIntern(iid){
 
 
 /* ---------- направления (Софт / Софт+ / Хард …) ---------- */
-var DIR_KEYS = ['program','slides','tests','knowledge','surveys'];
+var DIR_KEYS = ['program','slides','tests','knowledge','surveys','org'];
 var DIR_DEF = [{id:'soft', name:'Софт'},{id:'softplus', name:'Софт+'},{id:'hard', name:'Хард'}];
 function dirsList(){ var d = (S.content.settings||{}).dirs; return (d && d.length) ? d : DIR_DEF; }
 function dirName(id){ var d = dirsList().filter(function(x){ return x.id===id; })[0]; return d ? d.name : (id==='soft'?'Софт':id); }
 function dirPath(k, dir){ return 'content/'+k+((dir||'soft')==='soft' ? '' : '~'+dir); }
 function gDir(gid){ var g = S.groups[gid]; return (g && g.dir) || 'soft'; }
 function activeDir(){ if(S.role==='intern'){ var m = me(); return m ? gDir(m.groupId) : 'soft'; } return S.ui.dir || 'soft'; }
-function applyDir(){ var d = activeDir(); DIR_KEYS.forEach(function(k){ var p = dirPath(k, d); S.content[k] = S.cAll[p]!==undefined ? S.cAll[p] : null; }); }
+function applyDir(){ var d = activeDir(); DIR_KEYS.forEach(function(k){ var p = dirPath(k, d); S.content[k] = S.cAll[p]!==undefined ? S.cAll[p] : null; if(k==='org' && !S.content[k] && d!=='soft') S.content[k] = S.cAll[dirPath('org','soft')] || null; }); }
+function orgInherited(){ var d = activeDir(); return d!=='soft' && !S.cAll[dirPath('org', d)]; }
 function srcPath(k){ var c = DRAFT_SRC[k]; return DIR_KEYS.indexOf(c)>=0 ? dirPath(c, activeDir()) : 'content/'+c; }
 function setContent(c, data){ if(DIR_KEYS.indexOf(c)>=0) S.cAll[dirPath(c, activeDir())] = data; S.content[c] = data; }
 var SUBD = {};
@@ -1510,8 +1511,8 @@ function dirPicker(){ var ds = dirsList(); var cur = activeDir();
   return '<label class="dirpick">Направление<select id="dir-pick" data-act-change="dir-pick">'+ds.map(function(d){ var n = Object.keys(S.groups).filter(function(k){ return gDir(k)===d.id; }).length; return '<option value="'+esc(d.id)+'"'+(d.id===cur?' selected':'')+'>'+esc(d.name)+(n?' · групп: '+n:'')+'</option>'; }).join('')+'</select></label>'; }
 function dirEmpty(dir){ return !DIR_KEYS.some(function(k){ var v = S.cAll[dirPath(k, dir)]; return v && Object.keys(v).length; }); }
 function dirCard(){ var cur = activeDir(); var others = dirsList().filter(function(d){ return d.id!==cur && !dirEmpty(d.id); });
-  if(!dirEmpty(cur) || !others.length) return '<p class="small muted" style="margin:0">Направление: <b>'+esc(dirName(cur))+'</b>. План, презентации, тесты, опросники, база знаний и тренажёры — свои у каждого направления. Структура компании и название кабинета — общие.</p>';
-  return '<section class="card" style="border-color:var(--amber)"><h2>Направление «'+esc(dirName(cur))+'» пока пустое</h2><p style="margin:0">Можно заполнить с нуля или взять за основу материалы другого направления (план, презентации, тесты, опросники, базу знаний) и потом поправить.</p><div class="row" style="align-items:flex-end"><label class="field" style="min-width:220px">Скопировать из<select id="dir-src" data-keep>'+others.map(function(d){ return '<option value="'+esc(d.id)+'">'+esc(d.name)+'</option>'; }).join('')+'</select></label><button class="btn primary" type="button" data-act="dir-copy">Скопировать материалы</button></div></section>'; }
+  if(!dirEmpty(cur) || !others.length) return '<p class="small muted" style="margin:0">Направление: <b>'+esc(dirName(cur))+'</b>. План, презентации, тесты, опросники, база знаний, структура компании и тренажёры — свои у каждого направления. Название кабинета и вкладки — общие.</p>';
+  return '<section class="card" style="border-color:var(--amber)"><h2>Направление «'+esc(dirName(cur))+'» пока пустое</h2><p style="margin:0">Можно заполнить с нуля или взять за основу материалы другого направления (план, презентации, тесты, опросники, базу знаний, структуру компании) и потом поправить.</p><div class="row" style="align-items:flex-end"><label class="field" style="min-width:220px">Скопировать из<select id="dir-src" data-keep>'+others.map(function(d){ return '<option value="'+esc(d.id)+'">'+esc(d.name)+'</option>'; }).join('')+'</select></label><button class="btn primary" type="button" data-act="dir-copy">Скопировать материалы</button></div></section>'; }
 
 /* ---------- trainer: settings (constructor) ---------- */
 var DRAFT_SRC = {program:'program', decks:'slides', kb:'knowledge', org:'org', settings:'settings', tests:'tests', surveys:'surveys'};
@@ -1736,7 +1737,7 @@ function stKb(){
 
 function stOrg(){
   var ps = draft('org').people;
-  return saveBar('org','структура')+
+  return saveBar('org','структура')+(orgInherited() ? '<p class="hint" style="margin:0 0 8px">У направления «'+esc(dirName(activeDir()))+'» пока нет своей структуры — стажёры видят структуру «'+esc(dirName('soft'))+'». Измените и сохраните — у направления появится своя.</p>' : '')+
     '<div class="row between"><p class="hint" style="flex:1 1 300px">Эти люди и контакты видны стажёрам в разделе «'+esc(tabTitle('org'))+'». Тренер, наставник и руководитель с ролью в ЛК попадают в блок «Мои люди» на главной.</p><button class="btn primary" type="button" data-act="org-add">+ Человек</button></div>'+
     '<div class="grid" style="--min:320px">'+ps.map(function(p, i){
       var opts = [['','— верх структуры —']].concat(ps.filter(function(x){ return x.id!==p.id; }).map(function(x){ return [x.id, x.name||x.role||'—']; }));
@@ -2500,7 +2501,7 @@ if(!window.supabase || !CFG.url || !CFG.anonKey || /ВСТАВЬТЕ|XXXX/.test(
 } else {
   sb = supabase.createClient(CFG.url, CFG.anonKey);
   S.db = DB; S.assets = ASSETS; S.canEdit = true; S.dbState = 'ok';
-  ['org','settings'].forEach(function(k){
+  ['settings'].forEach(function(k){
     S.db.doc('content/'+k).onSnapshot(function(s){ S.content[k] = s.exists ? s.data() : null; S.loaded[k]=true; if(k==='settings') subDirs(); schedule(); });
   });
   subDirs();
