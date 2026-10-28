@@ -1737,7 +1737,7 @@ function stKb(){
 
 function stOrg(){
   var ps = draft('org').people;
-  return saveBar('org','структура')+(orgInherited() ? '<p class="hint" style="margin:0 0 8px">У направления «'+esc(dirName(activeDir()))+'» пока нет своей структуры — стажёры видят структуру «'+esc(dirName('soft'))+'». Измените и сохраните — у направления появится своя.</p>' : '')+
+  return saveBar('org','структура')+(orgInherited() && !S.dirty.org ? '<section class="card" style="border-color:var(--amber);margin-bottom:12px"><h2>У направления «'+esc(dirName(activeDir()))+'» пока нет своей структуры</h2><p style="margin:0">Сейчас стажёры этого направления видят структуру «'+esc(dirName('soft'))+'». Начните новую с чистого листа или возьмите структуру «'+esc(dirName('soft'))+'» за основу и поправьте. После сохранения у направления будет своя структура.</p><div class="row" style="gap:8px"><button class="btn primary" type="button" data-act="org-blank">Начать новую структуру</button><button class="btn" type="button" data-act="org-fork">Взять «'+esc(dirName('soft'))+'» за основу</button></div></section>' : '')+
     '<div class="row between"><p class="hint" style="flex:1 1 300px">Эти люди и контакты видны стажёрам в разделе «'+esc(tabTitle('org'))+'». Тренер, наставник и руководитель с ролью в ЛК попадают в блок «Мои люди» на главной.</p><button class="btn primary" type="button" data-act="org-add">+ Человек</button></div>'+
     '<div class="grid" style="--min:320px">'+ps.map(function(p, i){
       var opts = [['','— верх структуры —']].concat(ps.filter(function(x){ return x.id!==p.id; }).map(function(x){ return [x.id, x.name||x.role||'—']; }));
@@ -2227,6 +2227,8 @@ var A = {
   'cat-del-yes': function(el){ draft('kb').cats.splice(Number(el.dataset.i),1); S.ui.confirm=null; markDirty('kb'); render(); },
   'art-add': function(){ var a = {id:uid('a'), cat:(draft('kb').cats[0]||{}).id||'', title:'', summary:'', read:'', body:[]}; draft('kb').articles.unshift(a); S.ui.edOpen['a:'+a.id]=true; markDirty('kb'); render(); },
   'art-del-yes': function(el){ draft('kb').articles.splice(Number(el.dataset.i),1); S.ui.confirm=null; markDirty('kb'); render(); },
+  'org-blank': function(){ S.draft.org = {people:[]}; markDirty('org'); A['org-add'](); },
+  'org-fork': function(){ draft('org'); markDirty('org'); render(); toast('Структура «'+dirName('soft')+'» скопирована в черновик. Поправьте и нажмите «Сохранить».'); },
   'org-add': function(){ var ps = draft('org').people; ps.push({id:uid('p'), name:'', role:'', area:'', parent:(ps.filter(function(p){ return !p.parent; })[0]||{}).id||'', help:'', contact:'', kind:''}); markDirty('org'); render(); },
   'org-del-yes': function(el){ var ps = draft('org').people; var rm = ps[Number(el.dataset.i)]; ps.splice(Number(el.dataset.i),1); ps.forEach(function(p){ if(p.parent===rm.id) p.parent=rm.parent||''; }); S.ui.confirm=null; markDirty('org'); render(); },
   'sim-add': function(){ var id = uid('sim'); S.db.doc('sims/'+id).set({title:'Новый тренажёр', desc:'', html:'', size:0, updatedAt:0, dir:activeDir()}).then(function(){ toast('Тренажёр добавлен — загрузите HTML-файл'); }, writeErr); },
