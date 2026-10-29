@@ -1797,7 +1797,7 @@ function stImport(){
     action = '<div class="stack" style="gap:8px"><b>'+esc(im.step||'Загружаю…')+'</b><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pr+'"><i style="width:'+pr+'%"></i></div><span class="small muted num">'+im.done+' из '+im.total+' · не закрывайте страницу</span></div>'; }
   else if(im.status==='done') action = '<div class="creds" role="status"><b>Готово: программа загружена на сайт</b><span>'+esc(im.result||'')+'</span><span class="small">Теперь откройте темы группе в «Стажёры и доступы» — вместе с темой у стажёра откроются её слайды.</span><div class="row"><button class="btn sm primary" type="button" data-act="nav" data-v="t-access">Открыть доступы</button><button class="btn sm" type="button" data-act="st-go" data-s="plan">Посмотреть план</button><button class="btn sm" type="button" data-act="nav" data-v="t-pres">Ведение презентации</button></div></div>';
   else action = '<div class="row"><button class="btn primary" type="button" data-act="imp-run"'+((o.program||o.decks||o.tests)?'':' disabled')+'>Загрузить на сайт</button><span class="small muted">Слайды загрузятся в хранилище Supabase, это займёт 1–3 минуты.</span></div>';
-  return intro+'<section class="card impbox" aria-labelledby="h-imp"><div class="row between"><h2 id="h-imp">'+esc(m.title||'Пакет')+'</h2><span class="small muted">'+esc(im.name||'')+'</span></div>'+stats+
+  return intro+'<section class="card impbox" aria-labelledby="h-imp"><div class="row between"><h2 id="h-imp">'+esc(m.title||'Пакет')+'</h2><span class="tpill">Загрузится в направление «'+esc(dirName(activeDir()))+'»</span><span class="small muted">'+esc(im.name||'')+'</span></div>'+stats+
     '<div class="stack" style="gap:6px">'+chk('program','План стажировки по дням — '+pd.length+' дн., '+nItems+' тем, с цветами блоков и привязкой к слайдам')+chk('decks','Презентации — '+nSlides+' слайдов:')+(decksList?'<ul style="margin:0 0 0 24px;padding:0" class="small">'+decksList+'</ul>':'')+chk('tests','Опросники:')+(testsList?'<ul style="margin:0 0 0 24px;padding:0" class="small">'+testsList+'</ul>':'')+'</div>'+
     warn+action+'</section>'+
     '<section class="card"><h2>Что будет в плане</h2>'+toneLegend(pd.reduce(function(a,d){ return a.concat(d.items||[]); },[]))+preview+'</section>';
@@ -1829,6 +1829,7 @@ function importParse(files){
   readImportFiles(files).then(function(r){
     var man; try{ man = JSON.parse(r.text); }catch(e){ throw {message:'manifest.json повреждён.'}; }
     if(!man || man.format!=='start-import') throw {message:'Это не пакет импорта кабинета «Старт».'};
+    var bad = impDirMismatch(man); if(bad) throw {message:bad};
     var missing = []; Object.keys(man.decks||{}).forEach(function(k){ (man.decks[k].slides||[]).forEach(function(sl){ if(sl.file && !r.has(sl.file)) missing.push(sl.file); }); });
     if(missing.length) throw {message:'В пакете не хватает картинок слайдов: '+missing.slice(0,5).join(', ')+(missing.length>5?' и ещё '+(missing.length-5):'')+'.'};
     var ids = {}; days().forEach(function(d){ (d.items||[]).forEach(function(i){ ids[i.id]=1; }); });
@@ -1837,9 +1838,18 @@ function importParse(files){
     render();
   }).catch(function(e){ S.ui.imp = {status:'error', err:(e && e.message) || 'Не удалось прочитать пакет.'}; render(); });
 }
+function impDirMismatch(man){
+  var want = man && man.dir && String(man.dir.name||man.dir).trim(); if(!want) return '';
+  var cur = activeDir(); var curName = String(dirName(cur)).trim();
+  var norm = function(x){ return String(x).toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim(); };
+  if(norm(curName)===norm(want) || (man.dir.id && man.dir.id===cur)) return '';
+  var exists = dirsList().some(function(d){ return norm(d.name)===norm(want); });
+  return 'Этот пакет для направления «'+want+'», а сейчас выбрано «'+curName+'». Ничего не загружено. '+(exists ? 'Переключите направление вверху слева на «'+want+'» и выберите пакет снова.' : 'Сначала создайте направление «'+want+'» в «Настройка → Вкладки и название → Направления», сохраните, переключитесь на него вверху слева и выберите пакет снова.');
+}
 function safeName(s){ return String(s).toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/-+/g,'-'); }
 function importRun(){
   var im = S.ui.imp; if(!im || !im.man || im.status==='running') return;
+  var bad = impDirMismatch(im.man); if(bad){ im.err = bad; render(); return; }
   if(!S.db || !sb){ toast('Нет подключения к базе.'); return; }
   var m = im.man; var o = im.opts; var ver = safeName(m.version || ('p'+Date.now()));
   var jobs = []; if(o.decks) Object.keys(m.decks||{}).forEach(function(k){ (m.decks[k].slides||[]).forEach(function(sl){ if(sl.file) jobs.push({deck:k, sl:sl, name:'imp-'+ver+'-'+safeName(sl.file)}); }); });
