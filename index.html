@@ -1194,15 +1194,16 @@ function internStatus(iid){
 }
 function statusChipR(st){ return '<span class="chip '+(st.key||'')+'">'+esc(st.label)+'</span>'; }
 function pctCell(r, tt){ if(!r) return '<td class="num muted">—</td>'; return '<td class="num '+(r.passed?'pct-ok':'pct-bad')+'">'+r.best+'%<span class="small muted" style="font-weight:400"> ×'+(r.attempts||0)+'</span></td>'; }
+function activeOf(gid){ return internsOf(gid).filter(function(i){ return !i.suspended; }); }
 function groupStats(gid){
-  var list = internsOf(gid); var ti = testItems();
+  var all = internsOf(gid); var list = all.filter(function(i){ return !i.suspended; }); var ti = testItems();
   var st = list.map(function(i){ return internStats(i.id); });
   var avgP = list.length ? Math.round(st.reduce(function(a,x){ return a+x.pct; },0)/list.length) : null;
   var avs = st.filter(function(x){ return x.avg!=null; }); var avgT = avs.length ? Math.round(avs.reduce(function(a,x){ return a+x.avg; },0)/avs.length) : null;
   var allOk = list.filter(function(i){ return ti.length && internStatus(i.id).key==='ok'; }).length;
   var resp = S.surveys.filter(function(x){ return x.groupId===gid; }).length;
   var active = list.filter(function(i){ var s2 = P(i.id).seen; return s2 && Date.now()-s2 < 86400000; }).length;
-  return {n:list.length, avgP:avgP, avgT:avgT, allOk:allOk, resp:resp, active:active};
+  return {n:list.length, total:all.length, susp:all.length-list.length, avgP:avgP, avgT:avgT, allOk:allOk, resp:resp, active:active};
 }
 function questionStats(tid, iids){
   var tt = test(tid); if(!tt) return [];
@@ -1224,11 +1225,11 @@ function tResults(){
 function rAll(){
   var gl = groupList(); if(!gl.length) return '<div class="empty"><b>Групп пока нет</b></div>';
   var ti = testItems();
-  var rows = gl.map(function(g){ var st = groupStats(g.id); var list = internsOf(g.id);
-    return '<tr><td><b>'+esc(g.name)+'</b><br><span class="small muted">старт '+esc(g.start||'—')+'</span></td><td class="num">'+st.n+'</td><td class="num">'+(st.avgP==null?'—':st.avgP+'%')+'</td><td class="num">'+(st.avgT==null?'—':st.avgT+'%')+'</td>'+
+  var rows = gl.map(function(g){ var st = groupStats(g.id); var list = activeOf(g.id);
+    return '<tr><td><b>'+esc(g.name)+'</b><br><span class="small muted">старт '+esc(g.start||'—')+'</span></td><td class="num">'+st.n+(st.susp?'<br><span class="small muted">из '+st.total+'</span>':'')+'</td><td class="num">'+(st.avgP==null?'—':st.avgP+'%')+'</td><td class="num">'+(st.avgT==null?'—':st.avgT+'%')+'</td>'+
       ti.map(function(i){ var rs = list.map(function(x){ return testRec(x.id, i.test); }).filter(Boolean); var pass = rs.filter(function(r){ return r.passed; }).length; return '<td class="num">'+(rs.length? pass+' / '+list.length : '<span class="muted">—</span>')+'</td>'; }).join('')+
       '<td class="num">'+(ti.length? st.allOk+' / '+st.n : '—')+'</td><td class="num">'+st.resp+'</td><td style="text-align:right"><button class="btn sm" type="button" data-act="rgo" data-g="'+esc(g.id)+'">Открыть</button></td></tr>'; }).join('');
-  return '<section class="card" aria-label="Группы"><div class="table-wrap"><table><thead><tr><th>Группа</th><th>Стажёров</th><th>Прогресс</th><th>Ср. балл</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+' сдали</th>'; }).join('')+'<th>Сдали все</th><th>Ответов в опросах</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="hint">«Д2 сдали» — сколько стажёров группы сдали тест, стоящий в плане в день 2.</p></section>';
+  return '<section class="card" aria-label="Группы"><div class="table-wrap"><table><thead><tr><th>Группа</th><th>Активных</th><th>Прогресс</th><th>Ср. балл</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+' сдали</th>'; }).join('')+'<th>Сдали все</th><th>Ответов в опросах</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="hint">«Д2 сдали» — сколько стажёров группы сдали тест, стоящий в плане в день 2.</p></section>';
 }
 function rAtt(gid){
   var list = internsOf(gid); if(!list.length) return '<div class="empty"><b>В группе нет стажёров</b></div>';
@@ -1240,8 +1241,8 @@ function rAtt(gid){
 }
 function rGroup(gid){
   var list = internsOf(gid); var ti = testItems(); var st = groupStats(gid);
-  var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">Стажёров</span><span class="v num">'+st.n+'</span><span class="small muted">в сети за сутки: '+st.active+'</span></div>'+
-    '<div class="kpi"><span class="small muted">Средний прогресс</span><span class="v num">'+(st.avgP==null?'—':st.avgP+'%')+'</span><div class="meter"><i style="width:'+(st.avgP||0)+'%"></i></div></div>'+
+  var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">Активных стажёров</span><span class="v num">'+st.n+(st.susp?'<span class="small muted" style="font-size:15px"> из '+st.total+'</span>':'')+'</span><span class="small muted">'+(st.susp?'приостановлено: '+st.susp+' · ':'')+'в сети за сутки: '+st.active+'</span></div>'+
+    '<div class="kpi"><span class="small muted">Средний прогресс</span><span class="v num">'+(st.avgP==null?'—':st.avgP+'%')+'</span><div class="meter"><i style="width:'+(st.avgP||0)+'%"></i></div><span class="small muted">по активным стажёрам</span></div>'+
     '<div class="kpi"><span class="small muted">Средний балл тестов</span><span class="v num" style="color:var(--accent-ink)">'+(st.avgT==null?'—':st.avgT+'%')+'</span><span class="small muted">по лучшим попыткам</span></div>'+
     '<div class="kpi"><span class="small muted">Сдали все тесты</span><span class="v num">'+(ti.length? st.allOk+' / '+st.n : '—')+'</span><span class="small muted">'+ti.length+' тестов в плане</span></div>'+
     '<div class="kpi"><span class="small muted">Ответов в опросах</span><span class="v num">'+st.resp+'</span><span class="small muted">все анкеты группы</span></div></div>';
@@ -1467,8 +1468,8 @@ function xlGroup(gid){ var g = S.groups[gid]; var list = internsOf(gid);
   return xlSave('Результаты — '+g.name, [sheetSummary(list), sheetAttendance(list), sheetTests(list), sheetQuestions(list), sheetAnswers(list), sheetTopics(list)].concat(surveySheets(gid))); }
 function xlAll(){
   var gl = groupList(); var ti = testItems();
-  var rows = [['Группа','Старт','Стажёров','Средний прогресс, %','Средний балл, %','Сдали все тесты'].concat(ti.map(function(i){ return 'Д'+(i.dayIdx+1)+' сдали'; })).concat(['Ответов в опросах'])];
-  gl.forEach(function(g){ var st = groupStats(g.id); var list = internsOf(g.id); rows.push([g.name, g.start||'', st.n, st.avgP==null?'':st.avgP, st.avgT==null?'':st.avgT, st.allOk].concat(ti.map(function(i){ return list.filter(function(x){ var r = testRec(x.id, i.test); return r && r.passed; }).length; })).concat([st.resp])); });
+  var rows = [['Группа','Старт','Активных стажёров','Приостановлено','Средний прогресс, %','Средний балл, %','Сдали все тесты'].concat(ti.map(function(i){ return 'Д'+(i.dayIdx+1)+' сдали'; })).concat(['Ответов в опросах'])];
+  gl.forEach(function(g){ var st = groupStats(g.id); var list = activeOf(g.id); rows.push([g.name, g.start||'', st.n, st.susp, st.avgP==null?'':st.avgP, st.avgT==null?'':st.avgT, st.allOk].concat(ti.map(function(i){ return list.filter(function(x){ var r = testRec(x.id, i.test); return r && r.passed; }).length; })).concat([st.resp])); });
   var everyone = []; gl.forEach(function(g){ everyone = everyone.concat(internsOf(g.id)); });
   return xlSave('Результаты — все группы', [{name:'Группы', rows:rows, filter:1}, sheetSummary(everyone), sheetTests(everyone), sheetQuestions(everyone)]);
 }
