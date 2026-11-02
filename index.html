@@ -706,11 +706,12 @@ function viewShell(){
     '</nav>';
     body = ({home:vHome, plan:vPlan, sims:vSims, sim:vSim, tests:vTests, surveys:vSurveys, pres:vPres, kb:vKb, org:vOrg, progress:vProgress}[S.view] || vHome)();
   } else {
-    var anyLive = Object.keys(S.live).some(function(k){ return S.live[k] && S.live[k].active; });
+    var curD = activeDir(); var inDir = function(gid){ return !!S.groups[gid] && gDir(gid)===curD; };
+    var anyLive = Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].active; });
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
     side = '<nav class="side" aria-label="Разделы тренера">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+dirPicker()+
-      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
+      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
       '<div class="me"><div class="ava amber">Т</div><div class="who"><b>Тренер</b><small>Управление стажировкой</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
     body = ({'t-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
