@@ -706,7 +706,7 @@ function viewShell(){
     '</nav>';
     body = ({home:vHome, plan:vPlan, sims:vSims, sim:vSim, tests:vTests, surveys:vSurveys, pres:vPres, kb:vKb, org:vOrg, progress:vProgress}[S.view] || vHome)();
   } else {
-    var curD = activeDir(); var inDir = function(gid){ return !!S.groups[gid] && gDir(gid)===curD; };
+    var curG = curGid(); var inDir = function(gid){ return !!gid && gid===curG; };
     var anyLive = Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].active; });
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
     side = '<nav class="side" aria-label="Разделы тренера">'+
