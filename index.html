@@ -226,6 +226,19 @@ td.pct-bad{color:var(--danger);font-weight:600}
 @media (max-width:640px){.bar2{grid-template-columns:1fr 60px}.bar2 .tr{grid-column:1 / -1;order:3}}
 
 .kb{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.crit-it{border:1px solid var(--line2);border-left:5px solid #d23a3a;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;background:var(--card,#fff)}
+.crit-it h3{margin:0;font-size:17px;line-height:1.35;display:flex;gap:10px;align-items:baseline}
+.crit-it h3 .num{color:#d23a3a;font-weight:800;flex:none}
+.crit-it p{margin:0;line-height:1.55;white-space:pre-line}
+.crit-ok{background:rgba(30,143,78,.08);border-radius:10px;padding:10px 12px;line-height:1.5;white-space:pre-line}
+.crit-ok b,.crit-bad b{display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
+.crit-ok b{color:#1e8f4e}
+.crit-bad{background:rgba(210,58,58,.08);border-radius:10px;padding:10px 12px;line-height:1.5;white-space:pre-line}
+.crit-bad b{color:#d23a3a}
+.kindpick{display:flex;flex-wrap:wrap;gap:10px}
+.kindpick button{flex:1 1 220px;text-align:left;border:2px solid var(--line2);border-radius:14px;padding:14px 16px;background:transparent;cursor:pointer;display:flex;flex-direction:column;gap:4px;font:inherit;color:inherit}
+.kindpick button.on{border-color:var(--accent);background:var(--accent-soft)}
+.kindpick button b{font-size:15px}
 .kb aside{flex:1 1 230px;padding:10px;gap:2px}
 .kb .cat{display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:0 14px;border-radius:10px;border:0;background:transparent;cursor:pointer;text-align:left;width:100%;font-size:15px}
 .kb .cat.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
@@ -507,7 +520,7 @@ var TONE_ORDER = ['theory','practice','check','summary','crm','org','meeting'];
 function toneOf(it){ return it && TONES[it.tone] ? it.tone : 'none'; }
 function slideRef(it){ if(!it.deck || !it.slide) return ''; return 'Слайд '+it.slide+(it.slideTo && it.slideTo>it.slide ? '–'+it.slideTo : ''); }
 function toneLegend(items){ var used = {}; (items||[]).forEach(function(i){ if(TONES[i.tone]) used[i.tone]=1; }); var ks = TONE_ORDER.filter(function(t){ return used[t]; }); if(!ks.length) return ''; return '<div class="legend" aria-label="Цвета блоков">'+ks.map(function(t){ return '<span class="lg tone-'+t+'"><i aria-hidden="true"></i>'+esc(TONES[t])+'</span>'; }).join('')+'</div>'; }
-var TABS = [['home','Главная'],['plan','План обучения'],['sims','Тренажёры'],['sim','Симулятор'],['tests','Тесты'],['surveys','Опросы'],['pres','Презентация'],['kb','База знаний'],['org','Структура компании'],['progress','Мой прогресс']];
+var TABS = [['home','Главная'],['plan','План обучения'],['sims','Тренажёры'],['sim','Симулятор'],['tests','Тесты'],['surveys','Опросы'],['pres','Презентация'],['kb','База знаний'],['crit','Критические ошибки'],['org','Структура компании'],['progress','Мой прогресс']];
 
 /* ---------- content accessors ---------- */
 function days(){ return (S.content.program && S.content.program.days) || []; }
@@ -615,7 +628,8 @@ function viewLogin(){
     '</form>'+ dbMsg + (allowApply() && S.dbState==='ok' ? '<p class="small muted" style="margin:0;text-align:center">Нет логина? <button type="button" class="linkbtn" data-act="apply-open">Подать заявку на доступ</button></p>' : '') + trainer +
   '</div></div>';
 }
-function trainerTg(){ var st = settings(); var by = st.tgByDir || {}; var v = by[activeDir()]; if(v==null || String(v).trim()==='') v = st.trainerContact; v = String(v==null ? '' : v).trim(); return v || '@zzuboff'; }
+function dirTg(st, d){ var by = (st && st.tgByDir) || {}; var v = by[d]; if(v==null && d==='soft') v = st && st.trainerContact; return String(v==null ? '' : v).trim(); }
+function trainerTg(){ return dirTg(settings(), activeDir()) || '@zzuboff'; }
 function tgLink(v){ if(/^https?:\/\//i.test(v)) return v; var u = v.replace(/^@/,'').replace(/^t\.me\//i,''); return u ? 'https://t.me/'+encodeURIComponent(u) : ''; }
 function contactFab(){ var v = trainerTg(); if(v==='-') return ''; var url = tgLink(v); if(!url) return '';
   return '<a class="contact-fab" href="'+esc(url)+'" target="_blank" rel="noopener" aria-label="Связь с тренером в Telegram: '+esc(v)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4 3 11l6 2.5L19 7l-8 8 6.5 5L21 4z"/></svg>Связь с тренером</a>'; }
@@ -695,26 +709,26 @@ function viewShell(){
     var stt = m.simTest;
     if(S.player && S.player.lock && !(stt && stt.id===S.player.test)) closePlayer();
     if(stt && stt.id && !((P().simres||{})[stt.id])){ if(!S.player || S.player.test!==stt.id) setTimeout(function(){ openInari({test:stt.id}); }, 0); return simLockScreen(m); }
-    if(tabHidden(S.view) || (S.view==='sim' && !simAvail())) S.view = 'home';
+    if(tabHidden(S.view) || (S.view==='sim' && !simAvail()) || (S.view==='crit' && !critAvail())) S.view = 'home';
     var lv = liveOf(m.groupId);
     var liveTag = lv.active ? '<span class="live-tag">идёт</span>' : null;
     var dIdx = currentDayIdx();
     side = '<nav class="side" aria-label="Разделы">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>'+esc(b.sub)+'</small></div></div>'+
-      '<div class="nav">'+TABS.filter(function(t){ return !tabHidden(t[0]) && (t[0]!=='sim' || simAvail()); }).map(function(t){ return navItem(t[0], tabTitle(t[0]), t[0]==='pres'?liveTag:null); }).join('')+'</div>'+
+      '<div class="nav">'+TABS.filter(function(t){ return !tabHidden(t[0]) && (t[0]!=='sim' || simAvail()) && (t[0]!=='crit' || critAvail()); }).map(function(t){ return navItem(t[0], tabTitle(t[0]), t[0]==='pres'?liveTag:null); }).join('')+'</div>'+
       '<div class="me"><div class="ava">'+esc(initials(m.name))+'</div><div class="who"><b>'+esc(m.name)+'</b><small>'+esc(dirName(activeDir()))+' · день '+(dIdx+1)+' из '+days().length+'</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
-    body = ({home:vHome, plan:vPlan, sims:vSims, sim:vSim, tests:vTests, surveys:vSurveys, pres:vPres, kb:vKb, org:vOrg, progress:vProgress}[S.view] || vHome)();
+    body = ({home:vHome, plan:vPlan, sims:vSims, sim:vSim, tests:vTests, surveys:vSurveys, pres:vPres, kb:vKb, crit:vCrit, org:vOrg, progress:vProgress}[S.view] || vHome)();
   } else {
     var curG = curGid(); var inDir = function(gid){ return !!gid && gid===curG; };
     var anyLive = Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].active; });
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
     side = '<nav class="side" aria-label="Разделы тренера">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+dirPicker()+
-      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
+      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-crit','Критические ошибки')+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
       '<div class="me"><div class="ava amber">Т</div><div class="who"><b>Тренер</b><small>Управление стажировкой</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
-    body = ({'t-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
+    body = ({'t-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-crit':tCrit, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
   }
   return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>'+(S.role==='intern' ? contactFab() : '');
 }
@@ -1494,7 +1508,7 @@ function xlIntern(iid){
 
 
 /* ---------- направления (Софт / Софт+ / Хард …) ---------- */
-var DIR_KEYS = ['program','slides','tests','knowledge','surveys','org'];
+var DIR_KEYS = ['program','slides','tests','knowledge','surveys','org','crit'];
 var DIR_DEF = [{id:'soft', name:'Софт'},{id:'softplus', name:'Софт+'},{id:'hard', name:'Хард'}];
 function dirsList(){ var d = (S.content.settings||{}).dirs; return (d && d.length) ? d : DIR_DEF; }
 function dirName(id){ var d = dirsList().filter(function(x){ return x.id===id; })[0]; return d ? d.name : (id==='soft'?'Софт':id); }
@@ -1513,15 +1527,16 @@ function dirPicker(){ var ds = dirsList(); var cur = activeDir();
   return '<label class="dirpick">Направление<select id="dir-pick" data-act-change="dir-pick">'+ds.map(function(d){ var n = Object.keys(S.groups).filter(function(k){ return gDir(k)===d.id; }).length; return '<option value="'+esc(d.id)+'"'+(d.id===cur?' selected':'')+'>'+esc(d.name)+(n?' · групп: '+n:'')+'</option>'; }).join('')+'</select></label>'; }
 function dirEmpty(dir){ return !DIR_KEYS.some(function(k){ var v = S.cAll[dirPath(k, dir)]; return v && Object.keys(v).length; }); }
 function dirCard(){ var cur = activeDir(); var others = dirsList().filter(function(d){ return d.id!==cur && !dirEmpty(d.id); });
-  if(!dirEmpty(cur) || !others.length) return '<p class="small muted" style="margin:0">Направление: <b>'+esc(dirName(cur))+'</b>. План, презентации, тесты, опросники, база знаний, структура компании и тренажёры — свои у каждого направления. Название кабинета и вкладки — общие.</p>';
+  if(!dirEmpty(cur) || !others.length) return '<p class="small muted" style="margin:0">Направление: <b>'+esc(dirName(cur))+'</b>. План, презентации, тесты, опросники, база знаний, критические ошибки, структура компании и тренажёры — свои у каждого направления. Название кабинета и вкладки — общие.</p>';
   return '<section class="card" style="border-color:var(--amber)"><h2>Направление «'+esc(dirName(cur))+'» пока пустое</h2><p style="margin:0">Можно заполнить с нуля или взять за основу материалы другого направления (план, презентации, тесты, опросники, базу знаний, структуру компании) и потом поправить.</p><div class="row" style="align-items:flex-end"><label class="field" style="min-width:220px">Скопировать из<select id="dir-src" data-keep>'+others.map(function(d){ return '<option value="'+esc(d.id)+'">'+esc(d.name)+'</option>'; }).join('')+'</select></label><button class="btn primary" type="button" data-act="dir-copy">Скопировать материалы</button></div></section>'; }
 
 /* ---------- trainer: settings (constructor) ---------- */
-var DRAFT_SRC = {program:'program', decks:'slides', kb:'knowledge', org:'org', settings:'settings', tests:'tests', surveys:'surveys'};
-var DRAFT_DEF = {program:{days:[]}, decks:{decks:{}}, kb:{cats:[], articles:[], cheat:{title:'', cells:[], note:''}}, org:{people:[]}, settings:{brand:{name:'Старт', sub:'ЛК стажёра · взыскание'}, tabs:{}}, tests:{tests:{}}, surveys:{surveys:{}}};
+var DRAFT_SRC = {program:'program', decks:'slides', kb:'knowledge', org:'org', settings:'settings', tests:'tests', surveys:'surveys', crit:'crit'};
+var DRAFT_DEF = {crit:{cats:[], items:[]}, program:{days:[]}, decks:{decks:{}}, kb:{cats:[], articles:[], cheat:{title:'', cells:[], note:''}}, org:{people:[]}, settings:{brand:{name:'Старт', sub:'ЛК стажёра · взыскание'}, tabs:{}}, tests:{tests:{}}, surveys:{surveys:{}}};
 function draft(k){
   if(!S.draft[k]){
     var d = clone(S.content[DRAFT_SRC[k]] || DRAFT_DEF[k]);
+    if(k==='crit'){ d.cats = d.cats||[]; d.items = d.items||[]; }
     if(k==='kb'){ d.cats = d.cats||[]; d.articles = d.articles||[]; d.cheat = d.cheat||{title:'',cells:[],note:''}; d.cheat.cells = d.cheat.cells||[]; }
     if(k==='settings'){ d.brand = d.brand||{}; d.tabs = d.tabs||{}; d.dirs = (d.dirs && d.dirs.length) ? d.dirs : clone(DIR_DEF); }
     if(k==='program'){ d.days = d.days||[]; }
@@ -1537,18 +1552,19 @@ function getPath(o, p){ return p.split('.').reduce(function(a,k){ return a==null
 function setPath(o, p, v){ var ks = p.split('.'); var last = ks.pop(); var t = ks.reduce(function(a,k){ if(a[k]==null) a[k] = /^\d+$/.test(k)?[]:{}; return a[k]; }, o); t[last] = v; }
 function markDirty(k){ S.dirty[k] = true; document.querySelectorAll('[data-dirtybar="'+k+'"]').forEach(function(el){ el.hidden = false; }); }
 function bind(k, p, extra){ return ' data-d="'+k+'" data-p="'+esc(p)+'"'+(extra||''); }
+function tgInput(){ var d = activeDir(); var ds = draft('settings'); ds.tgByDir = ds.tgByDir || {}; if(ds.tgByDir[d]==null) ds.tgByDir[d] = dirTg(ds, d); return inp('sb-tg-'+d, 'settings', 'tgByDir.'+d, '@zzuboff'); }
 function inp(id, k, p, ph, cls){ var v = getPath(draft(k), p); return '<input id="'+id+'" class="input '+(cls||'')+'"'+bind(k,p)+' value="'+esc(v==null?'':v)+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+' autocomplete="off">'; }
 function area(id, k, p, fmt, ph, rows){ var v = getPath(draft(k), p); var txt = v==null ? '' : (fmt==='lines' ? (v||[]).join('\n') : (fmt==='paras' ? (v||[]).join('\n\n') : (fmt==='cells' ? (v||[]).map(function(c){ return (c[0]||'')+' | '+(c[1]||''); }).join('\n') : v))); return '<textarea id="'+id+'" class="input" rows="'+(rows||3)+'"'+bind(k,p,fmt?' data-fmt="'+fmt+'"':'')+(ph?' placeholder="'+esc(ph)+'"':'')+'>'+esc(txt)+'</textarea>'; }
 function sel(id, k, p, opts, extraCls){ var v = getPath(draft(k), p); v = v==null?'':String(v); return '<select id="'+id+'" class="input '+(extraCls||'')+'"'+bind(k,p,' data-rerender="1"')+'>'+opts.map(function(o){ return '<option value="'+esc(o[0])+'"'+(String(o[0])===v?' selected':'')+'>'+esc(o[1])+'</option>'; }).join('')+'</select>'; }
 function saveBar(k, label){
   return '<div class="savebar" data-dirtybar="'+k+'"'+(S.dirty[k]?'':' hidden')+'><span>Есть несохранённые изменения: '+label+'</span><span class="row"><button class="btn sm" type="button" data-act="draft-reset" data-k="'+k+'">Отменить</button><button class="btn sm primary" type="button" data-act="draft-save" data-k="'+k+'">Сохранить</button></span></div>';
 }
-var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['surveys','Опросники'],['sims','Тренажёры'],['kb','База знаний'],['org','Структура'],['staff','Тренеры и итоги'],['tabs','Вкладки и название'],['import','Импорт программы']];
+var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['surveys','Опросники'],['sims','Тренажёры'],['kb','База знаний'],['crit','Критические ошибки'],['org','Структура'],['staff','Тренеры и итоги'],['tabs','Вкладки и название'],['import','Импорт программы']];
 function tSettings(){
   var st = S.ui.st || 'plan';
-  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, org:stOrg, tabs:stTabs, staff:stStaff, surveys:stSurveys, 'import':stImport}[st] || stPlan)();
+  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, crit:stCrit, org:stOrg, tabs:stTabs, staff:stStaff, surveys:stSurveys, 'import':stImport}[st] || stPlan)();
   return head('Настройка · '+dirName(activeDir()),'Конструктор кабинета: всё, что видит стажёр. Изменения появляются у стажёров сразу после сохранения.')+dirCard()+
-    '<div class="subnav" role="tablist" aria-label="Разделы настройки">'+ST_TABS.map(function(t){ var dk = {plan:'program',decks:'decks',tests:'tests',surveys:'surveys',kb:'kb',org:'org',tabs:'settings',staff:'settings'}[t[0]]; return '<button type="button" role="tab" aria-selected="'+(st===t[0])+'" class="'+(st===t[0]?'on':'')+'" data-act="st-go" data-s="'+t[0]+'">'+esc(t[1])+(dk&&S.dirty[dk]?' •':'')+'</button>'; }).join('')+'</div>'+body;
+    '<div class="subnav" role="tablist" aria-label="Разделы настройки">'+ST_TABS.map(function(t){ var dk = {plan:'program',decks:'decks',tests:'tests',surveys:'surveys',kb:'kb',crit:'crit',org:'org',tabs:'settings',staff:'settings'}[t[0]]; return '<button type="button" role="tab" aria-selected="'+(st===t[0])+'" class="'+(st===t[0]?'on':'')+'" data-act="st-go" data-s="'+t[0]+'">'+esc(t[1])+(dk&&S.dirty[dk]?' •':'')+'</button>'; }).join('')+'</div>'+body;
 }
 
 function stPlan(){
@@ -1721,6 +1737,60 @@ function stSims(){
     }).join('');
 }
 
+/* ---------- Критические ошибки ---------- */
+function critCfg(gid){ var g = S.groups[gid]; return (g && g.crit) || {}; }
+function critGroupOn(iid){ var it = S.interns[iid]; if(!it) return false; var c = critCfg(it.groupId); return !!(c.open || (c.fromDay && currentDayIdx(iid)+1 >= c.fromDay)); }
+function critAvailFor(iid){ var it = S.interns[iid]; if(!it) return false; if(it.critOpen===true) return true; if(it.critOpen===false) return false; return critGroupOn(iid); }
+function critAvail(){ return S.role==='intern' && critAvailFor(S.iid); }
+function vCrit(){
+  var cd = S.content.crit; var items = (cd && cd.items) || [];
+  if(!items.length) return head(tabTitle('crit'),'')+'<div class="empty"><h2>Список пока пуст</h2><p style="margin:0">Тренер ещё не добавил критические ошибки.</p></div>';
+  var cats = cd.cats || []; var cat = S.ui.critCat || 'all'; var q = String(f('crit-q')).trim().toLowerCase();
+  var counts = {}; items.forEach(function(a){ counts[a.cat]=(counts[a.cat]||0)+1; });
+  var list = items.map(function(a, i){ return Object.assign({n:i+1}, a); }).filter(function(a){ return (cat==='all'||a.cat===cat) && (!q || (a.title+' '+(a.body||[]).join(' ')+' '+(a.right||'')+' '+(a.conseq||'')).toLowerCase().indexOf(q)>=0); });
+  var card = function(a){ var c = cats.filter(function(x){ return x.id===a.cat; })[0];
+    return '<article class="crit-it">'+(c?'<span class="lbl">'+esc(c.title)+'</span>':'')+'<h3><span class="num">'+a.n+'</span><span>'+esc(a.title)+'</span></h3>'+(a.body||[]).map(function(t){ return '<p>'+esc(t)+'</p>'; }).join('')+
+      (a.right?'<div class="crit-ok"><b>Как правильно</b>'+esc(a.right)+'</div>':'')+(a.conseq?'<div class="crit-bad"><b>Последствия</b>'+esc(a.conseq)+'</div>':'')+'</article>'; };
+  var side = cats.length ? '<aside class="card" aria-label="Разделы"><button type="button" class="cat'+(cat==='all'?' on':'')+'" data-act="crit-cat" data-c="all"><span>Все ошибки</span><span class="small num">'+items.length+'</span></button>'+
+    cats.map(function(c){ return '<button type="button" class="cat'+(cat===c.id?' on':'')+'" data-act="crit-cat" data-c="'+esc(c.id)+'"><span>'+esc(c.title)+'</span><span class="small muted num">'+(counts[c.id]||0)+'</span></button>'; }).join('')+'</aside>' : '';
+  return head(tabTitle('crit'),'Что категорически нельзя делать в работе — и как правильно')+
+    '<form role="search" data-form="crit" class="row" style="flex-wrap:nowrap"><label style="flex:1;min-width:0"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Поиск по критическим ошибкам</span><input id="crit-q" data-keep data-live="crit" class="input" type="search" placeholder="Поиск по ошибкам" value="'+esc(f('crit-q'))+'"></label></form>'+
+    '<div class="kb">'+side+'<div style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:14px">'+(list.length ? list.map(card).join('') : '<p class="muted" style="margin:0">Ничего не найдено. Попробуйте другое слово.</p>')+'</div></div>';
+}
+function tCrit(){
+  var gid = curGid(); var g = gid ? S.groups[gid] : null;
+  if(!g) return head('Критические ошибки','')+'<div class="empty"><b>Сначала создайте группу</b><button class="btn primary" data-act="nav" data-v="t-access">Перейти к группам</button></div>';
+  var c = critCfg(gid); var list = internsOf(gid).filter(function(i){ return !i.suspended; }); var nd = days().length;
+  var n = ((S.content.crit||{}).items||[]).length; var seeN = list.filter(function(i){ return critAvailFor(i.id); }).length;
+  var fill = '<section class="card"><div class="row between"><h2>Список ошибок · '+esc(dirName(activeDir()))+'</h2><button class="btn sm" type="button" data-act="st-go" data-s="crit">Редактировать список</button></div><span class="small muted">'+(n ? 'Добавлено ошибок: <b>'+n+'</b>.' : 'Список пуст — добавьте ошибки в «Настройка → Критические ошибки».')+'</span></section>';
+  var access = '<section class="card"><h2>Доступ к вкладке «'+esc(tabTitle('crit'))+'»</h2><p class="hint" style="margin:0">Сначала стажёры вкладку не видят. Откройте её всей группе — сразу или с выбранного дня плана — либо отдельным стажёрам в таблице ниже.</p>'+
+    '<div class="row" style="align-items:flex-end"><label class="field" style="min-width:240px">Открыть по плану<select id="crit-from" data-act-change="crit-from"><option value="">Не открывать по плану</option>'+Array.from({length:nd}, function(_, k){ return '<option value="'+(k+1)+'"'+(Number(c.fromDay)===k+1?' selected':'')+'>С дня '+(k+1)+(days()[k]&&days()[k].title?' · '+esc(days()[k].title):'')+'</option>'; }).join('')+'</select></label>'+
+    '<button class="btn '+(c.open?'danger':'primary')+'" type="button" data-act="crit-open">'+(c.open?'Закрыть доступ группе':'Открыть всей группе сейчас')+'</button></div>'+
+    '<span class="small muted">Сейчас вкладку видят: <b>'+seeN+' из '+list.length+'</b> стажёров группы.</span></section>';
+  var rows = list.map(function(i){ var on = critAvailFor(i.id); var own = i.critOpen===true || i.critOpen===false;
+    return '<tr><td><b>'+esc(i.name)+'</b></td><td>'+(on?'<span class="chip ok">видит</span>':'<span class="muted small">нет</span>')+'</td><td class="small muted">'+(own ? 'настроено лично' : 'как у группы')+'</td><td><div class="row" style="flex-wrap:nowrap;gap:6px">'+
+      (on ? '<button class="btn sm" type="button" data-act="crit-one" data-id="'+esc(i.id)+'" data-v="0">Закрыть</button>' : '<button class="btn sm primary" type="button" data-act="crit-one" data-id="'+esc(i.id)+'" data-v="1">Открыть</button>')+
+      (own ? '<button class="btn sm" type="button" data-act="crit-one" data-id="'+esc(i.id)+'" data-v="">Как у группы</button>' : '')+'</div></td></tr>'; }).join('');
+  var tbl = '<section class="card"><h2>Стажёры</h2>'+(list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Вкладка</th><th>Доступ</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>' : '<p class="muted" style="margin:0">В группе нет стажёров.</p>')+'</section>';
+  return head('Критические ошибки', esc(g.name), groupPicker(false))+fill+access+tbl;
+}
+function stCrit(){
+  var d = draft('crit');
+  var catOpts = d.cats.map(function(c){ return [c.id, c.title||c.id]; });
+  var cats = d.cats.map(function(c, i){ var conf = S.ui.confirm==='ccat:'+i; return '<div class="ed-row"><span class="t">'+inp('cc-'+i,'crit','cats.'+i+'.title','Название раздела, например «Звонки»')+'</span><span class="acts">'+(conf?'<button class="btn sm danger" type="button" data-act="crit-cat-del-yes" data-i="'+i+'">Удалить</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>':'<button class="iconbtn danger" type="button" data-act="confirm" data-c="ccat:'+i+'" aria-label="Удалить раздел">✕</button>')+'</span></div>'; }).join('');
+  var items = d.items.map(function(a, i){
+    var p = 'items.'+i; var open = !!S.ui.edOpen['ce:'+a.id]; var conf = S.ui.confirm==='crit:'+a.id;
+    return '<div class="ed'+(open?' open':'')+'"><div class="ed-row"><span class="n num">'+(i+1)+'</span><span class="t">'+inp('ce-'+a.id+'-t','crit',p+'.title','Что нельзя делать')+'</span>'+(catOpts.length?'<span class="ty">'+sel('ce-'+a.id+'-c','crit',p+'.cat',[['','— раздел —']].concat(catOpts))+'</span>':'')+
+      '<span class="acts">'+(conf?'<button class="btn sm danger" type="button" data-act="crit-del-yes" data-i="'+i+'">Удалить</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button>':
+        '<button class="iconbtn" type="button" data-act="crit-mv" data-i="'+i+'" data-d="-1" aria-label="Выше"'+(i?'':' disabled')+'>↑</button><button class="iconbtn" type="button" data-act="crit-mv" data-i="'+i+'" data-d="1" aria-label="Ниже"'+(i<d.items.length-1?'':' disabled')+'>↓</button><button class="iconbtn'+(open?' on':'')+'" type="button" data-act="ed-open" data-id="ce:'+esc(a.id)+'" aria-expanded="'+open+'" aria-label="Редактировать текст">⋯</button><button class="iconbtn danger" type="button" data-act="confirm" data-c="crit:'+esc(a.id)+'" aria-label="Удалить ошибку">✕</button>')+'</span></div>'+
+      (open ? '<div class="ed-more"><label class="field wide">Описание — что именно нельзя и почему (абзацы через пустую строку)'+area('ce-'+a.id+'-b','crit',p+'.body','paras','',4)+'</label><label class="field wide">Как правильно'+area('ce-'+a.id+'-r','crit',p+'.right','','',3)+'</label><label class="field wide">Последствия'+area('ce-'+a.id+'-q','crit',p+'.conseq','','Например: штраф, отстранение от линии',2)+'</label></div>' : '')+'</div>';
+  }).join('');
+  return saveBar('crit','критические ошибки')+
+    '<section class="card"><h2>Загрузить списком</h2><p class="hint" style="margin:0">По одной ошибке на строку: <b>Что нельзя | Описание | Как правильно | Последствия</b>. Обязателен только первый столбец. Ошибки добавятся в конец списка — потом нажмите «Сохранить».</p><textarea id="crit-bulk" class="input" rows="5" data-keep placeholder="Сбрасывать клиента без ЦД | Любой контакт фиксируется в Мульти ЦД | Сначала поставьте ЦД, потом переходите к следующему | Штраф">'+esc(f('crit-bulk'))+'</textarea><button class="btn" type="button" data-act="crit-bulk" style="align-self:flex-start">Добавить в список</button></section>'+
+    '<section class="card"><div class="row between"><h2>Разделы</h2><button class="btn sm" type="button" data-act="crit-cat-add">+ Раздел</button></div><p class="hint" style="margin:0">Необязательно. Если разделов нет, стажёр видит один общий список.</p>'+cats+'</section>'+
+    '<section class="stack" style="gap:8px"><div class="row between"><h2>Ошибки · '+d.items.length+'</h2><button class="btn primary sm" type="button" data-act="crit-add">+ Ошибка</button></div>'+(items || '<p class="muted" style="margin:0">Пока пусто.</p>')+'</section>';
+}
+
 function stKb(){
   var d = draft('kb');
   var catOpts = d.cats.map(function(c){ return [c.id, c.title||c.id]; });
@@ -1758,8 +1828,7 @@ function stTabs(){
   var d = draft('settings');
   return saveBar('settings','вкладки')+
     '<section class="card"><h2>Название кабинета</h2><div class="row" style="align-items:flex-end"><label class="field" style="flex:1 1 200px">Название'+inp('sb-n','settings','brand.name','Старт')+'</label><label class="field" style="flex:2 1 280px">Подпись'+inp('sb-s','settings','brand.sub','ЛК стажёра · взыскание')+'</label></div>'+
-    '<label class="field">Кнопка «Связь с тренером» — Telegram тренера направления «'+esc(dirName(activeDir()))+'»'+inp('sb-tg-'+activeDir(),'settings','tgByDir.'+activeDir(), String(draft('settings').trainerContact||'').trim() ? 'пусто — общий: '+String(draft('settings').trainerContact).trim() : '@zzuboff')+'</label>'+
-    '<label class="field">Общий Telegram — для направлений, где свой не указан'+inp('sb-tg','settings','trainerContact','@zzuboff')+'</label><p class="hint" style="margin:0">Укажите @username или ссылку. Стажёры направления увидят кнопку внизу справа, по ней откроется чат с тренером. Чтобы скрыть кнопку в направлении, поставьте «-». Для другого направления переключите его вверху слева.</p>'+
+    '<label class="field">Кнопка «Связь с тренером» — Telegram тренера направления «'+esc(dirName(activeDir()))+'»'+tgInput()+'</label><p class="hint" style="margin:0">У каждого направления свой контакт: стажёры этого направления увидят кнопку внизу справа, по ней откроется чат с тренером. Укажите @username или ссылку. Пусто — кнопка ведёт на @zzuboff, «-» — кнопка скрыта. Чтобы задать контакт другому направлению, переключите его вверху слева.</p>'+
     '<label class="check"><input type="checkbox" id="sb-apply"'+bind('settings','allowApply',' data-fmt="bool" data-rerender="1"')+(d.allowApply===false?'':' checked')+'>Разрешить стажёрам подавать заявку на доступ со страницы входа</label></section>'+
     '<section class="card"><h2>Направления</h2><p class="hint" style="margin:0">У каждого направления свои план, презентации, тесты, опросники, база знаний и тренажёры. Группа привязывается к направлению при создании. Переключатель направления — вверху слева.</p><div class="stack" style="gap:8px">'+d.dirs.map(function(x, i){ var n = Object.keys(S.groups).filter(function(k){ return gDir(k)===x.id; }).length;
       return '<div class="ed-row" style="border-top:1px solid var(--line2);padding-top:8px"><span class="t"><label class="field">Название<input id="dr-'+i+'" class="input"'+bind('settings','dirs.'+i+'.name')+' value="'+esc(x.name)+'"></label></span><span class="small muted">'+(n?'групп: '+n:'групп нет')+'</span>'+(x.id==='soft'||n?'':'<button class="btn sm danger" type="button" data-act="dir-del" data-i="'+i+'">Удалить</button>')+'</div>'; }).join('')+'</div><button class="btn" type="button" data-act="dir-add" style="align-self:flex-start">+ Направление</button></section>'+
@@ -1910,6 +1979,7 @@ function cleanDraft(k, d){
   if(k==='surveys'){ Object.keys(d.surveys).forEach(function(id){ var v = d.surveys[id]; v.title = String(v.title||'').trim() || 'Опрос'; v.desc = String(v.desc||'').trim(); v.anonymous = v.anonymous !== false; v.always = !!v.always;
     v.questions = (v.questions||[]).map(function(q){ var o = {id:q.id||uid('q'), type:SV_TYPES[q.type]?q.type:'rating', q:String(q.q||'').trim(), required:!!q.required}; if(o.type==='choice'||o.type==='multi') o.options = (q.options||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); return o; })
       .filter(function(q){ return q.q && ((q.type!=='choice' && q.type!=='multi') || q.options.length>=2); }); }); }
+  if(k==='crit'){ d.items = d.items.map(function(x){ x.title = String(x.title||'').trim(); x.body = (x.body||[]).map(function(t){ return String(t).trim(); }).filter(Boolean); x.right = String(x.right||'').trim(); x.conseq = String(x.conseq||'').trim(); if(!x.cat) delete x.cat; return x; }).filter(function(x){ return x.title; }); d.cats = d.cats.filter(function(c){ return String(c.title||'').trim(); }); }
   if(k==='kb'){ d.articles.forEach(function(a){ a.body = (a.body||[]).map(function(x){ return String(x).trim(); }).filter(Boolean); }); d.cheat.cells = (d.cheat.cells||[]).filter(function(c){ return c[0]||c[1]; }); }
   return d;
 }
@@ -1946,7 +2016,7 @@ function viewModal(){
       '<p class="small muted" style="margin:0">Отметились '+yes.length+' из '+ls.length+'</p><div class="stack" style="gap:2px">'+yes.map(function(x){ return '<div class="rollrow"><span class="row" style="gap:12px;flex-wrap:nowrap"><span class="rmark yes" aria-hidden="true">✓</span><b>'+esc(x.name)+'</b></span><span class="small">на месте · '+hhmm(x.at)+'</span></div>'; }).join('')+no.map(function(x){ return '<div class="rollrow"><span class="row" style="gap:12px;flex-wrap:nowrap"><span class="rmark no" aria-hidden="true">✕</span><b>'+esc(x.name)+'</b></span><span class="small muted">не отметился</span></div>'; }).join('')+'</div></div></div>'; }
   if(m.type==='simres'){ var it0 = S.interns[m.id] || {}; var rs0 = simResList(m.id);
     return '<div class="modal-back" data-act="modal-close-bg"><div class="modal article" role="dialog" aria-modal="true" aria-labelledby="h-sr"><div class="row between"><h2 id="h-sr" style="margin:0">Симулятор · '+esc(it0.name||'')+'</h2><button class="btn sm" type="button" data-act="modal-close">Закрыть</button></div>'+
-      '<span class="small muted">Обучение: '+(P(m.id).simLearn?'пройдено '+esc(fmtDT(P(m.id).simLearn)):'не пройдено')+'</span>'+(rs0.length ? rs0.map(function(x){ return simResHtml(x, true); }).join('') : '<p class="muted">Результатов пока нет.</p>')+'</div></div>'; }
+      '<span class="small muted">'+esc(SIM_KINDS[simKindI(m.id)].title)+' · обучение: '+(simLearnOf(m.id)?'пройдено '+esc(fmtDT(simLearnOf(m.id))):'не пройдено')+'</span>'+(rs0.length ? rs0.map(function(x){ return simResHtml(x, true); }).join('') : '<p class="muted">Результатов пока нет.</p>')+'</div></div>'; }
   if(m.type==='task'){
     var t = itemById(m.itemId); if(!t) return '';
     var dn = isDone(t);
@@ -1960,12 +2030,15 @@ function viewModal(){
 
 
 /* ---------- Симулятор Inari ---------- */
-var SIM_FILE = 'inari-simulator.html';
+var SIM_KINDS = {vz:{file:'inari-simulator.html', title:'Симулятор Inari', name:'Взыскание', desc:'Кредиты из котла, чек-лист, прозвон клиента и 3-х лиц, Telegram, входящие звонки.'}, kc:{file:'kc-simulator.html', title:'Симулятор КЦ', name:'Контакт-центр (КЦ)', desc:'Клиенты на регистрации и заявки на доработке, Мульти ЦД, Telegram, ивентовые звонки.'}};
+function simKindOf(gid){ var c = simCfg(gid); if(c.kind==='kc' || c.kind==='vz') return c.kind; return /кц/i.test(dirName(gDir(gid))) ? 'kc' : 'vz'; }
+function simKindI(iid){ var it = S.interns[iid]; return it ? simKindOf(it.groupId) : 'vz'; }
+function simLearnOf(iid){ var p = P(iid); return simKindI(iid)==='kc' ? p.simLearnKc : p.simLearn; }
 function simCfg(gid){ var g = S.groups[gid]; return (g && g.sim) || {}; }
 function simAvailFor(iid){ var it = S.interns[iid]; if(!it) return false; var c = simCfg(it.groupId); return !!(c.open || (c.fromDay && currentDayIdx(iid)+1 >= c.fromDay)); }
 function simAvail(){ return S.role==='intern' && simAvailFor(S.iid); }
 function simTestActive(iid){ var it = S.interns[iid]; var st = it && it.simTest; return !!(st && st.id && !((P(iid).simres||{})[st.id])); }
-function simResList(iid){ var r = P(iid).simres || {}; return Object.keys(r).map(function(k){ return Object.assign({id:k}, r[k]); }).filter(function(x){ return x && x.at; }).sort(function(a,b){ return b.at-a.at; }); }
+function simResList(iid){ var r = P(iid).simres || {}; var kd = simKindI(iid); return Object.keys(r).map(function(k){ return Object.assign({id:k}, r[k]); }).filter(function(x){ return x && x.at && (x.sim||'vz')===kd; }).sort(function(a,b){ return b.at-a.at; }); }
 function simSecs(t){ t = Math.max(0, Math.round(t||0)); var h = Math.floor(t/3600), m = Math.floor(t%3600/60), s2 = t%60; return (h?h+':':'')+(h&&m<10?'0':'')+m+':'+(s2<10?'0':'')+s2; }
 function simResLine(x){ return '<b class="'+(x.pass?'':'')+'" style="color:'+(x.pass?'var(--ok,#1e8f4e)':'var(--danger,#d23a3a)')+'">'+(x.pass?'Сдано':'Не сдано')+'</b> · '+(x.okN!=null?x.okN+' из '+x.total+' пунктов':'')+' · '+simSecs(x.sec)+' · ошибок '+(x.errs||0)+(x.viol?' · сбросов раньше 20 с: '+x.viol:''); }
 function simResHtml(x, full){
@@ -1973,8 +2046,8 @@ function simResHtml(x, full){
     (full ? ((x.items||[]).length ? '<ul>'+x.items.map(function(i){ return '<li style="color:'+(i[1]?'var(--ok,#1e8f4e)':'var(--danger,#d23a3a)')+'">'+(i[1]?'✓ ':'✕ ')+esc(i[0])+'</li>'; }).join('')+'</ul>' : '')+
       ((x.errList||[]).length ? '<details><summary class="small" style="cursor:pointer">Ошибки ('+x.errList.length+')</summary><ol class="small" style="margin:4px 0 0;padding-left:18px">'+x.errList.map(function(e){ return '<li><span class="muted">'+esc(e.t)+'</span> — '+esc(e.x)+'</li>'; }).join('')+'</ol></details>' : '') : '')+'</div>'; }
 function vSim(){
-  var rs = simResList(S.iid); var learn = P().simLearn;
-  return head(tabTitle('sim'), 'Учебный рабочий стол оператора: MicroSIP, Inari, удалённый стол LD1 и Telegram')+
+  var rs = simResList(S.iid); var learn = simLearnOf(S.iid); var K = SIM_KINDS[simKindI(S.iid)];
+  return head(tabTitle('sim'), esc(K.title)+' · учебный рабочий стол оператора: MicroSIP, Inari, удалённый стол LD1 и Telegram')+
     '<section class="card"><h2>Как устроен симулятор</h2><p style="margin:0;line-height:1.6">Три режима: <b>Свободный</b> — изучаете всё сами; <b>Обучение</b> — пошаговый инструктаж от начала до конца смены; <b>Тестирование</b> — задание без подсказок с итоговой оценкой. Результаты тестирования сохраняются здесь и видны тренеру.</p>'+
     '<div class="row"><button class="btn primary" type="button" data-act="inari-open">Открыть симулятор</button>'+(learn?'<span class="chip ok">Обучение пройдено '+esc(fmtDT(learn).slice(0,10))+'</span>':'')+'</div></section>'+
     '<section class="card"><h2>Мои тестирования</h2>'+(rs.length ? rs.map(function(x){ return simResHtml(x, true); }).join('') : '<p class="muted" style="margin:0">Пока нет. Пройдите режим «Тестирование» в симуляторе.</p>')+'</section>';
@@ -1984,36 +2057,37 @@ function simLockScreen(m){ var b = brand();
 function openInari(o){ o = o || {};
   if(S.player && S.player.inari && S.player.test===(o.test||null)) return;
   S.player = {inari:true, lock:!!o.test, test:o.test||null};
-  var src = SIM_FILE+'?lk=1'+(o.test ? '&lock=1&test='+encodeURIComponent(o.test) : '');
-  playerEl.innerHTML = '<div class="player" role="dialog" aria-modal="true" aria-label="Симулятор Inari"><div class="player-bar"><b>Симулятор Inari'+(o.test?' · тест от тренера':'')+'</b>'+
+  var K = SIM_KINDS[simKindI(S.iid)]; S.player.kind = simKindI(S.iid); var src = K.file+'?lk=1'+(o.test ? '&lock=1&test='+encodeURIComponent(o.test) : '');
+  playerEl.innerHTML = '<div class="player" role="dialog" aria-modal="true" aria-label="'+esc(K.title)+'"><div class="player-bar"><b>'+esc(K.title)+(o.test?' · тест от тренера':'')+'</b>'+
     (o.test ? '<span id="inari-slot" class="small">Кабинет откроется после «Сдать смену»</span>' : '<button class="btn" type="button" data-act="inari-fs">На весь экран</button><button class="btn" type="button" data-act="pl-close">Закрыть симулятор</button>')+
-    '</div><iframe class="player-frame" title="Симулятор Inari" src="'+esc(src)+'" allow="fullscreen; clipboard-read; clipboard-write"></iframe></div>';
+    '</div><iframe class="player-frame" title="'+esc(K.title)+'" src="'+esc(src)+'" allow="fullscreen; clipboard-read; clipboard-write"></iframe></div>';
   document.body.style.overflow = 'hidden';
 }
 window.addEventListener('message', function(e){ var d = e.data; if(!d || d.type!=='inari-sim' || !S.player || !S.player.inari || S.role!=='intern') return;
   var fr = playerEl.querySelector('iframe'); if(!fr || e.source!==fr.contentWindow) return;
-  if(d.kind==='exam'){ var id = d.test || ('s'+Date.now()); var rec = Object.assign({at:Date.now(), byTrainer:!!d.test}, d.res||{}); rec.errList = (rec.errList||[]).slice(0,60); var patch = {simres:{}}; patch.simres[id] = rec;
+  if(d.kind==='exam'){ var id = d.test || ('s'+Date.now()); var rec = Object.assign({at:Date.now(), byTrainer:!!d.test}, d.res||{}, {sim:S.player.kind||simKindI(S.iid)}); rec.errList = (rec.errList||[]).slice(0,60); var patch = {simres:{}}; patch.simres[id] = rec;
     saveProgress(patch); if(d.test){ var slot = document.getElementById('inari-slot'); if(slot) slot.innerHTML = '<button class="btn primary" type="button" data-act="pl-close">Вернуться в кабинет</button>'; } else toast('Результат тестирования сохранён во вкладке «Симулятор»'); }
-  if(d.kind==='learn') saveProgress({simLearn:Date.now()});
+  if(d.kind==='learn') saveProgress((S.player.kind||simKindI(S.iid))==='kc' ? {simLearnKc:Date.now()} : {simLearn:Date.now()});
 });
 function tSim(){
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
   if(!g) return head('Симулятор','')+'<div class="empty"><b>Сначала создайте группу</b><button class="btn primary" data-act="nav" data-v="t-access">Перейти к группам</button></div>';
   var c = simCfg(gid); var list = internsOf(gid).filter(function(i){ return !i.suspended; }); var nd = days().length;
   var seeN = list.filter(function(i){ return simAvailFor(i.id); }).length;
+  var kd = simKindOf(gid); var kind = '<section class="card"><h2>Какой симулятор проходит группа</h2><p class="hint" style="margin:0">У группы на стажировке только один симулятор. Стажёры открывают его во вкладке «Симулятор», а в результатах показываются только его обучение и тестирования.</p><div class="kindpick" role="radiogroup" aria-label="Симулятор группы">'+['vz','kc'].map(function(k){ var on = kd===k; return '<button type="button" role="radio" aria-checked="'+on+'" class="'+(on?'on':'')+'" data-act="sim-kind" data-k="'+k+'"><b>'+esc(SIM_KINDS[k].title)+'</b><span class="small muted">'+esc(SIM_KINDS[k].desc)+'</span></button>'; }).join('')+'</div>'+(Object.keys(S.interns).some(function(k){ return S.interns[k].groupId===gid && simTestActive(k); })?'<span class="small" style="color:var(--danger,#d23a3a)">Сейчас у стажёров идёт тест — не меняйте симулятор до его окончания.</span>':'')+'</section>';
   var access = '<section class="card"><h2>Доступ к вкладке «Симулятор»</h2><p class="hint" style="margin:0">Вкладка появится у стажёра только когда вы откроете доступ: с выбранного дня плана (по открытым дням стажёра) или сразу вручную.</p>'+
     '<div class="row" style="align-items:flex-end"><label class="field" style="min-width:240px">Открыть по плану<select id="sim-from" data-act-change="sim-from"><option value="">Не открывать по плану</option>'+Array.from({length:nd}, function(_, k){ return '<option value="'+(k+1)+'"'+(Number(c.fromDay)===k+1?' selected':'')+'>С дня '+(k+1)+(days()[k]&&days()[k].title?' · '+esc(days()[k].title):'')+'</option>'; }).join('')+'</select></label>'+
     '<button class="btn '+(c.open?'danger':'primary')+'" type="button" data-act="sim-open">'+(c.open?'Закрыть ручной доступ':'Открыть всем сейчас')+'</button></div>'+
     '<span class="small muted">Сейчас вкладку видят: <b>'+seeN+' из '+list.length+'</b> стажёров группы.</span></section>';
-  var rows = list.map(function(i){ var rs = simResList(i.id); var last = rs[0]; var act = simTestActive(i.id); var learn = P(i.id).simLearn;
+  var rows = list.map(function(i){ var rs = simResList(i.id); var last = rs[0]; var act = simTestActive(i.id); var learn = simLearnOf(i.id);
     return '<tr><td><b>'+esc(i.name)+'</b></td><td>'+(simAvailFor(i.id)?'<span class="chip ok">видит</span>':'<span class="muted small">нет</span>')+'</td><td class="small">'+(learn?esc(fmtDT(learn).slice(0,10)):'<span class="muted">—</span>')+'</td><td class="small">'+(last?simResLine(last)+'<br><span class="muted">'+fmtDT(last.at)+'</span>':'<span class="muted">не проходил</span>')+'</td><td class="num">'+rs.length+'</td>'+
       '<td><div class="row" style="flex-wrap:nowrap;gap:6px">'+(act?'<span class="chip warn">идёт тест</span><button class="btn sm" type="button" data-act="sim-test-cancel" data-id="'+esc(i.id)+'">Отменить</button>':'<button class="btn sm primary" type="button" data-act="sim-test" data-id="'+esc(i.id)+'">Запустить тест</button>')+(rs.length?'<button class="btn sm" type="button" data-act="sim-res" data-id="'+esc(i.id)+'" aria-label="Все результаты" title="Все результаты">👁</button>':'')+'</div></td></tr>'; }).join('');
   var tests = '<section class="card"><div class="row between"><h2>Тест по симулятору</h2>'+(list.length?'<button class="btn sm primary" type="button" data-act="sim-test-all">Запустить тест всей группе</button>':'')+'</div><p class="hint" style="margin:0">«Запустить тест» — у стажёра в кабинете сразу открывается симулятор в режиме тестирования, и больше ничего сделать нельзя, пока он не сдаст смену. Результат появляется здесь и в «Результатах».</p>'+
     (list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Вкладка</th><th>Обучение</th><th>Последнее тестирование</th><th>Всего</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>' : '<p class="muted" style="margin:0">В группе нет стажёров.</p>')+'</section>';
-  return head('Симулятор', esc(g.name), groupPicker(false))+access+tests;
+  return head('Симулятор', esc(g.name), groupPicker(false))+kind+access+tests;
 }
-function simCardFor(iid){ var rs = simResList(iid); var learn = P(iid).simLearn;
-  return '<section class="card"><div class="row between"><h2>Симулятор Inari</h2>'+(rs.length?'<button class="btn sm" type="button" data-act="sim-res" data-id="'+esc(iid)+'">Подробно</button>':'')+'</div><span class="small muted">Обучение: '+(learn?'пройдено '+esc(fmtDT(learn)):'не пройдено')+' · тестирований: '+rs.length+'</span>'+rs.slice(0,3).map(function(x){ return simResHtml(x, false); }).join('')+'</section>'; }
+function simCardFor(iid){ var rs = simResList(iid); var learn = simLearnOf(iid);
+  return '<section class="card"><div class="row between"><h2>'+esc(SIM_KINDS[simKindI(iid)].title)+'</h2>'+(rs.length?'<button class="btn sm" type="button" data-act="sim-res" data-id="'+esc(iid)+'">Подробно</button>':'')+'</div><span class="small muted">Обучение: '+(learn?'пройдено '+esc(fmtDT(learn)):'не пройдено')+' · тестирований: '+rs.length+'</span>'+rs.slice(0,3).map(function(x){ return simResHtml(x, false); }).join('')+'</section>'; }
 /* fullscreen presentation (kept outside #app so live updates don't exit fullscreen) */
 function fsUpdate(){ var el = document.getElementById('fsx'); if(!el || !S.fs) return; var m = me(); var deckId = presDeckId(); var dk = deck(deckId); if(!m || !dk){ fsClose(); return; }
   var total = dk.slides.length, limit = slideLimit(deckId); var view = Math.max(1, Math.min(curSlide(), Math.max(1, limit))); var locked = presLocked();
@@ -2093,6 +2167,7 @@ var A = {
   'pres-fs': function(){ var el = document.getElementById('fsx'); if(!el) return; S.fs = true; el.hidden = false; fsUpdate(); if(el.requestFullscreen){ el.requestFullscreen().catch(function(){}); } },
   'pres-fs-exit': function(){ fsClose(); },
   'roll-view': function(el){ S.ui.modal = {type:'rollview', id:el.dataset.id}; render(); },
+  'sim-kind': function(el){ var gid = curGid(); var k = el.dataset.k; if(simKindOf(gid)===k) return; S.db.doc('groups/'+gid).update({sim:{kind:k}}).then(function(){ toast('Группа проходит: '+SIM_KINDS[k].title+'. Результаты показываются только по нему.'); }, writeErr); },
   'sim-res': function(el){ S.ui.modal = {type:'simres', id:el.dataset.id}; render(); },
   'sim-from-x': function(el){ var gid = curGid(); var v = el.value ? Number(el.value) : null; S.db.doc('groups/'+gid).update({sim:{fromDay:v}}).then(function(){ toast(v ? 'Вкладка «Симулятор» откроется с дня '+v : 'Открытие по плану выключено'); }, writeErr); },
   'sim-open': function(){ var gid = curGid(); var c = simCfg(gid); S.db.doc('groups/'+gid).update({sim:{open:!c.open}}).then(function(){ toast(!c.open ? 'Вкладка «Симулятор» открыта всей группе' : 'Ручной доступ закрыт'); }, writeErr); },
@@ -2107,6 +2182,18 @@ var A = {
   'modal-close-bg': function(el, e){ if(e.target===el){ S.ui.modal=null; render(); } },
   article: function(el){ S.ui.modal={type:'article', id:el.dataset.id}; render(); },
   'kb-cat': function(el){ S.ui.kbCat = el.dataset.c; render(); },
+  'crit-cat': function(el){ S.ui.critCat = el.dataset.c; render(); },
+  'crit-open': function(){ var gid = curGid(); var c = critCfg(gid); S.db.doc('groups/'+gid).update({crit:{open:!c.open}}).then(function(){ toast(!c.open ? 'Критические ошибки открыты всей группе' : 'Доступ группе закрыт'); }, writeErr); },
+  'crit-from-x': function(el){ var gid = curGid(); var v = el.value ? Number(el.value) : null; S.db.doc('groups/'+gid).update({crit:{fromDay:v}}).then(function(){ toast(v ? 'Критические ошибки откроются с дня '+v : 'Открытие по плану выключено'); }, writeErr); },
+  'crit-one': function(el){ var v = el.dataset.v; var val = v==='1' ? true : v==='0' ? false : null; S.db.doc('interns/'+el.dataset.id).update({critOpen:val}).then(function(){ toast(val===true ? 'Доступ открыт' : val===false ? 'Доступ закрыт' : 'Доступ — как у группы'); }, writeErr); },
+  'crit-cat-add': function(){ draft('crit').cats.push({id:uid('cc'), title:''}); markDirty('crit'); render(); },
+  'crit-cat-del-yes': function(el){ var d = draft('crit'); var c = d.cats.splice(Number(el.dataset.i),1)[0]; if(c) d.items.forEach(function(x){ if(x.cat===c.id) x.cat = ''; }); S.ui.confirm=null; markDirty('crit'); render(); },
+  'crit-add': function(){ var a = {id:uid('ce'), cat:'', title:'', body:[], right:'', conseq:''}; draft('crit').items.push(a); S.ui.edOpen['ce:'+a.id]=true; markDirty('crit'); render(); },
+  'crit-del-yes': function(el){ draft('crit').items.splice(Number(el.dataset.i),1); S.ui.confirm=null; markDirty('crit'); render(); },
+  'crit-mv': function(el){ var a = draft('crit').items; var i = Number(el.dataset.i), j = i+Number(el.dataset.d); if(j<0||j>=a.length) return; var t = a[i]; a[i] = a[j]; a[j] = t; markDirty('crit'); render(); },
+  'crit-bulk': function(){ var txt = String(f('crit-bulk')); var d = draft('crit'); var n = 0;
+    txt.split('\n').forEach(function(l){ if(!l.trim()) return; var c = l.split('|').map(function(x){ return x.trim(); }); if(!c[0]) return; d.items.push({id:uid('ce'), cat:'', title:c[0], body:c[1]?[c[1]]:[], right:c[2]||'', conseq:c.slice(3).join(' | ')}); n++; });
+    if(!n){ toast('Вставьте хотя бы одну строку'); return; } S.form['crit-bulk'] = ''; markDirty('crit'); render(); toast('Добавлено ошибок: '+n+'. Не забудьте «Сохранить».'); },
   copy: function(el){ copy(el.dataset.text, el); },
   'pl-close': function(){ closePlayer(); render(); },
   'pl-done': function(){ var p = S.player; if(!p || !p.itemId) return; var patch={items:{}}; patch.items[p.itemId]={status:'done', at:Date.now()}; saveProgress(patch); var slot = document.getElementById('pl-done-slot'); if(slot) slot.innerHTML = '<span class="chip ok">Выполнено</span>'; },
@@ -2309,6 +2396,7 @@ var CHANGE = {
   'oc-kind': function(el){ S.form[el.id] = el.value; render(); },
   'dir-pick': function(el){ if(Object.keys(S.dirty).some(function(k){ return S.dirty[k]; })){ el.value = activeDir(); toast('Сначала сохраните или отмените изменения в настройке'); return; } S.ui.dir = el.value; S.draft = {}; S.dirty = {}; S.ui.gid = null; S.ui.rsel = null; applyDir(); render(); toast('Направление: '+dirName(el.value)); },
   'sim-from': function(el){ A['sim-from-x'](el); },
+  'crit-from': function(el){ A['crit-from-x'](el); },
   'imp-file': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; if(fs.length) importParse(fs); },
   'slides-files': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; addSlideImages(fs); },
   'slide-replace': function(el){ var fl = el.files && el.files[0]; var i = Number(el.dataset.i); el.value=''; replaceSlideImage(i, fl); },
@@ -2347,7 +2435,7 @@ document.addEventListener('input', function(e){
   if(el.hasAttribute && el.hasAttribute('data-keep')){ S.form[el.id] = el.value; if(el.id==='ni-name' && S.ui.loginAuto!==false){ S.form['ni-login'] = makeLogin(el.value); } if(el.id==='ni-login') S.ui.loginAuto=false; if(el.id==='ap-name' && S.ui.apLoginAuto!==false){ S.form['ap-login'] = makeLogin(el.value); } if(el.id==='ap-login') S.ui.apLoginAuto=false; }
   if(el.dataset && el.dataset.d && el.tagName!=='SELECT' && el.type!=='checkbox'){ setPath(draft(el.dataset.d), el.dataset.p, parseVal(el)); markDirty(el.dataset.d); }
   if(el.dataset && el.dataset.note){ S.form['note-'+el.dataset.note] = el.value; }
-  if(el.dataset && (el.dataset.live==='kb' || el.dataset.live==='ni')) render();
+  if(el.dataset && (el.dataset.live==='kb' || el.dataset.live==='ni' || el.dataset.live==='crit')) render();
 });
 function onDecksScreen(){ return S.role==='trainer' && S.view==='t-settings' && S.ui.st==='decks'; }
 document.addEventListener('paste', function(e){
