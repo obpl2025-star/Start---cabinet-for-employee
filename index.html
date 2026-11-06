@@ -1514,7 +1514,11 @@ function dirsList(){ var d = (S.content.settings||{}).dirs; return (d && d.lengt
 function dirName(id){ var d = dirsList().filter(function(x){ return x.id===id; })[0]; return d ? d.name : (id==='soft'?'Софт':id); }
 function dirPath(k, dir){ return 'content/'+k+((dir||'soft')==='soft' ? '' : '~'+dir); }
 function gDir(gid){ var g = S.groups[gid]; return (g && g.dir) || 'soft'; }
-function activeDir(){ if(S.role==='intern'){ var m = me(); return m ? gDir(m.groupId) : 'soft'; } return S.ui.dir || 'soft'; }
+function dirSaved(){ try{ return localStorage.getItem('start-lk-dir') || ''; }catch(e){ return ''; } }
+function dirRemember(id){ try{ localStorage.setItem('start-lk-dir', id); }catch(e){} }
+function activeDir(){ if(S.role==='intern'){ var m = me(); return m ? gDir(m.groupId) : 'soft'; }
+  if(!S.ui.dir){ var sv = dirSaved(); if(sv && dirsList().some(function(d){ return d.id===sv; })) S.ui.dir = sv; }
+  return S.ui.dir || 'soft'; }
 function applyDir(){ var d = activeDir(); DIR_KEYS.forEach(function(k){ var p = dirPath(k, d); S.content[k] = S.cAll[p]!==undefined ? S.cAll[p] : null; if(k==='org' && !S.content[k] && d!=='soft') S.content[k] = S.cAll[dirPath('org','soft')] || null; }); }
 function orgInherited(){ var d = activeDir(); return d!=='soft' && !S.cAll[dirPath('org', d)]; }
 function srcPath(k){ var c = DRAFT_SRC[k]; return DIR_KEYS.indexOf(c)>=0 ? dirPath(c, activeDir()) : 'content/'+c; }
@@ -1557,12 +1561,12 @@ function inp(id, k, p, ph, cls){ var v = getPath(draft(k), p); return '<input id
 function area(id, k, p, fmt, ph, rows){ var v = getPath(draft(k), p); var txt = v==null ? '' : (fmt==='lines' ? (v||[]).join('\n') : (fmt==='paras' ? (v||[]).join('\n\n') : (fmt==='cells' ? (v||[]).map(function(c){ return (c[0]||'')+' | '+(c[1]||''); }).join('\n') : v))); return '<textarea id="'+id+'" class="input" rows="'+(rows||3)+'"'+bind(k,p,fmt?' data-fmt="'+fmt+'"':'')+(ph?' placeholder="'+esc(ph)+'"':'')+'>'+esc(txt)+'</textarea>'; }
 function sel(id, k, p, opts, extraCls){ var v = getPath(draft(k), p); v = v==null?'':String(v); return '<select id="'+id+'" class="input '+(extraCls||'')+'"'+bind(k,p,' data-rerender="1"')+'>'+opts.map(function(o){ return '<option value="'+esc(o[0])+'"'+(String(o[0])===v?' selected':'')+'>'+esc(o[1])+'</option>'; }).join('')+'</select>'; }
 function saveBar(k, label){
-  return '<div class="savebar" data-dirtybar="'+k+'"'+(S.dirty[k]?'':' hidden')+'><span>Есть несохранённые изменения: '+label+'</span><span class="row"><button class="btn sm" type="button" data-act="draft-reset" data-k="'+k+'">Отменить</button><button class="btn sm primary" type="button" data-act="draft-save" data-k="'+k+'">Сохранить</button></span></div>';
+  return '<div class="savebar" data-dirtybar="'+k+'"'+(S.dirty[k]?'':' hidden')+'><span>Есть несохранённые изменения: '+label+(DIR_KEYS.indexOf(DRAFT_SRC[k])>=0 ? ' · направление <b>«'+esc(dirName(activeDir()))+'»</b>' : '')+'</span><span class="row"><button class="btn sm" type="button" data-act="draft-reset" data-k="'+k+'">Отменить</button><button class="btn sm primary" type="button" data-act="draft-save" data-k="'+k+'">'+(DIR_KEYS.indexOf(DRAFT_SRC[k])>=0 ? 'Сохранить в «'+esc(dirName(activeDir()))+'»' : 'Сохранить')+'</button></span></div>';
 }
-var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['surveys','Опросники'],['sims','Тренажёры'],['kb','База знаний'],['crit','Критические ошибки'],['org','Структура'],['staff','Тренеры и итоги'],['tabs','Вкладки и название'],['import','Импорт программы']];
+var ST_TABS = [['plan','План стажировки'],['decks','Презентации'],['tests','Тесты'],['surveys','Опросники'],['sims','Тренажёры'],['kb','База знаний'],['crit','Критические ошибки'],['org','Структура'],['staff','Тренеры и итоги'],['tabs','Вкладки и название'],['import','Импорт программы'],['hist','История версий']];
 function tSettings(){
   var st = S.ui.st || 'plan';
-  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, crit:stCrit, org:stOrg, tabs:stTabs, staff:stStaff, surveys:stSurveys, 'import':stImport}[st] || stPlan)();
+  var body = ({plan:stPlan, decks:stDecks, tests:stTests, sims:stSims, kb:stKb, crit:stCrit, org:stOrg, tabs:stTabs, staff:stStaff, surveys:stSurveys, 'import':stImport, hist:stHist}[st] || stPlan)();
   return head('Настройка · '+dirName(activeDir()),'Конструктор кабинета: всё, что видит стажёр. Изменения появляются у стажёров сразу после сохранения.')+dirCard()+
     '<div class="subnav" role="tablist" aria-label="Разделы настройки">'+ST_TABS.map(function(t){ var dk = {plan:'program',decks:'decks',tests:'tests',surveys:'surveys',kb:'kb',crit:'crit',org:'org',tabs:'settings',staff:'settings'}[t[0]]; return '<button type="button" role="tab" aria-selected="'+(st===t[0])+'" class="'+(st===t[0]?'on':'')+'" data-act="st-go" data-s="'+t[0]+'">'+esc(t[1])+(dk&&S.dirty[dk]?' •':'')+'</button>'; }).join('')+'</div>'+body;
 }
@@ -1730,7 +1734,7 @@ function stSims(){
       '</div><div class="side2">'+
         (s.html ? '<span class="chip ok" style="align-self:flex-start">Загружен · '+kb(s.size||s.html.length)+(s.updatedAt?' · '+fmtDay(s.updatedAt):'')+'</span>' : '<span class="chip warn" style="align-self:flex-start">Файл не загружен</span>')+
         '<label class="btn file">'+(s.html?'Заменить HTML-файл':'Загрузить HTML-файл')+'<input type="file" accept=".html,.htm,text/html" data-act-change="sim-file" data-id="'+esc(id)+'" aria-label="Файл тренажёра"></label>'+
-        (s.html ? '<button class="btn" type="button" data-act="sim-preview" data-id="'+esc(id)+'">Открыть</button>' : '')+
+        (s.html ? '<button class="btn" type="button" data-act="sim-preview" data-id="'+esc(id)+'">Открыть</button><button class="btn" type="button" data-act="sim-dl" data-id="'+esc(id)+'">⬇ Скачать</button>' : '')+
         '<button class="btn primary" type="button" data-act="sim-save" data-id="'+esc(id)+'">Сохранить описание</button>'+
         (conf ? '<span class="row"><button class="btn sm danger" type="button" data-act="sim-del-yes" data-id="'+esc(id)+'">Удалить тренажёр</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button></span>' : '<button class="btn danger" type="button" data-act="confirm" data-c="sim:'+esc(id)+'">Удалить</button>')+
       '</div></div></section>';
@@ -1789,6 +1793,40 @@ function stCrit(){
     '<section class="card"><h2>Загрузить списком</h2><p class="hint" style="margin:0">По одной ошибке на строку: <b>Что нельзя | Описание | Как правильно | Последствия</b>. Обязателен только первый столбец. Ошибки добавятся в конец списка — потом нажмите «Сохранить».</p><textarea id="crit-bulk" class="input" rows="5" data-keep placeholder="Сбрасывать клиента без ЦД | Любой контакт фиксируется в Мульти ЦД | Сначала поставьте ЦД, потом переходите к следующему | Штраф">'+esc(f('crit-bulk'))+'</textarea><button class="btn" type="button" data-act="crit-bulk" style="align-self:flex-start">Добавить в список</button></section>'+
     '<section class="card"><div class="row between"><h2>Разделы</h2><button class="btn sm" type="button" data-act="crit-cat-add">+ Раздел</button></div><p class="hint" style="margin:0">Необязательно. Если разделов нет, стажёр видит один общий список.</p>'+cats+'</section>'+
     '<section class="stack" style="gap:8px"><div class="row between"><h2>Ошибки · '+d.items.length+'</h2><button class="btn primary sm" type="button" data-act="crit-add">+ Ошибка</button></div>'+(items || '<p class="muted" style="margin:0">Пока пусто.</p>')+'</section>';
+}
+
+/* ---------- История версий: копия перед каждой перезаписью материалов направления ---------- */
+var BK_KEEP = 15;
+var BK_NAMES = {program:'План стажировки', slides:'Презентации', tests:'Тесты', knowledge:'База знаний', surveys:'Опросники', org:'Структура компании', crit:'Критические ошибки'};
+function bkList(c, dir){ return Object.keys(S.backup||{}).map(function(id){ return Object.assign({id:id}, S.backup[id]); }).filter(function(b){ return b && b.at && (!c || b.key===c) && (!dir || b.dir===dir); }).sort(function(a,b){ return b.at-a.at; }); }
+function bkSave(c, dir, why){
+  if(!S.db || DIR_KEYS.indexOf(c)<0) return Promise.resolve();
+  var prev = S.cAll[dirPath(c, dir)]; if(!prev || !Object.keys(prev).length) return Promise.resolve();
+  var id = c+'~'+dir+'~'+Date.now().toString(36);
+  var rec = {key:c, dir:dir, dirName:dirName(dir), at:Date.now(), why:why||'', data:clone(prev)};
+  return S.db.doc('backup/'+id).set(rec).then(function(){
+    (S.backup = S.backup||{})[id] = rec;
+    bkList(c, dir).slice(BK_KEEP).forEach(function(b){ S.db.doc('backup/'+b.id).delete().catch(function(){}); delete S.backup[b.id]; });
+  }, function(){ /* копия не сохранилась — основное сохранение не блокируем */ });
+}
+function bkSum(c, d){ d = d || {};
+  if(c==='program'){ var ds = d.days||[]; return ds.length+' дн., '+ds.reduce(function(a,x){ return a+(x.items||[]).length; },0)+' тем'+(ds[0]&&ds[0].title?' · день 1: «'+ds[0].title+'»':''); }
+  if(c==='slides'){ var k = Object.keys(d.decks||{}); return k.length+' презентаций'+(k.length?' · «'+((d.decks[k[0]]||{}).title||'')+'»…':''); }
+  if(c==='tests'){ var t = Object.keys(d.tests||{}); return t.length+' тестов'+(t.length?' · «'+((d.tests[t[0]]||{}).title||'')+'»…':''); }
+  if(c==='knowledge') return (d.articles||[]).length+' статей';
+  if(c==='surveys') return Object.keys(d.surveys||{}).length+' опросников';
+  if(c==='org') return (d.people||[]).length+' человек';
+  if(c==='crit') return (d.items||[]).length+' ошибок';
+  return ''; }
+function stHist(){
+  var dir = activeDir(); var all = bkList(null, dir);
+  var rows = all.map(function(b){ var conf = S.ui.confirm==='bk:'+b.id;
+    return '<tr><td class="small">'+esc(fmtDT(b.at))+'</td><td><b>'+esc(BK_NAMES[b.key]||b.key)+'</b><br><span class="small muted">'+esc(bkSum(b.key, b.data))+'</span></td><td class="small muted">'+esc(b.why||'')+'</td><td>'+
+      (conf ? '<div class="row" style="flex-wrap:nowrap;gap:6px"><button class="btn sm danger" type="button" data-act="bk-restore" data-id="'+esc(b.id)+'">Да, вернуть</button><button class="btn sm" type="button" data-act="confirm-no">Нет</button></div>' : '<button class="btn sm" type="button" data-act="confirm" data-c="bk:'+esc(b.id)+'">Вернуть эту версию</button>')+'</td></tr>'; }).join('');
+  var cur = Object.keys(BK_NAMES).filter(function(c){ var v = S.cAll[dirPath(c, dir)]; return v && Object.keys(v).length; }).map(function(c){ return '<li><b>'+esc(BK_NAMES[c])+':</b> '+esc(bkSum(c, S.cAll[dirPath(c, dir)]))+'</li>'; }).join('');
+  return '<section class="card"><h2>Сейчас в направлении «'+esc(dirName(dir))+'»</h2>'+(cur?'<ul style="margin:0;padding-left:18px;line-height:1.7">'+cur+'</ul>':'<p class="muted" style="margin:0">Материалов пока нет.</p>')+'</section>'+
+    '<section class="card"><h2>Предыдущие версии · «'+esc(dirName(dir))+'»</h2><p class="hint" style="margin:0">Перед каждым сохранением, импортом и копированием материалов кабинет откладывает прежнюю версию сюда — по '+BK_KEEP+' последних для каждого раздела. «Вернуть» подставит выбранную версию, а текущую тоже отложит в историю, так что откат можно отменить.</p>'+
+    (all.length ? '<div class="table-wrap"><table><thead><tr><th>Когда</th><th>Раздел</th><th>Что произошло</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>' : '<p class="muted" style="margin:0">Пока пусто: копии появятся с первого сохранения после этого обновления.</p>')+'</section>';
 }
 
 function stKb(){
@@ -1947,23 +1985,23 @@ function importRun(){
         if(prev) (prev.slides||[]).forEach(function(sl){ if(sl.image){ oldImgs.push(sl.image); if(sl.note) prevNotes[sl.image] = sl.note; } });
         doc.decks[k] = {title:m.decks[k].title, slides:(m.decks[k].slides||[]).map(function(sl){ var name = 'imp-'+ver+'-'+safeName(sl.file); newImgs[name]=1; return {image:name, title:sl.title||'', note:prevNotes[name] || sl.note || ''}; })};
       });
-      return S.db.doc(dirPath('slides', activeDir())).set(doc).then(function(){ setContent('slides', clone(doc)); im.done++; });
+      return bkSave('slides', activeDir(), 'Импорт пакета «'+(m.title||'')+'»').then(function(){ return S.db.doc(dirPath('slides', activeDir())).set(doc); }).then(function(){ setContent('slides', clone(doc)); im.done++; });
     });
     if(o.tests) chain = chain.then(function(){
       im.step = 'Сохраняю опросники…'; schedule();
       var doc = clone(S.content.tests || {tests:{}}); doc.tests = doc.tests || {};
       Object.keys(m.tests).forEach(function(k){ doc.tests[k] = clone(m.tests[k]); });
-      return S.db.doc(dirPath('tests', activeDir())).set(doc).then(function(){ setContent('tests', clone(doc)); im.done++; });
+      return bkSave('tests', activeDir(), 'Импорт пакета «'+(m.title||'')+'»').then(function(){ return S.db.doc(dirPath('tests', activeDir())).set(doc); }).then(function(){ setContent('tests', clone(doc)); im.done++; });
     });
     if(o.program) chain = chain.then(function(){
       im.step = 'Сохраняю план стажировки…'; schedule();
       var doc = clone(m.program);
-      return S.db.doc(dirPath('program', activeDir())).set(doc).then(function(){ setContent('program', clone(doc)); im.done++; });
+      return bkSave('program', activeDir(), 'Импорт пакета «'+(m.title||'')+'»').then(function(){ return S.db.doc(dirPath('program', activeDir())).set(doc); }).then(function(){ setContent('program', clone(doc)); im.done++; });
     });
     return chain.then(function(){
       ['program','decks','tests'].forEach(function(k){ S.draft[k] = null; S.dirty[k] = false; });
       var del = oldImgs.filter(function(a){ return !newImgs[a]; });
-      if(S.assets) del.forEach(function(a){ S.assets.delete(a).catch(function(){}); });
+      /* старые слайды не удаляем: они нужны «Истории версий» */
       var pd = (m.program && m.program.days) || [];
       im.status = 'done';
       im.result = [o.program ? 'План: '+pd.length+' дн., '+pd.reduce(function(a,d){ return a+(d.items||[]).length; },0)+' тем' : '', o.decks ? 'презентаций: '+Object.keys(m.decks).length+' ('+jobs.length+' слайдов)' : '', o.tests ? 'опросников: '+Object.keys(m.tests).length : ''].filter(Boolean).join(' · ')+'.';
@@ -2176,7 +2214,7 @@ var A = {
   'sim-test-cancel': function(el){ var id = el.dataset.id; S.db.doc('interns/'+id).update({simTest:{id:null, at:null}}).then(function(){ toast('Тест отменён'); }, writeErr); },
   'dir-add': function(){ var d = draft('settings'); d.dirs.push({id:'d'+Date.now().toString(36), name:'Новое направление'}); markDirty('settings'); render(); },
   'dir-del': function(el){ var d = draft('settings'); d.dirs.splice(Number(el.dataset.i), 1); markDirty('settings'); render(); },
-  'dir-copy': function(){ var se = document.getElementById('dir-src'); var src = se ? se.value : ''; var cur = activeDir(); if(!src) return; var ps = DIR_KEYS.map(function(k){ var v = S.cAll[dirPath(k, src)]; return v ? S.db.doc(dirPath(k, cur)).set(clone(v)).then(function(){ S.cAll[dirPath(k, cur)] = clone(v); }) : null; }).filter(Boolean);
+  'dir-copy': function(){ var se = document.getElementById('dir-src'); var src = se ? se.value : ''; var cur = activeDir(); if(!src) return; var ps = DIR_KEYS.map(function(k){ var v = S.cAll[dirPath(k, src)]; return v ? bkSave(k, cur, 'Копирование из «'+dirName(src)+'»').then(function(){ return S.db.doc(dirPath(k, cur)).set(clone(v)); }).then(function(){ S.cAll[dirPath(k, cur)] = clone(v); }) : null; }).filter(Boolean);
     Promise.all(ps).then(function(){ S.draft = {}; S.dirty = {}; toast('Материалы направления «'+dirName(src)+'» скопированы в «'+dirName(cur)+'»'); render(); }, writeErr); },
   'modal-close': function(){ S.ui.modal=null; render(); },
   'modal-close-bg': function(el, e){ if(e.target===el){ S.ui.modal=null; render(); } },
@@ -2295,6 +2333,11 @@ var A = {
   'st-go': function(el){ S.view='t-settings'; S.ui.st = el.dataset.s; S.ui.confirm=null; render(); window.scrollTo(0,0); },
   confirm: function(el){ S.ui.confirm = el.dataset.c; render(); },
   'confirm-no': function(){ S.ui.confirm = null; render(); },
+  'bk-restore': function(el){ var b = (S.backup||{})[el.dataset.id]; S.ui.confirm = null; if(!b){ render(); return; }
+    if(b.dir!==activeDir()){ toast('Эта копия из другого направления'); render(); return; }
+    if(Object.keys(S.dirty).some(function(k){ return S.dirty[k]; })){ toast('Сначала сохраните или отмените изменения в настройке'); render(); return; }
+    var path = dirPath(b.key, b.dir);
+    bkSave(b.key, b.dir, 'Перед возвратом версии от '+fmtDT(b.at)).then(function(){ return S.db.doc(path).set(clone(b.data)); }).then(function(){ S.cAll[path] = clone(b.data); applyDir(); S.draft = {}; S.dirty = {}; toast('Возвращена версия «'+(BK_NAMES[b.key]||b.key)+'» от '+fmtDT(b.at)); render(); }, writeErr); },
   'draft-reset': function(el){ var k = el.dataset.k; S.draft[k]=null; S.dirty[k]=false; S.ui.confirm=null; if(k==='decks') S.pendingDel=[]; render(); },
   'draft-save': function(el){ saveDraft(el.dataset.k, 'Сохранено. Стажёры видят изменения.'); },
   sd: function(el){ S.ui.sd = Number(el.dataset.i); S.ui.confirm=null; render(); },
@@ -2334,6 +2377,11 @@ var A = {
   'sim-add': function(){ var id = uid('sim'); S.db.doc('sims/'+id).set({title:'Новый тренажёр', desc:'', html:'', size:0, updatedAt:0, dir:activeDir()}).then(function(){ toast('Тренажёр добавлен — загрузите HTML-файл'); }, writeErr); },
   'sim-save': function(el){ var id = el.dataset.id; S.db.doc('sims/'+id).update({title:String(f('sm-'+id+'-t', S.sims[id].title)).trim()||'Тренажёр', desc:String(f('sm-'+id+'-d', S.sims[id].desc))}).then(function(){ delete S.form['sm-'+id+'-t']; delete S.form['sm-'+id+'-d']; toast('Сохранено'); }, writeErr); },
   'sim-preview': function(el){ openPlayer(el.dataset.id, null); },
+  'sim-dl': function(el){ var x = S.sims[el.dataset.id]; if(!x || !x.html) return;
+    var name = String(x.title||'Тренажёр').replace(/[\\/:*?"<>|]+/g,' ').trim().replace(/\s+/g,'_')+'.html';
+    var url = URL.createObjectURL(new Blob([x.html], {type:'text/html;charset=utf-8'}));
+    var a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000); toast('Скачивается: '+name); },
   'imp-run': function(){ importRun(); },
   'imp-opt': function(el){ var im = S.ui.imp; if(!im || !im.opts) return; im.opts[el.dataset.k] = el.checked; render(); },
   'sim-del-yes': function(el){ var id = el.dataset.id; S.ui.confirm=null; S.db.doc('sims/'+id).delete().then(function(){ toast('Тренажёр удалён'); }, writeErr); }
@@ -2342,12 +2390,13 @@ var A = {
 function saveDraft(k, msg){
   var data = cleanDraft(k, clone(draft(k)));
   var size = JSON.stringify(data).length; if(size > 250000){ toast('Слишком много текста для одного раздела ('+kb(size)+'). Сократите содержимое.'); return Promise.resolve(false); }
-  return S.db.doc(srcPath(k)).set(data).then(function(){
+  var dir0 = activeDir();
+  return bkSave(DRAFT_SRC[k], dir0, 'Сохранение в настройке').then(function(){ return S.db.doc(srcPath(k)).set(data); }).then(function(){
     setContent(DRAFT_SRC[k], clone(data)); S.dirty[k]=false; S.draft[k]=null;
     if(k==='decks' && S.pendingDel.length && S.assets){
       var still = {}; Object.keys(data.decks||{}).forEach(function(id){ (data.decks[id].slides||[]).forEach(function(s){ if(s.image) still[s.image]=1; }); });
       var del = S.pendingDel.filter(function(a){ return !still[a]; }); S.pendingDel = [];
-      del.forEach(function(a){ S.assets.delete(a).catch(function(){}); });
+      /* файлы не удаляем: они нужны старым версиям в «Истории версий» */
     }
     if(msg) toast(msg); else render();
     return true;
@@ -2394,7 +2443,7 @@ function replaceSlideImage(i, file){
 var CHANGE = {
   'g-trainer': function(el){ var gid = curGid(); S.db.doc('groups/'+gid).update({trainer:el.value}).then(function(){ toast(el.value ? 'Тренер группы: '+el.value : 'Тренер не выбран'); }, writeErr); },
   'oc-kind': function(el){ S.form[el.id] = el.value; render(); },
-  'dir-pick': function(el){ if(Object.keys(S.dirty).some(function(k){ return S.dirty[k]; })){ el.value = activeDir(); toast('Сначала сохраните или отмените изменения в настройке'); return; } S.ui.dir = el.value; S.draft = {}; S.dirty = {}; S.ui.gid = null; S.ui.rsel = null; applyDir(); render(); toast('Направление: '+dirName(el.value)); },
+  'dir-pick': function(el){ if(Object.keys(S.dirty).some(function(k){ return S.dirty[k]; })){ el.value = activeDir(); toast('Сначала сохраните или отмените изменения в настройке'); return; } S.ui.dir = el.value; dirRemember(el.value); S.draft = {}; S.dirty = {}; S.ui.gid = null; S.ui.rsel = null; applyDir(); render(); toast('Направление: '+dirName(el.value)); },
   'sim-from': function(el){ A['sim-from-x'](el); },
   'crit-from': function(el){ A['crit-from-x'](el); },
   'imp-file': function(el){ var fs = Array.prototype.slice.call(el.files||[]); el.value=''; if(fs.length) importParse(fs); },
@@ -2608,8 +2657,8 @@ if(!window.supabase || !CFG.url || !CFG.anonKey || /ВСТАВЬТЕ|XXXX/.test(
     S.db.doc('content/'+k).onSnapshot(function(s){ S.content[k] = s.exists ? s.data() : null; S.loaded[k]=true; if(k==='settings') subDirs(); schedule(); });
   });
   subDirs();
-  [['groups','groups'],['interns','interns'],['progress','progress'],['feedback','feedback'],['live','live'],['sims','sims'],['requests','requests'],['rolls','rolls'],['profiles','profiles']].forEach(function(c){
-    S.db.collection(c[0]).onSnapshot(function(snap){ var o={}; snap.docs.forEach(function(d){ o[d.id]=d.data(); }); S[c[1]]=o; S.loaded[c[0]]=true; if(c[0]==='interns'){ checkApproved(); checkSuspended(); } if(c[0]==='live') followLive(); schedule(); });
+  [['backup','backup'],['groups','groups'],['interns','interns'],['progress','progress'],['feedback','feedback'],['live','live'],['sims','sims'],['requests','requests'],['rolls','rolls'],['profiles','profiles']].forEach(function(c){
+    S.db.collection(c[0]).onSnapshot(function(snap){ var o={}; snap.docs.forEach(function(d){ o[d.id]=d.data(); }); S[c[1]]=o; S.loaded[c[0]]=true; if(c[0]==='interns'){ checkApproved(); checkSuspended(); } if((c[0]==='groups' || c[0]==='interns') && S.role==='intern') applyDir(); if(c[0]==='live') followLive(); schedule(); });
   });
   S.db.collection('surveys').onSnapshot(function(snap){ S.surveys = snap.docs.map(function(d){ return d.data(); }); schedule(); });
   startRealtime();
