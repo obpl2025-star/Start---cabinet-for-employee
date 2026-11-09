@@ -459,7 +459,8 @@ var DB = {
 };
 function loadAll(){
   var out = {};
-  function page(from){ return sb.from('docs').select('path,data').order('path').range(from, from+499).then(function(r){ if(r.error) throw r.error; r.data.forEach(function(row){ out[row.path] = row.data; }); if(r.data.length===500) return page(from+500); }); }
+  Object.keys(CACHE).forEach(function(k){ if(k.indexOf('backup/')===0) out[k] = CACHE[k]; }); /* копии версий грузятся отдельно, только в «Истории версий» */
+  function page(from){ return sb.from('docs').select('path,data').neq('col','backup').order('path').range(from, from+499).then(function(r){ if(r.error) throw r.error; r.data.forEach(function(row){ out[row.path] = row.data; }); if(r.data.length===500) return page(from+500); }); }
   return page(0).then(function(){ CACHE = out; LST.forEach(function(l){ l.fire(); }); });
 }
 var ASSETS = {
@@ -1172,7 +1173,7 @@ function tPres(){
     '<div class="row"><button class="btn" type="button" data-act="tp-prev"'+(cur<=1?' disabled':'')+'>Назад</button><button class="btn amber" style="flex:1 1 260px" type="button" data-act="tp-next"'+(cur>=total?' disabled':'')+'>'+(cur<opened?'Следующий слайд':'Открыть следующий слайд группе')+'</button><span class="small muted num">Открыто '+opened+' из '+total+'</span></div>'+
     '<div class="card tight" style="flex-direction:row;align-items:center;justify-content:space-between"><div class="stack" style="gap:2px"><b>Стажёры следуют за мной</b><span class="small muted">'+(lv.sync?'У стажёров на экране тот же слайд':'Стажёры листают открытые слайды сами')+'</span></div><button type="button" class="toggle'+(lv.sync?' on':'')+'" data-act="tp-sync" aria-pressed="'+!!lv.sync+'" aria-label="Синхронизация слайдов"><i></i></button></div>'
     : '<div class="card tight" style="gap:12px"><b>Показ не идёт · стажёрам открыто '+opened+' из '+total+' слайдов</b><span class="small muted">При старте у стажёров откроется первый слайд, остальные вы открываете по одному. Можно открыть все слайды сразу — например, для повторения.</span><div class="row"><button class="btn amber" type="button" data-act="tp-start">Начать показ для группы</button><button class="btn" type="button" data-act="tp-openall"'+(opened>=total?' disabled':'')+'>Открыть все слайды</button><button class="btn" type="button" data-act="tp-closeall"'+(opened<1?' disabled':'')+'>Закрыть все</button></div></div>';
-  return head('Ведение презентации', esc(g.name)+' · '+esc(dk.title), '<div class="row" style="align-items:flex-end">'+groupPicker(false)+pick+(lv.active?'<button class="btn danger" type="button" data-act="tp-stop">Завершить показ</button>':'')+'</div>')+
+  return head('Ведение презентации', esc(g.name)+' · '+esc(dk.title), '<div class="row" style="align-items:flex-end">'+groupPicker(false)+pick+(total?'<button class="btn outline" type="button" data-act="pres-fs">⛶ На весь экран</button>':'')+(lv.active?'<button class="btn danger" type="button" data-act="tp-stop">Завершить показ</button>':'')+'</div>')+
     '<div class="cols"><div class="wide stack" style="gap:14px">'+
       slideHtml(s, cur, total)+controls+
     '</div><div class="narrow">'+
@@ -1798,6 +1799,10 @@ function stCrit(){
 /* ---------- История версий: копия перед каждой перезаписью материалов направления ---------- */
 var BK_KEEP = 15;
 var BK_NAMES = {program:'План стажировки', slides:'Презентации', tests:'Тесты', knowledge:'База знаний', surveys:'Опросники', org:'Структура компании', crit:'Критические ошибки'};
+function bkLoad(){ if(!sb) return Promise.resolve(); return sb.from('docs').select('path,data').like('path','backup/%').then(function(r){ if(r.error) throw r.error; r.data.forEach(function(row){ CACHE[row.path] = row.data; }); LST.forEach(function(l){ l.fire(); }); }); }
+function bkPrune(c, dir){ if(!sb) return; var pre = 'backup/'+c+'~'+dir+'~';
+  sb.from('docs').select('path').like('path', pre+'%').then(function(r){ if(r.error || !r.data) return; var ps = r.data.map(function(x){ return x.path; }).sort().reverse();
+    ps.slice(BK_KEEP).forEach(function(p){ S.db.doc(p).delete().catch(function(){}); }); }, function(){}); }
 function bkList(c, dir){ return Object.keys(S.backup||{}).map(function(id){ return Object.assign({id:id}, S.backup[id]); }).filter(function(b){ return b && b.at && (!c || b.key===c) && (!dir || b.dir===dir); }).sort(function(a,b){ return b.at-a.at; }); }
 function bkSave(c, dir, why){
   if(!S.db || DIR_KEYS.indexOf(c)<0) return Promise.resolve();
@@ -1805,8 +1810,7 @@ function bkSave(c, dir, why){
   var id = c+'~'+dir+'~'+Date.now().toString(36);
   var rec = {key:c, dir:dir, dirName:dirName(dir), at:Date.now(), why:why||'', data:clone(prev)};
   return S.db.doc('backup/'+id).set(rec).then(function(){
-    (S.backup = S.backup||{})[id] = rec;
-    bkList(c, dir).slice(BK_KEEP).forEach(function(b){ S.db.doc('backup/'+b.id).delete().catch(function(){}); delete S.backup[b.id]; });
+    (S.backup = S.backup||{})[id] = rec; bkPrune(c, dir);
   }, function(){ /* копия не сохранилась — основное сохранение не блокируем */ });
 }
 function bkSum(c, d){ d = d || {};
@@ -1819,6 +1823,8 @@ function bkSum(c, d){ d = d || {};
   if(c==='crit') return (d.items||[]).length+' ошибок';
   return ''; }
 function stHist(){
+  if(!S.bkLoaded){ S.bkLoaded = 'loading'; bkLoad().then(function(){ S.bkLoaded = true; render(); }, function(){ S.bkLoaded = false; toast('Не удалось загрузить историю версий'); render(); }); }
+  if(S.bkLoaded==='loading') return '<section class="card"><p class="muted" style="margin:0">Загружаю историю версий…</p></section>';
   var dir = activeDir(); var all = bkList(null, dir);
   var rows = all.map(function(b){ var conf = S.ui.confirm==='bk:'+b.id;
     return '<tr><td class="small">'+esc(fmtDT(b.at))+'</td><td><b>'+esc(BK_NAMES[b.key]||b.key)+'</b><br><span class="small muted">'+esc(bkSum(b.key, b.data))+'</span></td><td class="small muted">'+esc(b.why||'')+'</td><td>'+
@@ -2127,12 +2133,24 @@ function tSim(){
 function simCardFor(iid){ var rs = simResList(iid); var learn = simLearnOf(iid);
   return '<section class="card"><div class="row between"><h2>'+esc(SIM_KINDS[simKindI(iid)].title)+'</h2>'+(rs.length?'<button class="btn sm" type="button" data-act="sim-res" data-id="'+esc(iid)+'">Подробно</button>':'')+'</div><span class="small muted">Обучение: '+(learn?'пройдено '+esc(fmtDT(learn)):'не пройдено')+' · тестирований: '+rs.length+'</span>'+rs.slice(0,3).map(function(x){ return simResHtml(x, false); }).join('')+'</section>'; }
 /* fullscreen presentation (kept outside #app so live updates don't exit fullscreen) */
-function fsUpdate(){ var el = document.getElementById('fsx'); if(!el || !S.fs) return; var m = me(); var deckId = presDeckId(); var dk = deck(deckId); if(!m || !dk){ fsClose(); return; }
+function tpState(){ var gid = curGid(); if(!gid || !S.groups[gid]) return null; var lv = liveOf(gid); var ids = Object.keys(decksMap()); if(!ids.length) return null;
+  var deckId = lv.active && deck(lv.deck) ? lv.deck : (S.ui.tdeck && deck(S.ui.tdeck) ? S.ui.tdeck : ids[0]); var dk = deck(deckId); var total = dk.slides.length;
+  var cur = Math.max(1, Math.min(lv.active ? (lv.slide||1) : (S.ui.tslide || 1), total));
+  return {gid:gid, lv:lv, deckId:deckId, dk:dk, total:total, cur:cur, opened:openedSlides(deckId, gid)}; }
+function fsTrainer(el){ var t = tpState(); if(!t || !t.total){ fsClose(); return; }
+  var bar = t.lv.active ?
+    '<button class="btn" type="button" data-act="tp-prev"'+(t.cur<=1?' disabled':'')+'>‹ Назад</button><span class="num">'+t.cur+' / '+t.total+'</span><button class="btn primary" type="button" data-act="tp-next"'+(t.cur>=t.total?' disabled':'')+'>'+(t.cur<t.opened?'Вперёд ›':'Открыть следующий ›')+'</button>'
+    : '<button class="btn" type="button" data-act="tfs-prev"'+(t.cur<=1?' disabled':'')+'>‹ Назад</button><span class="num">'+t.cur+' / '+t.total+'</span><button class="btn primary" type="button" data-act="tfs-next"'+(t.cur>=t.total?' disabled':'')+'>Вперёд ›</button>';
+  el.innerHTML = '<div class="fsx-in">'+slideHtml(t.dk.slides[t.cur-1], t.cur, t.total)+'</div><div class="fsx-bar">'+bar+'<button class="btn" type="button" data-act="pres-fs-exit">Выйти из полноэкранного режима</button></div>'; }
+function fsUpdate(){ var el = document.getElementById('fsx'); if(!el || !S.fs) return; if(S.role==='trainer'){ fsTrainer(el); return; } var m = me(); var deckId = presDeckId(); var dk = deck(deckId); if(!m || !dk){ fsClose(); return; }
   var total = dk.slides.length, limit = slideLimit(deckId); var view = Math.max(1, Math.min(curSlide(), Math.max(1, limit))); var locked = presLocked();
   el.innerHTML = '<div class="fsx-in">'+slideHtml(dk.slides[view-1], view, total)+'</div><div class="fsx-bar">'+(locked?'<span class="small">Слайды переключает тренер</span>':'<button class="btn" type="button" data-act="slide-prev"'+(view<=1?' disabled':'')+'>‹ Назад</button><span class="num">'+view+' / '+limit+'</span><button class="btn primary" type="button" data-act="slide-next"'+(view>=limit?' disabled':'')+'>Вперёд ›</button>')+'<button class="btn" type="button" data-act="pres-fs-exit">Выйти из полноэкранного режима</button></div>'; }
 function fsClose(){ S.fs = false; var el = document.getElementById('fsx'); if(el){ el.hidden = true; el.innerHTML = ''; } if(document.fullscreenElement && document.exitFullscreen){ try{ document.exitFullscreen(); }catch(e){} } }
 document.addEventListener('fullscreenchange', function(){ if(S.fs && !document.fullscreenElement){ var el = document.getElementById('fsx'); if(el && !el.dataset.soft){ fsClose(); } } });
-document.addEventListener('keydown', function(e){ if(!S.fs) return; if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){ e.preventDefault(); if(!presLocked()) A['slide-next'](); } else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); if(!presLocked()) A['slide-prev'](); } else if(e.key==='Escape'){ fsClose(); } });
+document.addEventListener('keydown', function(e){ if(!S.fs) return;
+  if(S.role==='trainer'){ var t = tpState(); if(!t) return; var fw = e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ', bw = e.key==='ArrowLeft'||e.key==='PageUp';
+    if(fw || bw){ e.preventDefault(); if(fw && t.cur<t.total) A[t.lv.active?'tp-next':'tfs-next'](); if(bw && t.cur>1) A[t.lv.active?'tp-prev':'tfs-prev'](); } else if(e.key==='Escape') fsClose(); return; }
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){ e.preventDefault(); if(!presLocked()) A['slide-next'](); } else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); if(!presLocked()) A['slide-prev'](); } else if(e.key==='Escape'){ fsClose(); } });
 
 /* ---------- simulator player (kept outside #app so live updates never reload it) ---------- */
 function openPlayer(simId, itemId){
@@ -2204,6 +2222,8 @@ var A = {
   'inari-fs': function(){ var el = playerEl.querySelector('.player'); if(el && el.requestFullscreen){ el.requestFullscreen().catch(function(){}); } else toast('Браузер не поддерживает полноэкранный режим'); },
   'pres-fs': function(){ var el = document.getElementById('fsx'); if(!el) return; S.fs = true; el.hidden = false; fsUpdate(); if(el.requestFullscreen){ el.requestFullscreen().catch(function(){}); } },
   'pres-fs-exit': function(){ fsClose(); },
+  'tfs-next': function(){ var t = tpState(); if(t && t.cur<t.total){ S.ui.tslide = t.cur+1; render(); } },
+  'tfs-prev': function(){ var t = tpState(); if(t && t.cur>1){ S.ui.tslide = t.cur-1; render(); } },
   'roll-view': function(el){ S.ui.modal = {type:'rollview', id:el.dataset.id}; render(); },
   'sim-kind': function(el){ var gid = curGid(); var k = el.dataset.k; if(simKindOf(gid)===k) return; S.db.doc('groups/'+gid).update({sim:{kind:k}}).then(function(){ toast('Группа проходит: '+SIM_KINDS[k].title+'. Результаты показываются только по нему.'); }, writeErr); },
   'sim-res': function(el){ S.ui.modal = {type:'simres', id:el.dataset.id}; render(); },
