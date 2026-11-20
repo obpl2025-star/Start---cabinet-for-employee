@@ -1777,6 +1777,7 @@ function dirSaved(){ try{ return localStorage.getItem('start-lk-dir') || ''; }ca
 function dirRemember(id){ try{ localStorage.setItem('start-lk-dir', id); }catch(e){} }
 function activeDir(){ if(S.role==='intern'){ var m = me(); return m ? gDir(m.groupId) : 'soft'; }
   if(!S.ui.dir){ var sv = dirSaved(); if(sv && dirsList().some(function(d){ return d.id===sv; })) S.ui.dir = sv; }
+  if(!S.ui.dir || !dirsList().some(function(d){ return d.id===S.ui.dir; })){ var dl = dirsList(); if(dl.length && !dl.some(function(d){ return d.id==='soft'; })) return dl[0].id; }
   return S.ui.dir || 'soft'; }
 function applyDir(){ var d = activeDir(); DIR_KEYS.forEach(function(k){ var p = dirPath(k, d); S.content[k] = S.cAll[p]!==undefined ? S.cAll[p] : null; if(k==='org' && !S.content[k] && d!=='soft') S.content[k] = S.cAll[dirPath('org','soft')] || null; }); }
 function orgInherited(){ var d = activeDir(); return d!=='soft' && !S.cAll[dirPath('org', d)]; }
