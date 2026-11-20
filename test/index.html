@@ -124,6 +124,9 @@ h3{font-size:16px;font-weight:600}
 .att.yes{background:var(--ok-soft);color:var(--ok-ink);border:1px solid transparent}
 .att.no{background:var(--danger-soft);color:var(--danger);border:1px solid transparent}
 .att:hover{border-color:var(--accent)}
+.att.auto{border:1px dashed currentColor;opacity:.85}
+.attn-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line2);flex-wrap:wrap}
+.attn-row .why{display:flex;gap:6px;flex-wrap:wrap}
 .attgrid td,.attgrid th{text-align:center}
 .attgrid td:first-child,.attgrid th:first-child{text-align:left}
 .attdays{display:flex;flex-wrap:wrap;gap:8px}
@@ -457,12 +460,21 @@ var DB = {
     onSnapshot: function(n){ var l = {col:c, fire:function(){ var docs = Object.keys(CACHE).filter(function(k){ return colOf(k)===c; }).map(snapDoc); try{ n({docs:docs, size:docs.length, empty:!docs.length, docChanges:function(){ return []; }, metadata:{}}); }catch(e){ console.error(e); } }}; LST.push(l); l.fire(); return function(){ LST = LST.filter(function(x){ return x!==l; }); }; }
   }; }
 };
+var VER = {}; /* path -> updated_at для программы/тестов/тренажёров: их перекачиваем только при изменении */
 function loadAll(){
   S.lastLoad = Date.now();
   var out = {};
   Object.keys(CACHE).forEach(function(k){ if(k.indexOf('backup/')===0) out[k] = CACHE[k]; }); /* копии версий грузятся отдельно, только в «Истории версий» */
-  function page(from){ return sb.from('docs').select('path,data').neq('col','backup').order('path').range(from, from+499).then(function(r){ if(r.error) throw r.error; r.data.forEach(function(row){ out[row.path] = row.data; }); if(r.data.length===500) return page(from+500); }); }
-  return page(0).then(function(){ CACHE = out; LST.forEach(function(l){ l.fire(); }); });
+  function pages(build, from, each){ return build().range(from, from+499).then(function(r){ if(r.error) throw r.error; r.data.forEach(each); if(r.data.length===500) return pages(build, from+500, each); }); }
+  var meta = {};
+  var p1 = pages(function(){ return sb.from('docs').select('path,data').not('col','in','(backup,content,sims)').order('path'); }, 0, function(row){ out[row.path] = row.data; });
+  var p2 = pages(function(){ return sb.from('docs').select('path,updated_at').in('col',['content','sims']).order('path'); }, 0, function(row){ meta[row.path] = row.updated_at; });
+  return Promise.all([p1, p2]).then(function(){
+    var need = Object.keys(meta).filter(function(p){ return VER[p]!==meta[p] || CACHE[p]===undefined; });
+    Object.keys(meta).forEach(function(p){ if(need.indexOf(p)<0) out[p] = CACHE[p]; });
+    var chunks = []; for(var i=0; i<need.length; i+=15) chunks.push(need.slice(i, i+15));
+    return Promise.all(chunks.map(function(c){ return sb.from('docs').select('path,data,updated_at').in('path', c).then(function(r){ if(r.error) throw r.error; r.data.forEach(function(row){ out[row.path] = row.data; VER[row.path] = row.updated_at; }); }); }));
+  }).then(function(){ CACHE = out; LST.forEach(function(l){ l.fire(); }); });
 }
 var ASSETS = {
   upload: function(file){
@@ -603,6 +615,7 @@ function writeErr(e){
 var rq = false;
 function schedule(){ if(rq) return; rq = true; requestAnimationFrame(function(){ rq=false; render(); }); }
 function render(){
+  MRC = {};
   applyDir();
   var a = document.activeElement; var aid = a && a.id; var ss=null, se=null;
   try{ ss = a.selectionStart; se = a.selectionEnd; }catch(e){}
@@ -684,7 +697,7 @@ function checkSuspended(){
   if(S.role==='intern' && me() && me().suspended){ closePlayer(); S.role=null; S.iid=null; S.ui={dayOpen:{}, edOpen:{}, loginErr:'Доступ приостановлен тренером. Обратитесь к тренеру.'}; if(sb) sb.auth.signOut(); CACHE={}; LST.forEach(function(l){ l.fire(); }); }
 }
 function checkApproved(){
-  if(S.role==='applicant' && S.interns[S.uid]){ S.role='intern'; S.iid=S.uid; S.view='home'; saveProgress({seen:Date.now()}); followLive(); toast('Заявка одобрена — добро пожаловать!'); }
+  if(S.role==='applicant' && S.interns[S.uid]){ S.role='intern'; S.iid=S.uid; claimTab(); S.view='home'; saveProgress({seen:Date.now()}); followLive(); toast('Заявка одобрена — добро пожаловать!'); }
 }
 function pendingCount(){ return Object.keys(S.requests||{}).filter(function(k){ return S.requests[k].status==='pending'; }).length; }
 function requestsBlock(){
@@ -713,6 +726,7 @@ function viewShell(){
   var side, body, b = brand();
   if(S.role==='intern'){
     var m = me();
+    if(S.dormant) return '<div class="login"><div class="login-card"><h1>Кабинет открыт в другой вкладке</h1><p class="muted" style="line-height:1.55">Чтобы прогресс сохранялся без путаницы, работайте в одной вкладке. Эта вкладка приостановлена.</p><button class="btn primary" type="button" data-act="tab-claim">Продолжить здесь</button></div></div>';
     if(!m){ return '<div class="login"><div class="login-card"><h1>Аккаунт не найден</h1><p class="muted">Тренер мог удалить этот доступ. Обратитесь к тренеру.</p><button class="btn" data-act="logout">Выйти</button></div></div>'; }
     var rl = liveOf(m.groupId).roll;
     if(rl && rl.active){ if(S.player) closePlayer(); S.ui.modal = null; return rollScreen(m, rl); }
@@ -1068,13 +1082,32 @@ function vProgress(){
 /* ---------- trainer: groups / access ---------- */
 function ngDefName(){ return 'Группа от '+new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}); }
 function ngDefStart(){ return new Date().toISOString().slice(0,10); }
-function groupList(all){ var gl = Object.keys(S.groups).map(function(k){ return Object.assign({id:k}, S.groups[k]); }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); }); if(S.role==='trainer' && !all){ var d = activeDir(); gl = gl.filter(function(g){ return (g.dir||'soft')===d; }); } return gl; }
+function groupList(all, arch){ var gl = Object.keys(S.groups).map(function(k){ return Object.assign({id:k}, S.groups[k]); }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); }); if(S.role==='trainer' && !all){ var d = activeDir(); gl = gl.filter(function(g){ return (g.dir||'soft')===d; }); } if(S.role==='trainer' && !arch && !S.ui.showArch) gl = gl.filter(function(g){ return !g.archived; }); return gl; }
 function curGid(){ var gl = groupList(); if(S.ui.gid && S.groups[S.ui.gid] && (S.role!=='trainer' || gDir(S.ui.gid)===activeDir())) return S.ui.gid; return gl[0] ? gl[0].id : null; }
 function internsOf(gid){ return Object.keys(S.interns).map(function(k){ return Object.assign({id:k}, S.interns[k]); }).filter(function(i){ return i.groupId===gid; }).sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'ru'); }); }
 function groupPicker(withNew){
-  var gl = groupList(); var gid = curGid();
-  return '<div class="row" style="align-items:flex-end">'+(gl.length?'<label class="field">Группа<select id="g-pick" data-act-change="g-pick" style="min-width:240px">'+gl.map(function(g){ return '<option value="'+esc(g.id)+'"'+(g.id===gid?' selected':'')+'>'+esc(g.name)+' · '+internsOf(g.id).length+' стаж.</option>'; }).join('')+'</select></label>':'')+
+  var gl = groupList(); var gid = curGid(); var nArch = groupList(false, true).filter(function(g){ return g.archived; }).length;
+  return '<div class="row" style="align-items:flex-end">'+(gl.length?'<label class="field">Группа<select id="g-pick" data-act-change="g-pick" style="min-width:240px">'+gl.map(function(g){ return '<option value="'+esc(g.id)+'"'+(g.id===gid?' selected':'')+'>'+esc(g.name)+' · '+internsOf(g.id).length+' стаж.'+(g.archived?' · архив':'')+'</option>'; }).join('')+'</select></label>':'')+
+    (nArch?'<button class="btn sm'+(S.ui.showArch?' primary':'')+'" type="button" data-act="arch-toggle" title="Завершённые группы в архиве">'+(S.ui.showArch?'Скрыть архив':'Архив ('+nArch+')')+'</button>':'')+
     (withNew?'<button class="btn" type="button" data-act="toggle-newgroup">'+(S.ui.newGroup?'Отмена':'Новая группа')+'</button>':'')+'</div>';
+}
+function attnList(gid){
+  var ds = mrDates(gid); var last = ds[ds.length-1]; var today = last && last.key===dkey(Date.now()) ? last : null; var ti = testItems();
+  return internsOf(gid).map(function(i){ var why = [];
+    if(!i.suspended && !isRefused(i.id)){
+      if(today && (today.roll.list||[]).some(function(x){ return x.iid===i.id; }) && !rollHas(today.roll, i.id)) why.push(['bad', today.roll.live ? 'ещё не отметился на перекличке' : 'не был на сегодняшней перекличке']);
+      ti.forEach(function(t){ var r = testRec(i.id, t.test); var tt = test(t.test)||{}; if(r && !r.passed && (r.attempts||0) >= (tt.attempts||3)) why.push(['bad', 'не сдал «'+t.title+'» — попытки исчерпаны']); });
+      var seen = P(i.id).seen; if(!seen || Date.now()-seen > 86400000) why.push(['warn', seen ? 'не заходил в кабинет '+ago(seen) : 'ни разу не входил в кабинет']);
+      if(simTestActive(i.id)) why.push(['warn', 'не завершил тест в симуляторе']);
+    }
+    if(ocNeeds(i.id)) why.push(['warn', 'не указан итог стажировки']);
+    return {i:i, why:why}; }).filter(function(x){ return x.why.length; });
+}
+function attnCard(gid){
+  var l = attnList(gid); var open = S.ui.attnOpen!==false;
+  return '<section class="card" aria-labelledby="h-attn"><div class="row between"><h2 id="h-attn">Требуют внимания'+(l.length?' · '+l.length:'')+'</h2>'+(l.length?'<button class="linkbtn small" type="button" data-act="attn-toggle" aria-expanded="'+open+'">'+(open?'Свернуть':'Показать')+'</button>':'')+'</div>'+
+    (!l.length ? '<span class="small muted">Всё в порядке: все на перекличке, тесты не провалены, все заходили за последние сутки.</span>' :
+     (open ? '<div>'+l.map(function(x){ return '<div class="attn-row"><b>'+esc(x.i.name)+'</b><span class="why">'+x.why.map(function(w){ return '<span class="chip '+w[0]+'">'+esc(w[1])+'</span>'; }).join('')+'<button class="btn sm" type="button" data-act="attn-go" data-id="'+esc(x.i.id)+'">Карта</button></span></div>'; }).join('')+'</div>' : ''))+'</section>';
 }
 function tAccess(){ var h = tAccessMain(); var i = h.indexOf('</header>'); return i<0 ? requestsBlock()+h : h.slice(0, i+9)+requestsBlock()+h.slice(i+9); }
 function tAccessMain(){
@@ -1117,8 +1150,8 @@ function tAccessMain(){
   }).join('');
   var scopeSel = '<div class="row"><div class="seg" role="group" aria-label="Кому открывать"><button type="button" class="'+(scope==='group'?'on':'')+'" data-act="scope" data-s="group" aria-pressed="'+(scope==='group')+'">Всей группе</button><button type="button" class="'+(scope!=='group'?'on':'')+'" data-act="scope" data-s="'+(list[0]?list[0].id:'group')+'" aria-pressed="'+(scope!=='group')+'"'+(list.length?'':' disabled')+'>Одному стажёру</button></div>'+
     (scope!=='group' ? '<select id="scope-pick" class="input" style="width:auto;min-width:200px" data-act-change="scope-pick" aria-label="Стажёр">'+list.map(function(i){ return '<option value="'+i.id+'"'+(i.id===scope?' selected':'')+'>'+esc(i.name)+'</option>'; }).join('')+'</select>' : '')+'</div>';
-  var trCard = '<section class="card" style="padding-block:14px"><div class="row" style="align-items:flex-end"><label class="field" style="min-width:240px">Тренер группы «'+esc(g.name)+'»<select id="g-trainer" data-act-change="g-trainer"><option value="">— не выбран —</option>'+trainersList().concat(g.trainer && trainersList().indexOf(g.trainer)<0 ? [g.trainer] : []).map(function(t){ return '<option'+(g.trainer===t?' selected':'')+'>'+esc(t)+'</option>'; }).join('')+'</select></label>'+(trainersList().length?'':'<span class="small muted">Список тренеров заполняется в «Настройка → Тренеры и итоги».</span>')+'</div></section>';
-  return head('Стажёры и доступы','Создание логинов и пошаговое открытие материалов', groupPicker(true))+newGroup+trCard+created+
+  var trCard = '<section class="card" style="padding-block:14px"><div class="row" style="align-items:flex-end"><label class="field" style="min-width:240px">Тренер группы «'+esc(g.name)+'»<select id="g-trainer" data-act-change="g-trainer"><option value="">— не выбран —</option>'+trainersList().concat(g.trainer && trainersList().indexOf(g.trainer)<0 ? [g.trainer] : []).map(function(t){ return '<option'+(g.trainer===t?' selected':'')+'>'+esc(t)+'</option>'; }).join('')+'</select></label>'+(trainersList().length?'':'<span class="small muted">Список тренеров заполняется в «Настройка → Тренеры и итоги».</span>')+'<button class="btn sm" type="button" data-act="g-arch" style="margin-left:auto" title="'+(g.archived?'Вернуть группу в списки':'Убрать завершённую группу из списков (данные сохранятся)')+'">'+(g.archived?'Вернуть из архива':'В архив')+'</button></div></section>';
+  return head('Стажёры и доступы','Создание логинов и пошаговое открытие материалов', groupPicker(true))+newGroup+attnCard(gid)+trCard+created+
     '<div class="cols"><section class="card wide" aria-labelledby="h-il"><h2 id="h-il">Стажёры группы «'+esc(g.name)+'»</h2>'+table+'</section>'+form+'</div>'+
     '<section class="card" aria-labelledby="h-acc"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-acc">Доступ к материалам</h2><span class="small muted num">'+(scope==='group'?'Группа':esc(S.interns[scope].name))+': открыто '+openCount+' из '+total+'. Открытая тема сразу появляется у стажёров.</span></div>'+scopeSel+'</div>'+
     toneLegend(allItems())+'<div class="grid" style="--min:230px;gap:14px">'+grid+'</div></section>';
@@ -1166,13 +1199,19 @@ function xlRolls(gid){
    «Утренняя перекличка» дня — самая ранняя перекличка в эту дату (идущая сейчас тоже учитывается). */
 function dkey(ts){ var d = new Date(ts); function z(n){ return (n<10?'0':'')+n; } return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
 function ddmm(s){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||'')); return m ? m[3]+'.'+m[2] : String(s||''); }
+var MRC = {};
+/* Одна активная вкладка стажёра: новая вкладка «забирает» кабинет, старая засыпает (меньше путаницы и нагрузки) */
+var TAB_ID = uid('tab'); var BC = null;
+try{ BC = new BroadcastChannel('start-lk-tabs-'+String(CFG.url||'')); BC.onmessage = function(e){ var d = e.data||{}; if(d.t==='claim' && d.id!==TAB_ID && d.uid && d.uid===S.uid && S.role==='intern' && !S.dormant){ S.dormant = true; if(S.player) closePlayer(); render(); } }; }catch(e){ BC = null; }
+function claimTab(){ S.dormant = false; try{ if(BC && S.uid) BC.postMessage({t:'claim', id:TAB_ID, uid:S.uid}); }catch(e){} }
 function mrDates(gid){
+  if(MRC[gid]) return MRC[gid];
   var by = {};
   rollsOf(gid).forEach(function(r){ if(!r.startedAt) return; var k = dkey(r.startedAt); if(!by[k] || r.startedAt < by[k].startedAt) by[k] = r; });
   var rl = liveOf(gid).roll;
   if(rl && rl.active && rl.startedAt){ var k = dkey(rl.startedAt);
     if(!by[k] || rl.startedAt <= by[k].startedAt) by[k] = {id:rl.id, startedAt:rl.startedAt, live:true, list:internsOf(gid).filter(function(i){ return !i.suspended; }).map(function(i){ return {iid:i.id, name:i.name, at:rollMarkAt(i.id, rl.id)}; })}; }
-  return Object.keys(by).sort().map(function(k, i){ return {key:k, n:i+1, roll:by[k]}; });
+  return (MRC[gid] = Object.keys(by).sort().map(function(k, i){ return {key:k, n:i+1, roll:by[k]}; }));
 }
 function rollHas(roll, iid){ return !!(roll && (roll.list||[]).some(function(x){ return x.iid===iid && x.at; })); }
 function isRefused(iid){ var o = prof(iid).outcome; return o==='self' || o==='us'; }
@@ -1201,9 +1240,45 @@ function mrMessage(g, st){
   }
   return L.join('\n');
 }
+function eveStats(gid, n){
+  var ds = mrDates(gid); if(!n || n > ds.length) return null;
+  var day = days()[n-1]; var roll = ds[n-1].roll; var all = internsOf(gid);
+  var act = all.filter(function(i){ return !i.suspended && !isRefused(i.id); });
+  var qt = testItems().filter(function(t){ return t.dayIdx===n-1; })[0];
+  var quiz = act.map(function(i){ var r = qt ? testRec(i.id, qt.test) : null; return {id:i.id, name:i.name, r:r}; });
+  var got = quiz.filter(function(x){ return x.r; });
+  var items = day ? (day.items||[]) : [];
+  var lag = act.map(function(i){ var open = items.filter(function(it){ return isOpen(it, i.id); }); var done = open.filter(function(it){ return isDone(it, i.id); }).length; return {id:i.id, name:i.name, done:done, total:open.length}; })
+    .filter(function(x){ return x.total && x.done/x.total < 0.5; });
+  return {n:n, date:ds[n-1].key, dayTitle: day ? day.title : '', created:all.length, present:all.filter(function(i){ return rollHas(roll, i.id); }).length,
+    qt:qt, quiz:quiz, passed:got.filter(function(x){ return x.r.passed; }).length, failed:got.filter(function(x){ return !x.r.passed; }).length, none:quiz.length-got.length,
+    avg: got.length ? Math.round(got.reduce(function(a,x){ return a+x.r.best; },0)/got.length) : null, lag:lag};
+}
+function eveMessage(g, st){
+  var L = ['Итоги '+st.n+' дня стажировки'+(st.dayTitle?' («'+st.dayTitle+'»)':'')+', поток от '+ddmm(g.start)+(g.trainer?' - тренер '+g.trainer:''),
+    'Были на утренней перекличке - '+st.present+' из '+st.created];
+  if(st.qt){
+    L.push('Опросник '+st.n+'-го дня: сдали - '+st.passed+', не сдали - '+st.failed+', не проходили - '+st.none);
+    L.push('Результаты опросника:');
+    st.quiz.forEach(function(q){ L.push(q.name+' - '+(q.r ? q.r.best+'%'+(q.r.passed?'':' (не сдан)') : 'не проходил')); });
+    L.push('Средний результат по потоку - '+(st.avg==null?'нет данных':st.avg+'%'));
+  }
+  if(st.lag.length){ L.push('Отстают по темам дня:'); st.lag.forEach(function(x){ L.push(x.name+' - пройдено '+x.done+' из '+x.total); }); }
+  else L.push('Отстающих по темам дня нет');
+  return L.join('\n');
+}
+function xlReports(gid){
+  var rows = [['Поток','Тренер','Старт','День','Дата','Создано учёток','Явились на перекличку','Отсутствуют','Явка, %','Опросник дня','Средний результат, %']];
+  groupList(false, true).slice().reverse().forEach(function(g){ mrDates(g.id).forEach(function(d){ var st = mrStats(g.id, d.n);
+    rows.push([g.name, g.trainer||'', ddmm(g.start), d.n, ddmm(d.key), st.created, st.present, st.absent.length, st.att==null?'':st.att, st.quizDay?('день '+st.quizDay):'', st.avg==null?'':st.avg]); }); });
+  var g = S.groups[gid]; var ds = mrDates(gid); var ti = testItems();
+  var r2 = [['ФИО стажёра','Статус'].concat(ds.map(function(d){ return 'Явка, день '+d.n+' ('+ddmm(d.key)+')'; })).concat(ti.map(function(t){ return 'Опросник, день '+(t.dayIdx+1); }))];
+  internsOf(gid).forEach(function(i){ r2.push([i.name, i.suspended?'приостановлен':(isRefused(i.id)?OC[prof(i.id).outcome]:'')].concat(ds.map(function(d){ var inL = (d.roll.list||[]).some(function(x){ return x.iid===i.id; }); return !inL ? '' : (rollHas(d.roll, i.id)?'Явился':'Отсутствует'); })).concat(ti.map(function(t){ var r = testRec(i.id, t.test); return r ? r.best : ''; }))); });
+  return xlSave('Отчёты по стажировке — '+dirName(activeDir()), [{name:'Все потоки по дням', rows:rows, filter:1}, {name:(g?g.name:'Поток').slice(0,30), rows:r2, filter:1}]);
+}
 function prevGroupOf(gid){
   var g = S.groups[gid]; if(!g) return null;
-  var c = groupList().filter(function(x){ return x.id!==gid && x.start && (!g.start || x.start < g.start); }).sort(function(a,b){ return a.start < b.start ? 1 : -1; });
+  var c = groupList(false, true).filter(function(x){ return x.id!==gid && x.start && (!g.start || x.start < g.start); }).sort(function(a,b){ return a.start < b.start ? 1 : -1; });
   return c[0] ? c[0].id : null;
 }
 function tMorning(){
@@ -1212,8 +1287,12 @@ function tMorning(){
   var ds = mrDates(gid);
   if(!ds.length) return head('Утренние отчёты', esc(g.name), groupPicker(false))+'<div class="empty"><b>У группы ещё не было перекличек</b><span>Отчёт строится по утренней перекличке: проведите её во вкладке «Перекличка».</span><button class="btn primary" data-act="nav" data-v="t-roll">Открыть перекличку</button></div>';
   var n = Number(S.ui.mrDay); if(!n || n > ds.length || S.ui.mrGid!==gid){ n = ds.length; S.ui.mrDay = n; S.ui.mrGid = gid; }
+  var kind = S.ui.mrKind==='pm' ? 'pm' : 'am';
+  var kseg = '<div class="seg" role="group" aria-label="Вид отчёта"><button type="button" class="'+(kind==='am'?'on':'')+'" data-act="mr-kind" data-k="am" aria-pressed="'+(kind==='am')+'">Утренний</button><button type="button" class="'+(kind==='pm'?'on':'')+'" data-act="mr-kind" data-k="pm" aria-pressed="'+(kind==='pm')+'">Вечерний</button></div>';
+  var xlBtn = '<button class="btn" type="button" data-act="xl-reports">Excel: все дни и потоки</button>';
   var st = mrStats(gid, n);
   var dayPick = '<label class="field" style="min-width:200px">День стажировки<select id="mr-day" data-act-change="mr-day">'+ds.map(function(d){ return '<option value="'+d.n+'"'+(d.n===n?' selected':'')+'>'+d.n+'-й день · '+esc(ddmm(d.key))+(d.roll.live?' · идёт перекличка':'')+'</option>'; }).join('')+'</select></label>';
+  if(kind==='pm') return tEvening(g, gid, n, kseg, dayPick, xlBtn);
   var msg = mrMessage(g, st);
   var msgBox = '<section class="card" data-copybox aria-labelledby="h-mrm"><div class="row between"><h2 id="h-mrm">Готовое сообщение</h2><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button></div>'+
     '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre>'+
@@ -1232,7 +1311,7 @@ function tMorning(){
         ti.map(function(t){ return pctCell(testRec(i.id, t.test), test(t.test)); }).join('')+'<td class="small">'+(a ? (a.from===n ? 'нет на перекличке' : 'с '+a.from+'-го дня') : '')+'</td></tr>'; }).join('')+
     '</tbody></table></div></section>';
   var pgid = S.ui.mrCmp && S.groups[S.ui.mrCmp] && S.ui.mrCmp!==gid ? S.ui.mrCmp : prevGroupOf(gid);
-  var others = groupList().filter(function(x){ return x.id!==gid; });
+  var others = groupList(false, true).filter(function(x){ return x.id!==gid; });
   var cmp = '';
   if(others.length){
     var ps = pgid ? mrStats(pgid, n) : null; var pg = pgid ? S.groups[pgid] : null;
@@ -1249,7 +1328,17 @@ function tMorning(){
         (st.quizDay ? row('Средний результат опросника '+st.quizDay+'-го дня', st.avg, ps.avg, '%', true) : '')+
         '</tbody></table></div>' : '<p class="muted" style="margin:0">У потока «'+esc(pg?pg.name:'')+'» нет переклички в '+n+'-й день — сравнивать не с чем.</p>')+'</section>';
   }
-  return head('Утренние отчёты', esc(g.name)+' · '+n+'-й день · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+groupPicker(false)+dayPick+'</div>')+kpi+msgBox+cmp+table;
+  return head('Утренние отчёты', esc(g.name)+' · '+n+'-й день · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+xlBtn+'</div>')+kpi+msgBox+cmp+table;
+}
+function tEvening(g, gid, n, kseg, dayPick, xlBtn){
+  var st = eveStats(gid, n); var msg = eveMessage(g, st);
+  var msgBox = '<section class="card" data-copybox aria-labelledby="h-evm"><div class="row between"><h2 id="h-evm">Готовое сообщение · итоги дня</h2><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button></div>'+
+    '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre><span class="small muted">Отправляйте в конце дня, когда опросник пройден. «Отстают» — отмечено меньше половины открытых тем дня.</span></section>';
+  var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">День стажировки</span><span class="v num">'+n+'</span><span class="small muted">'+esc(st.dayTitle||'')+'</span></div>'+
+    '<div class="kpi"><span class="small muted">Были на перекличке</span><span class="v num">'+st.present+' / '+st.created+'</span></div>'+
+    (st.qt ? '<div class="kpi"><span class="small muted">Опросник дня: сдали</span><span class="v num" style="color:var(--accent-ink)">'+st.passed+'</span><span class="small muted">не сдали '+st.failed+' · не проходили '+st.none+'</span></div><div class="kpi"><span class="small muted">Средний результат</span><span class="v num">'+(st.avg==null?'—':st.avg+'%')+'</span></div>' : '<div class="kpi"><span class="small muted">Опросник дня</span><span class="v num">—</span><span class="small muted">в этот день теста нет</span></div>')+
+    '<div class="kpi"><span class="small muted">Отстают по темам</span><span class="v num"'+(st.lag.length?' style="color:var(--danger)"':'')+'>'+st.lag.length+'</span></div></div>';
+  return head('Утренние отчёты', esc(g.name)+' · итоги '+n+'-го дня · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+xlBtn+'</div>')+kpi+msgBox;
 }
 
 /* ---------- trainer: presentation ---------- */
@@ -1290,11 +1379,15 @@ function tPres(){
 /* ---------- trainer: results ---------- */
 /* trainer-only intern data: profiles/<iid> (interns cannot read this collection) */
 function prof(iid){ return (S.profiles && S.profiles[iid]) || {}; }
-function attOf(iid, dayId){ var a = prof(iid).att; var v = a && a[dayId]; return v==='yes'||v==='no' ? v : ''; }
+function manAtt(iid, dayId){ var a = prof(iid).att; var v = a && a[dayId]; return v==='yes'||v==='no' ? v : ''; }
+/* Если день не отмечен вручную — берём утреннюю перекличку этого дня (N-й день = N-я дата с перекличкой) */
+function autoAtt(iid, dayId){ var it = S.interns[iid]; if(!it) return ''; var ix = days().map(function(d){ return d.id; }).indexOf(dayId); if(ix<0) return '';
+  var ds = mrDates(it.groupId); var d = ds[ix]; if(!d || d.roll.live) return ''; var inList = (d.roll.list||[]).some(function(x){ return x.iid===iid; }); if(!inList) return ''; return rollHas(d.roll, iid) ? 'yes' : 'no'; }
+function attOf(iid, dayId){ return manAtt(iid, dayId) || autoAtt(iid, dayId); }
 function attCount(iid){ var y=0, n=0; days().forEach(function(d){ var v = attOf(iid, d.id); if(v==='yes') y++; else if(v==='no') n++; }); return {y:y, n:n}; }
 function saveProfile(iid, patch){ return upsert('profiles/'+iid, S.profiles[iid], patch).catch(writeErr); }
-function attBtn(iid, d, di, big){ var v = attOf(iid, d.id); var lbl = v==='yes'?'✓':(v==='no'?'✕':'—');
-  return '<button type="button" class="att '+v+'" data-act="att-cycle" data-i="'+esc(iid)+'" data-d="'+esc(d.id)+'" title="'+esc('День '+(di+1)+': '+(v==='yes'?'присутствовал':(v==='no'?'отсутствовал':'не отмечено'))+' — нажмите, чтобы изменить')+'" aria-label="'+esc('День '+(di+1)+': '+(v==='yes'?'присутствовал':(v==='no'?'отсутствовал':'не отмечено')))+'">'+(big?'<small>День '+(di+1)+'</small>':'')+lbl+'</button>'; }
+function attBtn(iid, d, di, big){ var v = attOf(iid, d.id); var auto = v && !manAtt(iid, d.id); var lbl = v==='yes'?'✓':(v==='no'?'✕':'—');
+  return '<button type="button" class="att '+v+(auto?' auto':'')+'" data-act="att-cycle" data-i="'+esc(iid)+'" data-d="'+esc(d.id)+'" title="'+esc('День '+(di+1)+': '+(v==='yes'?'присутствовал':(v==='no'?'отсутствовал':'не отмечено'))+(auto?' (по утренней перекличке)':'')+' — нажмите, чтобы изменить')+'" aria-label="'+esc('День '+(di+1)+': '+(v==='yes'?'присутствовал':(v==='no'?'отсутствовал':'не отмечено')))+'">'+(big?'<small>День '+(di+1)+'</small>':'')+lbl+'</button>'; }
 function attText(v){ return v==='yes'?'присутствовал':(v==='no'?'отсутствовал':''); }
 function fmtDT(t){ if(!t) return ''; var d = new Date(t); function z(n){ return (n<10?'0':'')+n; } return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear()+' '+z(d.getHours())+':'+z(d.getMinutes()); }
 function testRec(iid, tid){ return P(iid).tests && P(iid).tests[tid]; }
@@ -1348,13 +1441,25 @@ function simCell(iid){ var rs = simResList(iid); var learn = simLearnOf(iid);
   var last = rs[0]; var ok = rs.filter(function(x){ return x.pass; }).length;
   return '<td><span class="chip '+(last.pass?'ok':'bad')+'" title="'+esc(fmtDT(last.at))+'">'+(last.pass?'Сдано':'Не сдано')+'</span><br><span class="small muted num">'+(last.okN!=null?last.okN+' из '+last.total+' · ':'')+'тест. '+rs.length+(ok?' · сдано '+ok:'')+'</span></td>'; }
 function rAll(){
-  var gl = groupList(); if(!gl.length) return '<div class="empty"><b>Групп пока нет</b></div>';
+  var gl = groupList(false, true); if(!gl.length) return '<div class="empty"><b>Групп пока нет</b></div>';
   var ti = testItems();
   var rows = gl.map(function(g){ var st = groupStats(g.id); var list = activeOf(g.id);
-    return '<tr><td><b>'+esc(g.name)+'</b><br><span class="small muted">старт '+esc(g.start||'—')+'</span></td><td class="num">'+st.n+(st.susp?'<br><span class="small muted">из '+st.total+'</span>':'')+'</td><td class="num">'+(st.avgP==null?'—':st.avgP+'%')+'</td><td class="num">'+(st.avgT==null?'—':st.avgT+'%')+'</td>'+
+    return '<tr'+(g.archived?' style="opacity:.75"':'')+'><td><b>'+esc(g.name)+'</b>'+(g.archived?' <span class="chip">архив</span>':'')+'<br><span class="small muted">старт '+esc(g.start||'—')+'</span></td><td class="num">'+st.n+(st.susp?'<br><span class="small muted">из '+st.total+'</span>':'')+'</td><td class="num">'+(st.avgP==null?'—':st.avgP+'%')+'</td><td class="num">'+(st.avgT==null?'—':st.avgT+'%')+'</td>'+
       ti.map(function(i){ var rs = list.map(function(x){ return testRec(x.id, i.test); }).filter(Boolean); var pass = rs.filter(function(r){ return r.passed; }).length; return '<td class="num">'+(rs.length? pass+' / '+list.length : '<span class="muted">—</span>')+'</td>'; }).join('')+
       '<td class="num">'+(ti.length? st.allOk+' / '+st.n : '—')+'</td><td class="num">'+st.resp+'</td><td style="text-align:right"><button class="btn sm" type="button" data-act="rgo" data-g="'+esc(g.id)+'">Открыть</button></td></tr>'; }).join('');
-  return '<section class="card" aria-label="Группы"><div class="table-wrap"><table><thead><tr><th>Группа</th><th>Активных</th><th>Прогресс</th><th>Ср. балл</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+' сдали</th>'; }).join('')+'<th>Сдали все</th><th>Ответов в опросах</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="hint">«Д2 сдали» — сколько стажёров группы сдали тест, стоящий в плане в день 2.</p></section>';
+  return '<section class="card" aria-label="Группы"><div class="table-wrap"><table><thead><tr><th>Группа</th><th>Активных</th><th>Прогресс</th><th>Ср. балл</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+' сдали</th>'; }).join('')+'<th>Сдали все</th><th>Ответов в опросах</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="hint">«Д2 сдали» — сколько стажёров группы сдали тест, стоящий в плане в день 2.</p></section>'+funnelCard(gl);
+}
+function funnelCard(gl){
+  var data = gl.map(function(g){ var ds = mrDates(g.id); var all = internsOf(g.id);
+    return {g:g, created:all.length, days:ds.map(function(d){ return all.filter(function(i){ return rollHas(d.roll, i.id); }).length; }),
+      passed:all.filter(function(i){ return prof(i.id).outcome==='passed'; }).length, refused:all.filter(function(i){ return isRefused(i.id); }).length}; });
+  var mx = Math.min(10, Math.max.apply(null, [0].concat(data.map(function(x){ return x.days.length; }))));
+  if(!mx) return '';
+  var cell = function(v, base){ if(v==null) return '<td class="muted">—</td>'; var pc = base ? Math.round(v/base*100) : 0; return '<td class="num"><b>'+v+'</b><br><span class="small muted">'+pc+'%</span></td>'; };
+  return '<section class="card" aria-labelledby="h-fn"><div class="stack" style="gap:4px"><h2 id="h-fn">Воронка потоков</h2><span class="small muted">Сколько стажёров было на утренней перекличке в каждый день стажировки (процент — от созданных учётных записей). Видно, на каком дне чаще отваливаются и какой поток удержался лучше.</span></div>'+
+    '<div class="table-wrap"><table><thead><tr><th>Поток</th><th>Создано</th>'+Array.apply(null, Array(mx)).map(function(_, k){ return '<th>День '+(k+1)+'</th>'; }).join('')+'<th>Прошли</th><th>Отказ</th></tr></thead><tbody>'+
+    data.map(function(x){ return '<tr><td><b>'+esc(x.g.name)+'</b><br><span class="small muted">'+esc(x.g.trainer||'')+'</span></td><td class="num"><b>'+x.created+'</b></td>'+Array.apply(null, Array(mx)).map(function(_, k){ return cell(k < x.days.length ? x.days[k] : null, x.created); }).join('')+cell(x.passed, x.created)+cell(x.refused, x.created)+'</tr>'; }).join('')+
+    '</tbody></table></div></section>';
 }
 function rAtt(gid){
   var list = rList(gid); if(!list.length) return '<div class="empty"><b>В группе нет стажёров</b></div>';
@@ -1426,7 +1531,19 @@ function rIntern(gid){
     fb.map(function(e){ return '<div class="stack" style="gap:4px;padding-top:10px;border-top:1px solid var(--line2)"><span class="small muted">'+fmtTime(e.at)+'</span><p style="margin:0" class="small">'+esc(e.text)+'</p></div>'; }).join('')+
     (nk.length?'<h3 style="margin-top:8px">Заметки стажёра к слайдам</h3>'+nk.map(function(k){ var parts = k.split('_'); var dk = deck(parts[0]); return '<p class="small" style="margin:0;white-space:pre-line"><b>'+esc((dk?dk.title:'')+' · слайд '+parts[1])+':</b> '+esc(notes[k])+'</p>'; }).join(''):'')+'</form>';
   S.ui.rsel = sel;
-  return pick+info+'<div class="cols"><div class="wide stack" style="gap:20px">'+daysT+tests+svs+'</div><div class="narrow stack" style="gap:20px">'+simCardFor(sel)+profCard+side+'</div></div>';
+  return pick+info+'<div class="cols"><div class="wide stack" style="gap:20px">'+daysT+tests+svs+'</div><div class="narrow stack" style="gap:20px">'+simCardFor(sel)+profCard+side+phCard(sel)+'</div></div>';
+}
+function phCard(sel){
+  var st = S.ui.ph && S.ui.ph.iid===sel ? S.ui.ph : null; var body;
+  if(!st) body = '<button class="btn sm" type="button" data-act="ph-load" data-id="'+esc(sel)+'" style="align-self:flex-start">Показать снимки</button>';
+  else if(st.loading) body = '<p class="small muted" style="margin:0">Загружаю…</p>';
+  else if(st.err) body = '<p class="err" style="margin:0">'+esc(st.err)+'</p>';
+  else if(!st.list.length) body = '<p class="small muted" style="margin:0">Снимков пока нет — они появятся после первых изменений прогресса.</p>';
+  else body = '<div class="stack" style="gap:0">'+st.list.map(function(h){ var ask = S.ui.phConfirm===h.id;
+    return '<div class="attn-row"><span class="stack" style="gap:2px"><b class="num">'+esc(fmtDT(h.saved_at))+'</b><span class="small muted">тем отмечено '+h.items+' · тестов '+h.tests+' · '+esc(h.reason||'')+'</span></span>'+
+      (ask ? '<span class="row" style="gap:6px"><span class="small">Вернуть это состояние?</span><button class="btn sm danger" type="button" data-act="ph-restore-yes" data-id="'+h.id+'" data-i="'+esc(sel)+'">Да</button><button class="btn sm" type="button" data-act="ph-restore-no">Нет</button></span>'
+           : '<button class="btn sm" type="button" data-act="ph-restore" data-id="'+h.id+'">Восстановить</button>')+'</div>'; }).join('')+'</div>';
+  return '<section class="card" aria-labelledby="h-ph"><div class="row between"><h2 id="h-ph">История прогресса</h2>'+(st && st.list ? '<button class="btn sm" type="button" data-act="ph-load" data-id="'+esc(sel)+'">Обновить</button>' : '')+'</div><span class="small muted">База сама сохраняет состояние прогресса при изменениях (не чаще раза в 15 минут и всегда — если прогресс резко уменьшился). Хранится 45 дней. Текущее состояние перед восстановлением тоже сохраняется.</span>'+body+'</section>';
 }
 function svAnsText(q, v){
   if(v==null || v==='' || (Array.isArray(v)&&!v.length)) return '—';
@@ -1475,7 +1592,7 @@ var REF_US_DEF = ['Слабый уровень подготовки','Дисци
 function trainersList(){ return (settings().trainers||[]).filter(Boolean); }
 function refList(kind){ var v = settings()[kind==='us'?'refUs':'refSelf']; return (v && v.length) ? v : (kind==='us' ? REF_US_DEF : REF_SELF_DEF); }
 function finPct(iid){ var p = prof(iid); var q = Number(p.finQ), ok = Number(p.finOk); return q>0 && ok>=0 ? Math.round(ok/q*100) : null; }
-function ocNeeds(iid){ var p = prof(iid); return !p.outcome && days().some(function(d){ return attOf(iid, d.id)==='no'; }); }
+function ocNeeds(iid){ var p = prof(iid); return !p.outcome && days().some(function(d){ return manAtt(iid, d.id)==='no'; }); }
 function ocChip(iid){ var p = prof(iid); var k = p.outcome; var t = k ? OC[k] : (ocNeeds(iid) ? 'Укажите итог' : '—');
   return '<button type="button" class="oc '+(k||(ocNeeds(iid)?'need':'none'))+'" data-act="oc-open" data-id="'+esc(iid)+'" title="'+esc((p.reason?'Причина: '+p.reason:'Итог прохождения — нажмите, чтобы изменить'))+'">'+esc(t)+'</button>'+(p.reason && k!=='passed' ? '<br><span class="small muted">'+esc(p.reason)+'</span>' : ''); }
 function ocForm(iid, pre){ var p = prof(iid); var k = f(pre+'oc', p.outcome||''); var fp = finPct(iid);
@@ -2296,7 +2413,7 @@ function presencePing(){
   var m = me(); if(!m) return; var lv = liveOf(m.groupId); if(!lv.active) return;
   saveProgress({pres:{deck:presDeckId(), slide:curSlide(), at:Date.now()}, seen:Date.now()});
 }
-setInterval(function(){ if(S.role==='intern'){ if(S.view==='pres') presencePing(); else if(S.iid) saveProgress({seen:Date.now()}); } }, 60000);
+setInterval(function(){ if(S.role==='intern' && !S.dormant){ if(S.view==='pres') presencePing(); else if(S.iid) saveProgress({seen:Date.now()}); } }, 60000);
 function liveUpdate(gid, patch){ return upsert('live/'+gid, S.live[gid], patch).catch(writeErr); }
 function curDayDraft(){ var d = draft('program'); var di = Math.min(S.ui.sd||0, Math.max(0,d.days.length-1)); return d.days[di]; }
 function mv(arr, i, dir){ var j = i+dir; if(j<0||j>=arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
@@ -2423,8 +2540,8 @@ var A = {
     var lv = S.live[gid] || {}; var opened = clone(lv.opened); opened[deckId] = Math.max(1, (typeof opened[deckId]==='number'?opened[deckId]:1));
     liveUpdate(gid, {active:true, deck:deckId, slide:1, opened:opened, sync:true, at:Date.now()});
   },
-  'att-cycle': function(el){ var iid = el.dataset.i, d = el.dataset.d; var v = attOf(iid, d); var nv = v==='' ? 'yes' : (v==='yes' ? 'no' : null); var p = {att:{}}; p.att[d] = nv;
-    var later = 0; if(nv==='no'){ var ds = days(); var ix = ds.map(function(x){ return x.id; }).indexOf(d); ds.slice(ix+1).forEach(function(x){ if(attOf(iid, x.id)!=='no'){ p.att[x.id] = 'no'; later++; } }); }
+  'att-cycle': function(el){ var iid = el.dataset.i, d = el.dataset.d; var v = attOf(iid, d); var man = manAtt(iid, d); var nv = man ? (man==='yes' ? 'no' : null) : (v==='yes' ? 'no' : 'yes'); var p = {att:{}}; p.att[d] = nv;
+    var later = 0; if(nv==='no'){ var ds = days(); var ix = ds.map(function(x){ return x.id; }).indexOf(d); ds.slice(ix+1).forEach(function(x){ if(manAtt(iid, x.id)!=='no' && attOf(iid, x.id)!=='yes'){ p.att[x.id] = 'no'; later++; } }); }
     saveProfile(iid, p).then(function(){ if(nv==='no' && !prof(iid).outcome){ S.ui.modal = {type:'outcome', id:iid, auto:true}; render(); } else if(later) toast('Следующие дни тоже отмечены «не был»: '+later); }); },
   'oc-save-card': function(el){ ocSave(el.dataset.id, 'ocp-'+el.dataset.id+'-'); },
   'oc-open': function(el){ S.ui.modal = {type:'outcome', id:el.dataset.id}; render(); },
@@ -2454,6 +2571,21 @@ var A = {
   'tp-closeall': function(){ var gid=curGid(); var ids=Object.keys(decksMap()); var deckId = S.ui.tdeck && deck(S.ui.tdeck) ? S.ui.tdeck : ids[0]; var lv=S.live[gid]||{}; var op=clone(lv.opened); op[deckId]=0; liveUpdate(gid, {opened:op, active:!!lv.active, deck: lv.active?lv.deck:deckId}); toast('Слайды закрыты для группы'); },
   rsel: function(el){ S.ui.rsel = el.dataset.id; S.ui.rmode = 'intern'; S.form['fb-text']=''; render(); window.scrollTo(0,0); },
   rmode: function(el){ S.ui.rmode = el.dataset.m; render(); },
+  'tab-claim': function(){ claimTab(); startRealtime(); loadAll().then(function(){ render(); }, function(){}); render(); },
+  'ph-load': function(el){ var iid = el.dataset.id; S.ui.ph = {iid:iid, loading:true}; S.ui.phConfirm = null; render();
+    sb.rpc('progress_history_list', {target:iid}).then(function(r){ S.ui.ph = r.error ? {iid:iid, err:'Не удалось загрузить историю: '+r.error.message} : {iid:iid, list:r.data||[]}; render(); }); },
+  'ph-restore': function(el){ S.ui.phConfirm = Number(el.dataset.id); render(); },
+  'ph-restore-no': function(){ S.ui.phConfirm = null; render(); },
+  'ph-restore-yes': function(el){ var id = Number(el.dataset.id), iid = el.dataset.i;
+    sb.rpc('admin_restore_progress', {hist_id:id}).then(function(r){ if(r.error){ toast('Не удалось восстановить: '+r.error.message); return; }
+      setLocal('progress/'+iid, r.data); S.ui.phConfirm = null; toast('Прогресс восстановлен'); A['ph-load']({dataset:{id:iid}}); }); },
+  'mr-kind': function(el){ S.ui.mrKind = el.dataset.k; render(); },
+  'xl-reports': function(){ var gid = curGid(); if(gid) xlReports(gid); },
+  'arch-toggle': function(){ S.ui.showArch = !S.ui.showArch; render(); },
+  'g-arch': function(){ var gid = curGid(); var g = S.groups[gid]; if(!g) return; var on = !g.archived;
+    S.db.doc('groups/'+gid).update({archived:on}).then(function(){ if(on && !S.ui.showArch) S.ui.gid = null; toast(on ? 'Группа «'+g.name+'» в архиве' : 'Группа возвращена из архива'); render(); }, writeErr); },
+  'attn-toggle': function(){ S.ui.attnOpen = S.ui.attnOpen===false; render(); },
+  'attn-go': function(el){ S.view = 't-results'; S.ui.rmode = 'intern'; S.ui.rsel = el.dataset.id; S.form['fb-text']=''; render(); window.scrollTo(0,0); },
   'r-hide': function(){ S.ui.rHide = !S.ui.rHide; render(); },
   rgo: function(el){ S.ui.gid = el.dataset.g; S.ui.rmode = 'group'; render(); window.scrollTo(0,0); },
   rsv: function(el){ S.ui.rsv = el.dataset.id; S.ui.rsvDay = ''; render(); },
@@ -2710,7 +2842,7 @@ function afterAuth(user, want){
       delete S.form['f-pw']; delete S.form['tr-pw'];
       if(tr){ S.role = 'trainer'; S.view = 't-access'; }
       else if(S.interns[user.id] && S.interns[user.id].suspended){ S.ui.loginErr = 'Доступ приостановлен тренером. Обратитесь к тренеру.'; sb.auth.signOut(); }
-      else if(S.interns[user.id]){ S.role = 'intern'; S.iid = user.id; S.view = 'home'; saveProgress({seen:Date.now()}); S.ui.liveKey = undefined; followLive(); }
+      else if(S.interns[user.id]){ S.role = 'intern'; S.iid = user.id; claimTab(); S.view = 'home'; saveProgress({seen:Date.now()}); S.ui.liveKey = undefined; followLive(); }
       else if(CACHE['requests/'+user.id]){ S.role = 'applicant'; }
       else { S.ui.loginErr = 'Аккаунт не найден. Обратитесь к тренеру.'; sb.auth.signOut(); }
       startRealtime();
@@ -2776,7 +2908,7 @@ function startRealtime(){
 }
 function sameJson(a, b){ try{ return JSON.stringify(a)===JSON.stringify(b); }catch(e){ return false; } }
 function pollLive(){
-  if(document.hidden || !S.role || !sb) return;
+  if(document.hidden || !S.role || !sb || S.dormant) return;
   var now = Date.now();
   if(S.role==='intern' && me()){
     var path = 'live/'+me().groupId;
@@ -2820,8 +2952,8 @@ if(!window.supabase || !CFG.url || !CFG.anonKey || /ВСТАВЬТЕ|XXXX/.test(
   sb.auth.onAuthStateChange(function(ev){ if(ev==='SIGNED_IN' || ev==='TOKEN_REFRESHED') startRealtime(); });
   setInterval(pollLive, 3000);
   /* Полная перезагрузка данных: при возврате на вкладку (не чаще раза в 30 с) и раз в 10 минут */
-  document.addEventListener('visibilitychange', function(){ if(!document.hidden && S.role && Date.now()-(S.lastLoad||0) > 30000){ loadAll().catch(function(){}); startRealtime(); } });
-  setInterval(function(){ if(S.role && !document.hidden) loadAll().catch(function(){}); }, 600000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden && S.role && !S.dormant && Date.now()-(S.lastLoad||0) > 30000){ loadAll().catch(function(){}); startRealtime(); } });
+  setInterval(function(){ if(S.role && !document.hidden && !S.dormant) loadAll().catch(function(){}); }, 600000);
   sb.from('docs').select('path,data').eq('path','content/settings').maybeSingle().then(function(r){ if(r.data) setLocal('content/settings', r.data.data); });
   S.ui.busy = true;
   sb.auth.getSession().then(function(r){
