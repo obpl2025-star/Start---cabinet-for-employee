@@ -1159,7 +1159,10 @@ function tAccessMain(){
 
 /* ---------- trainer: roll call ---------- */
 function rollsOf(gid){ return Object.keys(S.rolls||{}).map(function(k){ return Object.assign({id:k}, S.rolls[k]); }).filter(function(r){ return r.groupId===gid; }).sort(function(a,b){ return (b.startedAt||0)-(a.startedAt||0); }); }
-function rollMarkAt(iid, rid){ var r = P(iid).roll; return r && r.id===rid ? r.at : null; }
+function rollMarkAt(iid, rid){ var r = P(iid).roll; if(r && r.id===rid && r.at) return r.at; var m = rollManAt(iid, rid); return m || null; }
+/* Отметка, поставленная тренером вручную во время переклички (live/<группа>.roll.manual) */
+function rollManAt(iid, rid){ var it = S.interns[iid]; var rl = it ? liveOf(it.groupId).roll : null; return rl && rl.id===rid && rl.manual && rl.manual[iid] ? rl.manual[iid] : null; }
+function rollSelfAt(iid, rid){ var r = P(iid).roll; return r && r.id===rid ? r.at : null; }
 function hhmm(t){ return t ? new Date(t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : ''; }
 function tRoll(){
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
@@ -1175,7 +1178,9 @@ function tRoll(){
       '<div class="row" style="align-items:center"><span class="num" style="font-family:var(--f-display);font-size:28px">'+here+' / '+list.length+'</span><button class="btn sm" type="button" data-act="roll-view" data-id="live" title="Кто отметился" aria-label="Кто отметился">👁</button><button class="btn danger" type="button" data-act="roll-stop">Завершить перекличку</button></div></div>'+
       '<div class="meter"><i style="width:'+(list.length?Math.round(here/list.length*100):0)+'%"></i></div>'+
       (list.length ? '<div>'+list.map(function(i){ var at = rollMarkAt(i.id, rl.id);
-        return '<div class="rollrow"><span class="row" style="gap:12px;flex-wrap:nowrap"><span class="rmark '+(at?'yes':'no')+'" aria-hidden="true">'+(at?'✓':'✕')+'</span><b>'+esc(i.name)+'</b></span><span class="small '+(at?'':'muted')+'">'+(at?'на месте · '+hhmm(at):'не отметился')+'</span></div>'; }).join('')+'</div>' : '<p class="muted" style="margin:0">В группе нет активных стажёров.</p>')+
+        var man = !rollSelfAt(i.id, rl.id) && rollManAt(i.id, rl.id);
+        return '<div class="rollrow"><span class="row" style="gap:12px;flex-wrap:nowrap"><span class="rmark '+(at?'yes':'no')+'" aria-hidden="true">'+(at?'✓':'✕')+'</span><b>'+esc(i.name)+'</b></span><span class="row" style="gap:8px"><span class="small '+(at?'':'muted')+'">'+(at?(man?'отмечен тренером · ':'на месте · ')+hhmm(at):'не отметился')+'</span>'+
+          (man ? '<button class="linkbtn small" type="button" data-act="roll-man" data-id="'+esc(i.id)+'" data-on="0">Снять</button>' : (at ? '' : '<button class="btn sm" type="button" data-act="roll-man" data-id="'+esc(i.id)+'" data-on="1">Отметить вручную</button>'))+'</span></div>'; }).join('')+'</div>' : '<p class="muted" style="margin:0">В группе нет активных стажёров.</p>')+
       '</section>';
   } else {
     top = '<section class="card" aria-labelledby="h-rl"><h2 id="h-rl">Начать перекличку</h2><p style="margin:0;line-height:1.55">У всех стажёров группы «'+esc(g.name)+'» кабинет закроется экраном переклички с кнопкой «Я на месте». Вы видите, кто отметился, и завершаете перекличку — после этого стажёры снова пользуются кабинетом как обычно.</p>'+
@@ -1184,7 +1189,31 @@ function tRoll(){
   var histBox = '<section class="card" aria-labelledby="h-rh"><div class="row between"><h2 id="h-rh">Журнал перекличек</h2>'+(hist.length?'<button class="btn sm" type="button" data-act="xl-rolls">Выгрузить в Excel</button>':'')+'</div>'+
     (hist.length ? '<div class="table-wrap"><table><thead><tr><th>Дата</th><th>Время</th><th>На месте</th><th>Не отметились</th><th></th></tr></thead><tbody>'+hist.map(function(r){ var ls = r.list||[]; var yes = ls.filter(function(x){ return x.at; }); var no = ls.filter(function(x){ return !x.at; });
         return '<tr><td>'+esc(fmtDay(r.startedAt))+'</td><td class="num">'+hhmm(r.startedAt)+'–'+hhmm(r.endedAt)+'</td><td class="num"><b>'+yes.length+' / '+ls.length+'</b></td><td class="small">'+(no.length?no.map(function(x){ return esc(x.name); }).join(', '):'<span class="muted">все на месте</span>')+'</td><td><button class="btn sm" type="button" data-act="roll-view" data-id="'+esc(r.id)+'" title="Кто отметился" aria-label="Кто отметился">👁</button></td></tr>'; }).join('')+'</tbody></table></div>' : '<p class="muted" style="margin:0">Перекличек в этой группе ещё не было.</p>')+'</section>';
-  return head('Перекличка', esc(g.name), groupPicker(false))+top+histBox;
+  return head('Перекличка', esc(g.name), groupPicker(false))+top+(active ? '' : rollReportCard(gid))+histBox;
+}
+/* После переклички: тренер правит отсутствующих, проверяет текст и подтверждает отправку отчёта */
+function rollReportCard(gid){
+  var g = S.groups[gid]; var ds = mrDates(gid); if(!ds.length) return '';
+  var d = ds[ds.length-1]; if(d.key!==dkey(Date.now()) || d.roll.live) return '';
+  var st = mrStats(gid, d.n); var msg = mrMessage(g, st); var r = d.roll; var chat = tgChat();
+  var miss = (r.list||[]).filter(function(x){ return !x.at; });
+  return '<section class="card" data-copybox aria-labelledby="h-rr" style="border-color:var(--accent)"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-rr">Утренний отчёт · '+d.n+'-й день</h2><span class="small muted">Проверьте отсутствующих, при необходимости отметьте опоздавших и подтвердите отправку.</span></div>'+
+      (r.sentAt ? '<span class="chip ok">Отправлено в '+hhmm(r.sentAt)+'</span>' : '<span class="chip warn">Ждёт подтверждения</span>')+'</div>'+
+    (miss.length ? '<div>'+miss.map(function(x){ return '<div class="attn-row"><span><b>'+esc(x.name)+'</b> <span class="small muted">не отметился</span></span><button class="btn sm" type="button" data-act="roll-fix" data-r="'+esc(r.id)+'" data-id="'+esc(x.iid)+'">Отметить присутствующим</button></div>'; }).join('')+'</div>' : '<span class="small" style="color:var(--accent-ink)">Все на месте.</span>')+
+    '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre>'+
+    '<div class="row"><button class="btn primary" type="button" data-act="tg-send" data-r="'+esc(r.id)+'" data-text="'+esc(msg)+'"'+(chat?'':' disabled')+'>'+(r.sentAt?'Отправить ещё раз':'Подтвердить и отправить в Telegram')+'</button><button class="btn" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button>'+
+      (chat ? '<span class="small muted">Чат: '+esc(chat.title)+'</span>' : '<button class="linkbtn small" type="button" data-act="nav" data-v="t-morning">Выберите чат Telegram во вкладке «Утренние отчёты»</button>')+'</div></section>';
+}
+function tgChat(){ var t = settings().tgChat; var c = t && t[activeDir()]; return c && c.id ? c : null; }
+function fnErr(r){ var e = (r && r.data && r.data.error) || (r && r.error && r.error.message) || 'нет связи'; return Promise.resolve(r && r.error && r.error.context && r.error.context.json ? r.error.context.json().then(function(j){ return (j && j.error) || e; }, function(){ return e; }) : e); }
+function tgCall(body){ return sb.functions.invoke('tg', {body:body}).then(function(r){ if(r.error || (r.data && r.data.error)) return fnErr(r).then(function(m){ throw {message:m}; }); return r.data; }); }
+function tgCard(){
+  var chat = tgChat(); var st = S.ui.tg || {};
+  return '<section class="card" aria-labelledby="h-tg"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-tg">Telegram</h2><span class="small muted">Куда бот отправляет отчёты направления «'+esc(dirName(activeDir()))+'». Добавьте бота в нужный чат (или напишите ему /start в личке), затем нажмите «Найти чаты».</span></div>'+
+    (chat?'<span class="chip ok">'+esc(chat.title)+'</span>':'<span class="chip warn">чат не выбран</span>')+'</div>'+
+    '<div class="row"><button class="btn" type="button" data-act="tg-find">'+(st.loading?'Ищу…':'Найти чаты')+'</button>'+(st.bot?'<span class="small muted">Бот: @'+esc(st.bot)+'</span>':'')+'</div>'+
+    (st.err?'<p class="err" style="margin:0">'+esc(st.err)+'</p>':'')+
+    (st.chats ? (st.chats.length ? st.chats.map(function(c){ return '<div class="attn-row"><span><b>'+esc(c.title||String(c.id))+'</b> <span class="small muted">'+(c.type==='private'?'личка':(c.type==='channel'?'канал':'группа'))+'</span></span><button class="btn sm'+(chat&&String(chat.id)===String(c.id)?' primary':'')+'" type="button" data-act="tg-pick" data-id="'+esc(String(c.id))+'" data-t="'+esc(c.title||String(c.id))+'">'+(chat&&String(chat.id)===String(c.id)?'Выбран':'Выбрать')+'</button></div>'; }).join('') : '<p class="small muted" style="margin:0">Бот пока не видит ни одного чата. Добавьте его в чат или напишите ему любое сообщение и нажмите «Найти чаты» ещё раз.</p>') : '')+'</section>';
 }
 function xlRolls(gid){
   var g = S.groups[gid]; var rows = [['Дата','Начало','Конец','ФИО','Отметился','Время отметки']];
@@ -1294,7 +1323,7 @@ function tMorning(){
   var dayPick = '<label class="field" style="min-width:200px">День стажировки<select id="mr-day" data-act-change="mr-day">'+ds.map(function(d){ return '<option value="'+d.n+'"'+(d.n===n?' selected':'')+'>'+d.n+'-й день · '+esc(ddmm(d.key))+(d.roll.live?' · идёт перекличка':'')+'</option>'; }).join('')+'</select></label>';
   if(kind==='pm') return tEvening(g, gid, n, kseg, dayPick, xlBtn);
   var msg = mrMessage(g, st);
-  var msgBox = '<section class="card" data-copybox aria-labelledby="h-mrm"><div class="row between"><h2 id="h-mrm">Готовое сообщение</h2><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button></div>'+
+  var msgBox = '<section class="card" data-copybox aria-labelledby="h-mrm"><div class="row between"><h2 id="h-mrm">Готовое сообщение</h2><span class="row"><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button><button class="btn" type="button" data-act="tg-send" data-text="'+esc(msg)+'"'+(tgChat()?'':' disabled title="Выберите чат ниже"')+'>Отправить в Telegram</button></span></div>'+
     '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre>'+
     (st.live?'<span class="small" style="color:var(--amber-ink)">Перекличка ещё идёт — цифры обновятся, когда стажёры отметятся.</span>':'<span class="small muted">Вставьте сообщение в чат. Результаты опросника — лучшая попытка стажёра на текущий момент.</span>')+'</section>';
   var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">Дата потока</span><span class="v num">'+esc(ddmm(g.start)||'—')+'</span><span class="small muted">'+(g.trainer?'тренер '+esc(g.trainer):'тренер не указан')+'</span></div>'+
@@ -1328,17 +1357,17 @@ function tMorning(){
         (st.quizDay ? row('Средний результат опросника '+st.quizDay+'-го дня', st.avg, ps.avg, '%', true) : '')+
         '</tbody></table></div>' : '<p class="muted" style="margin:0">У потока «'+esc(pg?pg.name:'')+'» нет переклички в '+n+'-й день — сравнивать не с чем.</p>')+'</section>';
   }
-  return head('Утренние отчёты', esc(g.name)+' · '+n+'-й день · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+xlBtn+'</div>')+kpi+msgBox+cmp+table;
+  return head('Утренние отчёты', esc(g.name)+' · '+n+'-й день · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+xlBtn+'</div>')+kpi+msgBox+cmp+table+tgCard();
 }
 function tEvening(g, gid, n, kseg, dayPick, xlBtn){
   var st = eveStats(gid, n); var msg = eveMessage(g, st);
-  var msgBox = '<section class="card" data-copybox aria-labelledby="h-evm"><div class="row between"><h2 id="h-evm">Готовое сообщение · итоги дня</h2><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button></div>'+
+  var msgBox = '<section class="card" data-copybox aria-labelledby="h-evm"><div class="row between"><h2 id="h-evm">Готовое сообщение · итоги дня</h2><span class="row"><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button><button class="btn" type="button" data-act="tg-send" data-text="'+esc(msg)+'"'+(tgChat()?'':' disabled title="Выберите чат ниже"')+'>Отправить в Telegram</button></span></div>'+
     '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre><span class="small muted">Отправляйте в конце дня, когда опросник пройден. «Отстают» — отмечено меньше половины открытых тем дня.</span></section>';
   var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">День стажировки</span><span class="v num">'+n+'</span><span class="small muted">'+esc(st.dayTitle||'')+'</span></div>'+
     '<div class="kpi"><span class="small muted">Были на перекличке</span><span class="v num">'+st.present+' / '+st.created+'</span></div>'+
     (st.qt ? '<div class="kpi"><span class="small muted">Опросник дня: сдали</span><span class="v num" style="color:var(--accent-ink)">'+st.passed+'</span><span class="small muted">не сдали '+st.failed+' · не проходили '+st.none+'</span></div><div class="kpi"><span class="small muted">Средний результат</span><span class="v num">'+(st.avg==null?'—':st.avg+'%')+'</span></div>' : '<div class="kpi"><span class="small muted">Опросник дня</span><span class="v num">—</span><span class="small muted">в этот день теста нет</span></div>')+
     '<div class="kpi"><span class="small muted">Отстают по темам</span><span class="v num"'+(st.lag.length?' style="color:var(--danger)"':'')+'>'+st.lag.length+'</span></div></div>';
-  return head('Утренние отчёты', esc(g.name)+' · итоги '+n+'-го дня · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+xlBtn+'</div>')+kpi+msgBox;
+  return head('Утренние отчёты', esc(g.name)+' · итоги '+n+'-го дня · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+xlBtn+'</div>')+kpi+msgBox+tgCard();
 }
 
 /* ---------- trainer: presentation ---------- */
@@ -2552,7 +2581,7 @@ var A = {
   'roll-start': function(){ var gid = curGid(); if(!gid) return; liveUpdate(gid, {roll:{active:true, id:uid('r'), startedAt:Date.now()}}); toast('Перекличка началась'); },
   'roll-stop': function(){
     var gid = curGid(); var rl = liveOf(gid).roll; if(!rl || !rl.active) return; var end = Date.now();
-    var list = internsOf(gid).filter(function(i){ return !i.suspended; }).map(function(i){ return {iid:i.id, name:i.name, at:rollMarkAt(i.id, rl.id)}; });
+    var list = internsOf(gid).filter(function(i){ return !i.suspended; }).map(function(i){ var self = rollSelfAt(i.id, rl.id); var man = rollManAt(i.id, rl.id); return {iid:i.id, name:i.name, at:self || man || null, manual: !self && !!man}; });
     S.db.doc('rolls/'+rl.id).set({groupId:gid, startedAt:rl.startedAt, endedAt:end, list:list}).then(function(){ return liveUpdate(gid, {roll:{active:false, id:rl.id, startedAt:rl.startedAt, endedAt:end}}); })
       .then(function(){ var y = list.filter(function(x){ return x.at; }).length; toast('Перекличка завершена: на месте '+y+' из '+list.length); }, writeErr);
   },
@@ -2579,6 +2608,15 @@ var A = {
   'ph-restore-yes': function(el){ var id = Number(el.dataset.id), iid = el.dataset.i;
     sb.rpc('admin_restore_progress', {hist_id:id}).then(function(r){ if(r.error){ toast('Не удалось восстановить: '+r.error.message); return; }
       setLocal('progress/'+iid, r.data); S.ui.phConfirm = null; toast('Прогресс восстановлен'); A['ph-load']({dataset:{id:iid}}); }); },
+  'roll-man': function(el){ var gid = curGid(); var rl = liveOf(gid).roll; if(!rl || !rl.active) return; var p = {roll:{manual:{}}}; p.roll.manual[el.dataset.id] = el.dataset.on==='1' ? Date.now() : null; liveUpdate(gid, p); },
+  'roll-fix': function(el){ var r = S.rolls[el.dataset.r]; if(!r) return; var list = clone(r.list||[]); list.forEach(function(x){ if(x.iid===el.dataset.id && !x.at){ x.at = Date.now(); x.manual = true; } });
+    S.db.doc('rolls/'+el.dataset.r).update({list:list}).then(function(){ toast('Отмечен присутствующим'); }, writeErr); },
+  'tg-send': function(el){ var c = tgChat(); if(!c){ toast('Сначала выберите чат Telegram'); return; } var rid = el.dataset.r; el.disabled = true;
+    tgCall({action:'send', chat_id:c.id, text:el.dataset.text}).then(function(){ toast('Отправлено в Telegram: '+c.title); if(rid && S.rolls[rid]) S.db.doc('rolls/'+rid).update({sentAt:Date.now()}).catch(function(){}); }, function(e){ el.disabled = false; toast('Не удалось отправить: '+e.message); }); },
+  'tg-find': function(){ S.ui.tg = Object.assign({}, S.ui.tg, {loading:true, err:null}); render();
+    tgCall({action:'chats'}).then(function(d){ S.ui.tg = {chats:d.chats||[], bot:d.bot}; render(); }, function(e){ S.ui.tg = {err:'Не удалось: '+e.message}; render(); }); },
+  'tg-pick': function(el){ var p = {tgChat:{}}; p.tgChat[activeDir()] = {id:el.dataset.id, title:el.dataset.t};
+    S.db.doc('content/settings').update(p).then(function(){ toast('Отчёты будут уходить в «'+el.dataset.t+'»'); render(); }, writeErr); },
   'mr-kind': function(el){ S.ui.mrKind = el.dataset.k; render(); },
   'xl-reports': function(){ var gid = curGid(); if(gid) xlReports(gid); },
   'arch-toggle': function(){ S.ui.showArch = !S.ui.showArch; render(); },
