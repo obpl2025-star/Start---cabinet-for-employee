@@ -735,10 +735,10 @@ function viewShell(){
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
     side = '<nav class="side" aria-label="Разделы тренера">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+dirPicker()+
-      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-crit','Критические ошибки')+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
+      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-crit','Критические ошибки')+navItem('t-morning','Утренние отчёты')+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
       '<div class="me"><div class="ava amber">Т</div><div class="who"><b>Тренер</b><small>Управление стажировкой</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
-    body = ({'t-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-crit':tCrit, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
+    body = ({'t-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-crit':tCrit, 't-morning':tMorning, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
   }
   return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>'+(S.role==='intern' ? contactFab() : '');
 }
@@ -1161,6 +1161,97 @@ function xlRolls(gid){
   return xlSave('Перекличка — '+(g?g.name:''), [{name:'Посещаемость', rows:sum, filter:1}, {name:'Журнал', rows:rows, filter:1}]);
 }
 
+/* ---------- trainer: morning reports ---------- */
+/* День стажировки = порядковый номер даты, в которую у группы была перекличка (выходные не считаются).
+   «Утренняя перекличка» дня — самая ранняя перекличка в эту дату (идущая сейчас тоже учитывается). */
+function dkey(ts){ var d = new Date(ts); function z(n){ return (n<10?'0':'')+n; } return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
+function ddmm(s){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||'')); return m ? m[3]+'.'+m[2] : String(s||''); }
+function mrDates(gid){
+  var by = {};
+  rollsOf(gid).forEach(function(r){ if(!r.startedAt) return; var k = dkey(r.startedAt); if(!by[k] || r.startedAt < by[k].startedAt) by[k] = r; });
+  var rl = liveOf(gid).roll;
+  if(rl && rl.active && rl.startedAt){ var k = dkey(rl.startedAt);
+    if(!by[k] || rl.startedAt <= by[k].startedAt) by[k] = {id:rl.id, startedAt:rl.startedAt, live:true, list:internsOf(gid).filter(function(i){ return !i.suspended; }).map(function(i){ return {iid:i.id, name:i.name, at:rollMarkAt(i.id, rl.id)}; })}; }
+  return Object.keys(by).sort().map(function(k, i){ return {key:k, n:i+1, roll:by[k]}; });
+}
+function rollHas(roll, iid){ return !!(roll && (roll.list||[]).some(function(x){ return x.iid===iid && x.at; })); }
+function isRefused(iid){ var o = prof(iid).outcome; return o==='self' || o==='us'; }
+function mrStats(gid, n){
+  var ds = mrDates(gid); if(!n || n > ds.length) return null;
+  var roll = ds[n-1].roll; var all = internsOf(gid);
+  var present = all.filter(function(i){ return rollHas(roll, i.id); });
+  var absent = all.filter(function(i){ return !rollHas(roll, i.id); }).map(function(i){
+    var d = n; while(d > 1 && !rollHas(ds[d-2].roll, i.id)) d--;
+    return {id:i.id, name:i.name, from:d, suspended:!!i.suspended, refused:isRefused(i.id)}; });
+  var qt = n > 1 ? testItems().filter(function(t){ return t.dayIdx===n-2; })[0] : null;
+  var quiz = all.filter(function(i){ return !i.suspended && !isRefused(i.id); }).map(function(i){ var r = qt ? testRec(i.id, qt.test) : null; return {id:i.id, name:i.name, pct: r ? r.best : null}; });
+  var got = quiz.filter(function(x){ return x.pct!=null; });
+  var avg = got.length ? Math.round(got.reduce(function(a,x){ return a+x.pct; },0)/got.length) : null;
+  return {n:n, date:ds[n-1].key, live:!!roll.live, created:all.length, present:present.length, absent:absent, quizDay: qt ? n-1 : null, quiz:quiz, avg:avg, att: all.length ? Math.round(present.length/all.length*100) : null};
+}
+function mrMessage(g, st){
+  var L = ['Доброе утро, '+st.n+' день стажировки, поток от '+ddmm(g.start)+(g.trainer?' - тренер '+g.trainer:''),
+    'Явились на утреннюю перекличку - '+st.present,
+    'Отсутствуют:'+(st.absent.length?'':' нет')];
+  st.absent.forEach(function(a, i){ L.push((i+1)+') '+a.name+' - '+(a.from===st.n ? 'нет на перекличке' : 'отсутствует с '+a.from+'-го дня')); });
+  if(st.quizDay){
+    L.push('Результаты опросника '+st.quizDay+'-го дня в разрезе каждого стажёра:');
+    st.quiz.forEach(function(q){ L.push(q.name+' - '+(q.pct==null?'нет результата':q.pct+'%')); });
+    L.push('Средний результат по потоку - '+(st.avg==null?'нет данных':st.avg+'%'));
+  }
+  return L.join('\n');
+}
+function prevGroupOf(gid){
+  var g = S.groups[gid]; if(!g) return null;
+  var c = groupList().filter(function(x){ return x.id!==gid && x.start && (!g.start || x.start < g.start); }).sort(function(a,b){ return a.start < b.start ? 1 : -1; });
+  return c[0] ? c[0].id : null;
+}
+function tMorning(){
+  var gid = curGid(); var g = gid ? S.groups[gid] : null;
+  if(!g) return head('Утренние отчёты','')+'<div class="empty"><b>Сначала создайте группу</b><button class="btn primary" data-act="nav" data-v="t-access">Перейти к группам</button></div>';
+  var ds = mrDates(gid);
+  if(!ds.length) return head('Утренние отчёты', esc(g.name), groupPicker(false))+'<div class="empty"><b>У группы ещё не было перекличек</b><span>Отчёт строится по утренней перекличке: проведите её во вкладке «Перекличка».</span><button class="btn primary" data-act="nav" data-v="t-roll">Открыть перекличку</button></div>';
+  var n = Number(S.ui.mrDay); if(!n || n > ds.length || S.ui.mrGid!==gid){ n = ds.length; S.ui.mrDay = n; S.ui.mrGid = gid; }
+  var st = mrStats(gid, n);
+  var dayPick = '<label class="field" style="min-width:200px">День стажировки<select id="mr-day" data-act-change="mr-day">'+ds.map(function(d){ return '<option value="'+d.n+'"'+(d.n===n?' selected':'')+'>'+d.n+'-й день · '+esc(ddmm(d.key))+(d.roll.live?' · идёт перекличка':'')+'</option>'; }).join('')+'</select></label>';
+  var msg = mrMessage(g, st);
+  var msgBox = '<section class="card" data-copybox aria-labelledby="h-mrm"><div class="row between"><h2 id="h-mrm">Готовое сообщение</h2><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button></div>'+
+    '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre>'+
+    (st.live?'<span class="small" style="color:var(--amber-ink)">Перекличка ещё идёт — цифры обновятся, когда стажёры отметятся.</span>':'<span class="small muted">Вставьте сообщение в чат. Результаты опросника — лучшая попытка стажёра на текущий момент.</span>')+'</section>';
+  var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">Дата потока</span><span class="v num">'+esc(ddmm(g.start)||'—')+'</span><span class="small muted">'+(g.trainer?'тренер '+esc(g.trainer):'тренер не указан')+'</span></div>'+
+    '<div class="kpi"><span class="small muted">Создано учётных записей</span><span class="v num">'+st.created+'</span></div>'+
+    '<div class="kpi"><span class="small muted">Явились на перекличку</span><span class="v num" style="color:var(--accent-ink)">'+st.present+'</span><span class="small muted">'+(st.att==null?'':st.att+'% от учётных записей')+'</span></div>'+
+    '<div class="kpi"><span class="small muted">Отсутствуют</span><span class="v num"'+(st.absent.length?' style="color:var(--danger)"':'')+'>'+st.absent.length+'</span></div>'+
+    '<div class="kpi"><span class="small muted">Средний результат опросников</span><span class="v num">'+(st.avg==null?'—':st.avg+'%')+'</span><span class="small muted">'+(st.quizDay?'опросник '+st.quizDay+'-го дня':'в 1-й день опросника ещё нет')+'</span></div></div>';
+  var ti = testItems().filter(function(t){ return t.dayIdx < n-1; });
+  var all = internsOf(gid).slice().sort(function(a,b){ return (rankOut(a)-rankOut(b)) || String(a.name).localeCompare(String(b.name),'ru'); });
+  var ab = {}; st.absent.forEach(function(a){ ab[a.id] = a; });
+  var table = '<section class="card" aria-labelledby="h-mrt"><h2 id="h-mrt">Стажёры потока</h2><div class="table-wrap"><table><thead><tr><th>№</th><th>ФИО стажёра</th><th>Явка · '+n+'-й день</th>'+ti.map(function(t){ return '<th title="'+esc(t.title)+'">Опросник, день '+(t.dayIdx+1)+'</th>'; }).join('')+'<th>Отсутствует</th></tr></thead><tbody>'+
+    all.map(function(i, k){ var a = ab[i.id]; var dim = i.suspended || isRefused(i.id);
+      return '<tr'+(dim?' style="opacity:.6"':'')+'><td class="num">'+(k+1)+'</td><td><b>'+esc(i.name)+'</b>'+outChips(i)+'</td><td>'+(a?'<span class="chip bad">Отсутствует</span>':'<span class="chip ok">Явился</span>')+'</td>'+
+        ti.map(function(t){ return pctCell(testRec(i.id, t.test), test(t.test)); }).join('')+'<td class="small">'+(a ? (a.from===n ? 'нет на перекличке' : 'с '+a.from+'-го дня') : '')+'</td></tr>'; }).join('')+
+    '</tbody></table></div></section>';
+  var pgid = S.ui.mrCmp && S.groups[S.ui.mrCmp] && S.ui.mrCmp!==gid ? S.ui.mrCmp : prevGroupOf(gid);
+  var others = groupList().filter(function(x){ return x.id!==gid; });
+  var cmp = '';
+  if(others.length){
+    var ps = pgid ? mrStats(pgid, n) : null; var pg = pgid ? S.groups[pgid] : null;
+    var cmpPick = '<label class="field" style="min-width:240px">Сравнить с потоком<select id="mr-cmp" data-act-change="mr-cmp">'+others.map(function(x){ return '<option value="'+esc(x.id)+'"'+(x.id===pgid?' selected':'')+'>'+esc(x.name)+(x.start?' · старт '+esc(ddmm(x.start)):'')+'</option>'; }).join('')+'</select></label>';
+    var row = function(label, a, b, unit, goodUp){ var d = (a!=null && b!=null) ? a-b : null;
+      var col = d==null || d===0 ? 'var(--muted)' : ((d>0)===goodUp ? 'var(--accent-ink)' : 'var(--danger)');
+      return '<tr><td>'+label+'</td><td class="num"><b>'+(a==null?'—':a+unit)+'</b></td><td class="num">'+(b==null?'—':b+unit)+'</td><td class="num" style="color:'+col+';font-weight:600">'+(d==null?'—':(d>0?'+':'')+d+unit)+'</td></tr>'; };
+    cmp = '<section class="card" aria-labelledby="h-mrc"><div class="row between" style="align-items:flex-end"><div class="stack" style="gap:4px"><h2 id="h-mrc">Сравнение с предыдущим потоком</h2><span class="small muted">Тот же '+n+'-й день стажировки в обоих потоках.</span></div>'+cmpPick+'</div>'+
+      (ps ? '<div class="table-wrap"><table><thead><tr><th>Показатель · '+n+'-й день</th><th>'+esc(g.name)+'</th><th>'+esc(pg.name)+'</th><th>Разница</th></tr></thead><tbody>'+
+        row('Создано учётных записей', st.created, ps.created, '', true)+
+        row('Явились на перекличку', st.present, ps.present, '', true)+
+        row('Отсутствуют', st.absent.length, ps.absent.length, '', false)+
+        row('Явка от учётных записей', st.att, ps.att, '%', true)+
+        (st.quizDay ? row('Средний результат опросника '+st.quizDay+'-го дня', st.avg, ps.avg, '%', true) : '')+
+        '</tbody></table></div>' : '<p class="muted" style="margin:0">У потока «'+esc(pg?pg.name:'')+'» нет переклички в '+n+'-й день — сравнивать не с чем.</p>')+'</section>';
+  }
+  return head('Утренние отчёты', esc(g.name)+' · '+n+'-й день · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+groupPicker(false)+dayPick+'</div>')+kpi+msgBox+cmp+table;
+}
+
 /* ---------- trainer: presentation ---------- */
 function tPres(){
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
@@ -1241,12 +1332,21 @@ function tResults(){
   if(mode==='all') return head('Результаты','Сравнение групп', '<div class="row" style="align-items:flex-end">'+seg+'<button class="btn primary" type="button" data-act="xl-track-all">Выгрузить стажировки</button><button class="btn" type="button" data-act="xl-all">Сравнение в Excel</button></div>')+rAll();
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
   if(!g) return head('Результаты','', seg)+'<div class="empty"><b>Сначала создайте группу</b></div>';
-  var right = '<div class="row" style="align-items:flex-end">'+seg+groupPicker(false);
+  var right = '<div class="row" style="align-items:flex-end">'+seg+groupPicker(false)+(mode==='surveys'?'':rHideBtn(gid));
   if(mode==='intern') return head('Результаты', esc(g.name)+' · карта стажёра', right+'</div>')+rIntern(gid);
   if(mode==='att') return head('Результаты', esc(g.name)+' · присутствие на стажировке', right+'<button class="btn primary" type="button" data-act="xl-track">Выгрузить стажировку</button><button class="btn" type="button" data-act="xl-track-all">Все группы направления</button></div>')+rAtt(gid);
   if(mode==='surveys') return head('Результаты', esc(g.name)+' · опросы', right+'<button class="btn" type="button" data-act="xl-surveys">Выгрузить в Excel</button></div>')+rSurveys(gid);
   return head('Результаты', esc(g.name)+(g.trainer?' · тренер '+esc(g.trainer):''), right+'<button class="btn primary" type="button" data-act="xl-track">Выгрузить стажировку</button><button class="btn" type="button" data-act="xl-group">Подробный Excel</button></div>')+rGroup(gid);
 }
+function rankOut(i){ return (i.suspended || isRefused(i.id)) ? 1 : 0; }
+function outChips(i){ return (i.suspended?' <span class="chip bad">приостановлен</span>':'')+(isRefused(i.id)?' <span class="chip bad">'+esc(OC[prof(i.id).outcome])+'</span>':''); }
+/* Список для «Результатов»: выбывшие (приостановлен доступ или отказ) — в конце, по кнопке скрываются */
+function rList(gid){ var l = internsOf(gid).slice().sort(function(a,b){ return (rankOut(a)-rankOut(b)) || String(a.name).localeCompare(String(b.name),'ru'); }); return S.ui.rHide ? l.filter(function(i){ return !rankOut(i); }) : l; }
+function rHideBtn(gid){ var n = internsOf(gid).filter(function(i){ return rankOut(i); }).length; if(!n) return ''; return '<button class="btn'+(S.ui.rHide?' primary':'')+'" type="button" data-act="r-hide" aria-pressed="'+!!S.ui.rHide+'" title="Приостановленные и с отказом">'+(S.ui.rHide?'Показать выбывших ('+n+')':'Скрыть выбывших ('+n+')')+'</button>'; }
+function simCell(iid){ var rs = simResList(iid); var learn = simLearnOf(iid);
+  if(!rs.length) return '<td class="small muted">'+(learn?'обучение ✓':'—')+'</td>';
+  var last = rs[0]; var ok = rs.filter(function(x){ return x.pass; }).length;
+  return '<td><span class="chip '+(last.pass?'ok':'bad')+'" title="'+esc(fmtDT(last.at))+'">'+(last.pass?'Сдано':'Не сдано')+'</span><br><span class="small muted num">'+(last.okN!=null?last.okN+' из '+last.total+' · ':'')+'тест. '+rs.length+(ok?' · сдано '+ok:'')+'</span></td>'; }
 function rAll(){
   var gl = groupList(); if(!gl.length) return '<div class="empty"><b>Групп пока нет</b></div>';
   var ti = testItems();
@@ -1257,23 +1357,25 @@ function rAll(){
   return '<section class="card" aria-label="Группы"><div class="table-wrap"><table><thead><tr><th>Группа</th><th>Активных</th><th>Прогресс</th><th>Ср. балл</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+' сдали</th>'; }).join('')+'<th>Сдали все</th><th>Ответов в опросах</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="hint">«Д2 сдали» — сколько стажёров группы сдали тест, стоящий в плане в день 2.</p></section>';
 }
 function rAtt(gid){
-  var list = internsOf(gid); if(!list.length) return '<div class="empty"><b>В группе нет стажёров</b></div>';
+  var list = rList(gid); if(!list.length) return '<div class="empty"><b>В группе нет стажёров</b></div>';
   var ds = days();
   return '<section class="card" aria-labelledby="h-att"><div class="stack" style="gap:4px"><h2 id="h-att">Присутствие по дням</h2><span class="small muted">Нажмите на клетку: — не отмечено → ✓ присутствовал → ✕ отсутствовал (следующие дни отметятся «не был» автоматически). «Все ✓» отмечает присутствующими всех, у кого день ещё не отмечен.</span></div>'+
     '<div class="table-wrap"><table class="attgrid"><thead><tr><th>Стажёр</th>'+ds.map(function(d, di){ return '<th><span title="'+esc(d.title)+'">День '+(di+1)+'</span><br><button class="linkbtn small" type="button" data-act="att-day-all" data-d="'+esc(d.id)+'">все ✓</button></th>'; }).join('')+'<th>Был</th><th>Не был</th><th>Итог прохождения</th><th>Фин. тест</th></tr></thead><tbody>'+
-    list.map(function(i){ var c = attCount(i.id); return '<tr><td><b>'+esc(i.name)+'</b>'+(prof(i.id).geo?'<br><span class="small muted">'+esc(prof(i.id).geo)+'</span>':'')+'</td>'+ds.map(function(d, di){ return '<td>'+attBtn(i.id, d, di)+'</td>'; }).join('')+'<td class="num"><b>'+c.y+'</b></td><td class="num'+(c.n?' pct-bad':'')+'">'+c.n+'</td><td>'+ocChip(i.id)+'</td><td class="num">'+(finPct(i.id)==null?'<span class="muted">—</span>':finPct(i.id)+'%<br><span class="small muted">'+prof(i.id).finOk+' из '+prof(i.id).finQ+'</span>')+'</td></tr>'; }).join('')+
+    list.map(function(i){ var c = attCount(i.id); return '<tr'+(rankOut(i)?' style="opacity:.6"':'')+'><td><b>'+esc(i.name)+'</b>'+outChips(i)+(prof(i.id).geo?'<br><span class="small muted">'+esc(prof(i.id).geo)+'</span>':'')+'</td>'+ds.map(function(d, di){ return '<td>'+attBtn(i.id, d, di)+'</td>'; }).join('')+'<td class="num"><b>'+c.y+'</b></td><td class="num'+(c.n?' pct-bad':'')+'">'+c.n+'</td><td>'+ocChip(i.id)+'</td><td class="num">'+(finPct(i.id)==null?'<span class="muted">—</span>':finPct(i.id)+'%<br><span class="small muted">'+prof(i.id).finOk+' из '+prof(i.id).finQ+'</span>')+'</td></tr>'; }).join('')+
     '</tbody></table></div></section>';
 }
 function rGroup(gid){
-  var list = internsOf(gid); var ti = testItems(); var st = groupStats(gid);
+  var list = rList(gid); var simT = SIM_KINDS[simKindOf(gid)].title;
+  var simOk = activeOf(gid).filter(function(i){ return simResList(i.id).some(function(x){ return x.pass; }); }).length; var ti = testItems(); var st = groupStats(gid);
   var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">Активных стажёров</span><span class="v num">'+st.n+(st.susp?'<span class="small muted" style="font-size:15px"> из '+st.total+'</span>':'')+'</span><span class="small muted">'+(st.susp?'приостановлено: '+st.susp+' · ':'')+'в сети за сутки: '+st.active+'</span></div>'+
     '<div class="kpi"><span class="small muted">Средний прогресс</span><span class="v num">'+(st.avgP==null?'—':st.avgP+'%')+'</span><div class="meter"><i style="width:'+(st.avgP||0)+'%"></i></div><span class="small muted">по активным стажёрам</span></div>'+
     '<div class="kpi"><span class="small muted">Средний балл тестов</span><span class="v num" style="color:var(--accent-ink)">'+(st.avgT==null?'—':st.avgT+'%')+'</span><span class="small muted">по лучшим попыткам</span></div>'+
     '<div class="kpi"><span class="small muted">Сдали все тесты</span><span class="v num">'+(ti.length? st.allOk+' / '+st.n : '—')+'</span><span class="small muted">'+ti.length+' тестов в плане</span></div>'+
+    '<div class="kpi"><span class="small muted">'+esc(simT)+'</span><span class="v num">'+simOk+' / '+st.n+'</span><span class="small muted">сдали тестирование</span></div>'+
     '<div class="kpi"><span class="small muted">Ответов в опросах</span><span class="v num">'+st.resp+'</span><span class="small muted">все анкеты группы</span></div></div>';
-  var table = list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Прогресс</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+'</th>'; }).join('')+'<th>Ср. балл</th><th>Присутствие</th><th>Статус</th><th>Был в ЛК</th><th></th></tr></thead><tbody>'+list.map(function(i){
+  var table = list.length ? '<div class="table-wrap"><table><thead><tr><th>Стажёр</th><th>Прогресс</th>'+ti.map(function(i){ return '<th title="'+esc(i.title)+'">Д'+(i.dayIdx+1)+'</th>'; }).join('')+'<th>Ср. балл</th><th title="'+esc(simT)+': последнее тестирование">Симулятор</th><th>Присутствие</th><th>Статус</th><th>Был в ЛК</th><th></th></tr></thead><tbody>'+list.map(function(i){
     var s2 = internStats(i.id); var ac = attCount(i.id);
-    return '<tr'+(i.suspended?' style="opacity:.6"':'')+'><td><b>'+esc(i.name)+'</b>'+(i.suspended?' <span class="chip bad">приостановлен</span>':'')+'</td><td class="num">'+s2.pct+'%</td>'+ti.map(function(t){ return pctCell(testRec(i.id, t.test), test(t.test)); }).join('')+'<td class="num">'+(s2.avg==null?'—':s2.avg+'%')+'</td><td class="num">'+(ac.y||ac.n ? ac.y+' / '+(ac.y+ac.n)+(ac.n?' <span class="small" style="color:var(--danger)">−'+ac.n+'</span>':'') : '<span class="muted">—</span>')+'</td><td>'+statusChipR(internStatus(i.id))+'</td><td>'+ago(P(i.id).seen)+'</td><td style="text-align:right;white-space:nowrap"><button class="btn sm" type="button" data-act="rsel" data-id="'+i.id+'">Карта</button> <button class="btn sm" type="button" data-act="xl-intern" data-id="'+i.id+'" title="Карта стажёра в Excel">Excel</button></td></tr>';
+    return '<tr'+(rankOut(i)?' style="opacity:.6"':'')+'><td><b>'+esc(i.name)+'</b>'+outChips(i)+'</td><td class="num">'+s2.pct+'%</td>'+ti.map(function(t){ return pctCell(testRec(i.id, t.test), test(t.test)); }).join('')+'<td class="num">'+(s2.avg==null?'—':s2.avg+'%')+'</td>'+simCell(i.id)+'<td class="num">'+(ac.y||ac.n ? ac.y+' / '+(ac.y+ac.n)+(ac.n?' <span class="small" style="color:var(--danger)">−'+ac.n+'</span>':'') : '<span class="muted">—</span>')+'</td><td>'+statusChipR(internStatus(i.id))+'</td><td>'+ago(P(i.id).seen)+'</td><td style="text-align:right;white-space:nowrap"><button class="btn sm" type="button" data-act="rsel" data-id="'+i.id+'">Карта</button> <button class="btn sm" type="button" data-act="xl-intern" data-id="'+i.id+'" title="Карта стажёра в Excel">Excel</button></td></tr>';
   }).join('')+'</tbody></table></div>' : '<p class="muted" style="margin:0">В группе нет стажёров.</p>';
   var ids = list.map(function(i){ return i.id; });
   var tsum = ti.length ? '<section class="card" aria-labelledby="h-ts"><h2 id="h-ts">Тесты группы</h2><div class="table-wrap"><table><thead><tr><th>Тест</th><th>Проходили</th><th>Сдали</th><th>Средний</th><th>Лучший</th><th>Худший</th><th>Ср. попыток</th></tr></thead><tbody>'+ti.map(function(i){
@@ -1286,11 +1388,12 @@ function rGroup(gid){
   return kpi+'<section class="card" aria-label="Стажёры группы"><h2>Стажёры</h2>'+table+'</section>'+tsum+hardBox;
 }
 function rIntern(gid){
-  var list = internsOf(gid);
+  var list = rList(gid);
   if(!list.length) return '<div class="empty"><b>В группе нет стажёров</b></div>';
   var sel = S.ui.rsel && S.interns[S.ui.rsel] && S.interns[S.ui.rsel].groupId===gid ? S.ui.rsel : list[0].id;
   var it = S.interns[sel]; var st = internStats(sel); var ti = testItems(); var g = S.groups[gid];
-  var pick = '<div class="row" style="align-items:flex-end"><label class="field" style="min-width:260px">Стажёр<select id="r-int" data-act-change="r-int">'+list.map(function(i){ return '<option value="'+i.id+'"'+(i.id===sel?' selected':'')+'>'+esc(i.name)+'</option>'; }).join('')+'</select></label><button class="btn primary" type="button" data-act="xl-intern" data-id="'+sel+'">Карта стажёра в Excel</button></div>';
+  var pick = '<div class="row" style="align-items:flex-end"><label class="field" style="min-width:260px">Стажёр<select id="r-int" data-act-change="r-int">'+list.map(function(i){ return '<option value="'+i.id+'"'+(i.id===sel?' selected':'')+'>'+esc(i.name)+(rankOut(i)?' · '+(i.suspended?'приостановлен':OC[prof(i.id).outcome]):'')+'</option>'; }).join('')+'</select></label>'+
+    '<label class="field" style="min-width:240px">Поиск по имени или фамилии<input id="r-find" data-keep list="r-find-list" data-act-change="r-find" placeholder="Начните вводить…" autocomplete="off" value="'+esc(f('r-find'))+'"></label><datalist id="r-find-list">'+list.map(function(i){ return '<option value="'+esc(i.name)+'">'; }).join('')+'</datalist><button class="btn primary" type="button" data-act="xl-intern" data-id="'+sel+'">Карта стажёра в Excel</button></div>';
   var stt = internStatus(sel);
   var rlist = rollsOf(gid); var ryes = rlist.filter(function(r){ return (r.list||[]).some(function(x){ return x.iid===sel && x.at; }); }).length; var rtot = rlist.filter(function(r){ return (r.list||[]).some(function(x){ return x.iid===sel; }); }).length;
   var info = '<section class="card"><div class="row between" style="align-items:flex-start"><div class="row" style="flex-wrap:nowrap;gap:14px"><div class="ava">'+esc(initials(it.name))+'</div><div class="stack" style="gap:2px"><h2 style="font-size:22px">'+esc(it.name)+'</h2><span class="small muted">Логин '+esc(it.login)+(it.contact?' · '+esc(it.contact):'')+' · группа «'+esc(g.name)+'» · в кабинете с '+esc(fmtDay(it.createdAt||Date.now()))+'</span>'+(function(){ var pf = prof(sel); var fx = []; if(pf.tg) fx.push('<span>Telegram <b>'+esc(pf.tg)+'</b></span>'); if(pf.geo) fx.push('<span>Гео <b>'+esc(pf.geo)+'</b></span>'); if(pf.age) fx.push('<span>Возраст <b>'+esc(pf.age)+'</b></span>'); return fx.length ? '<div class="pfacts" style="margin-top:4px">'+fx.join('')+'</div>' : ''; })()+'</div></div><div class="stack" style="align-items:flex-end;gap:6px">'+statusChipR(stt)+'<span class="small muted">Был в ЛК: '+ago(P(sel).seen)+'</span></div></div>'+
@@ -2351,6 +2454,7 @@ var A = {
   'tp-closeall': function(){ var gid=curGid(); var ids=Object.keys(decksMap()); var deckId = S.ui.tdeck && deck(S.ui.tdeck) ? S.ui.tdeck : ids[0]; var lv=S.live[gid]||{}; var op=clone(lv.opened); op[deckId]=0; liveUpdate(gid, {opened:op, active:!!lv.active, deck: lv.active?lv.deck:deckId}); toast('Слайды закрыты для группы'); },
   rsel: function(el){ S.ui.rsel = el.dataset.id; S.ui.rmode = 'intern'; S.form['fb-text']=''; render(); window.scrollTo(0,0); },
   rmode: function(el){ S.ui.rmode = el.dataset.m; render(); },
+  'r-hide': function(){ S.ui.rHide = !S.ui.rHide; render(); },
   rgo: function(el){ S.ui.gid = el.dataset.g; S.ui.rmode = 'group'; render(); window.scrollTo(0,0); },
   rsv: function(el){ S.ui.rsv = el.dataset.id; S.ui.rsvDay = ''; render(); },
   'xl-group': function(){ var gid = curGid(); if(gid) xlGroup(gid); },
@@ -2482,6 +2586,11 @@ var CHANGE = {
   'g-pick': function(el){ S.ui.gid = el.value; S.ui.scope='group'; S.ui.rsel=null; render(); },
   'scope-pick': function(el){ S.ui.scope = el.value; render(); },
   'r-int': function(el){ S.ui.rsel = el.value; S.form['fb-text']=''; render(); },
+  'r-find': function(el){ var v = String(el.value||'').trim().toLowerCase(); if(!v) return; var gid = curGid();
+    var hit = internsOf(gid).filter(function(i){ return String(i.name).toLowerCase()===v; })[0] || internsOf(gid).filter(function(i){ return String(i.name).toLowerCase().split(/\s+/).some(function(w){ return w.indexOf(v)===0; }); })[0];
+    if(hit){ S.ui.rsel = hit.id; S.form['fb-text']=''; S.form['r-find']=''; render(); } else toast('Стажёр не найден'); },
+  'mr-day': function(el){ S.ui.mrDay = Number(el.value); render(); },
+  'mr-cmp': function(el){ S.ui.mrCmp = el.value; render(); },
   'rsv-day': function(el){ S.ui.rsvDay = el.value; render(); },
   'tdeck': function(el){ S.ui.tdeck = el.value; S.ui.tslide=1; render(); },
   'sim-file': function(el){
@@ -2513,6 +2622,7 @@ document.addEventListener('input', function(e){
   if(el.hasAttribute && el.hasAttribute('data-keep')){ S.form[el.id] = el.value; if(el.id==='ni-name' && S.ui.loginAuto!==false){ S.form['ni-login'] = makeLogin(el.value); } if(el.id==='ni-login') S.ui.loginAuto=false; if(el.id==='ap-name' && S.ui.apLoginAuto!==false){ S.form['ap-login'] = makeLogin(el.value); } if(el.id==='ap-login') S.ui.apLoginAuto=false; }
   if(el.dataset && el.dataset.d && el.tagName!=='SELECT' && el.type!=='checkbox'){ setPath(draft(el.dataset.d), el.dataset.p, parseVal(el)); markDirty(el.dataset.d); }
   if(el.dataset && el.dataset.note){ S.form['note-'+el.dataset.note] = el.value; }
+  if(el.id==='r-find'){ var v = String(el.value||'').trim().toLowerCase(); var hit = v && internsOf(curGid()).filter(function(i){ return String(i.name).toLowerCase()===v; })[0]; if(hit){ S.ui.rsel = hit.id; S.form['fb-text']=''; S.form['r-find']=''; render(); } }
   if(el.dataset && (el.dataset.live==='kb' || el.dataset.live==='ni' || el.dataset.live==='crit')) render();
 });
 function onDecksScreen(){ return S.role==='trainer' && S.view==='t-settings' && S.ui.st==='decks'; }
