@@ -1201,16 +1201,16 @@ function rollReportCard(gid){
       (r.sentAt ? '<span class="chip ok">Отправлено в '+hhmm(r.sentAt)+'</span>' : '<span class="chip warn">Ждёт подтверждения</span>')+'</div>'+
     (miss.length ? '<div>'+miss.map(function(x){ return '<div class="attn-row"><span><b>'+esc(x.name)+'</b> <span class="small muted">не отметился</span></span><button class="btn sm" type="button" data-act="roll-fix" data-r="'+esc(r.id)+'" data-id="'+esc(x.iid)+'">Отметить присутствующим</button></div>'; }).join('')+'</div>' : '<span class="small" style="color:var(--accent-ink)">Все на месте.</span>')+
     '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre>'+
-    '<div class="row"><button class="btn primary" type="button" data-act="tg-send" data-r="'+esc(r.id)+'" data-text="'+esc(msg)+'"'+(chat?'':' disabled')+'>'+(r.sentAt?'Отправить ещё раз':'Подтвердить и отправить в Telegram')+'</button><button class="btn" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button>'+
-      (chat ? '<span class="small muted">Чат: '+esc(chat.title)+'</span>' : '<button class="linkbtn small" type="button" data-act="nav" data-v="t-morning">Выберите чат Telegram во вкладке «Утренние отчёты»</button>')+'</div></section>';
+    '<div class="row"><button class="btn primary" type="button" data-act="tg-send" data-r="'+esc(r.id)+'" data-text="'+esc(msg)+'">'+(r.sentAt?'Отправить ещё раз':'Подтвердить и отправить в Telegram')+'</button><button class="btn" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button>'+
+      '<span class="small muted">'+(chat ? 'Чат: '+esc(chat.title) : 'Уйдёт в Telegram руководителю')+'</span>'+'</div></section>';
 }
 function tgChat(){ var t = settings().tgChat; var c = t && t[activeDir()]; return c && c.id ? c : null; }
 function fnErr(r){ var e = (r && r.data && r.data.error) || (r && r.error && r.error.message) || 'нет связи'; return Promise.resolve(r && r.error && r.error.context && r.error.context.json ? r.error.context.json().then(function(j){ return (j && j.error) || e; }, function(){ return e; }) : e); }
 function tgCall(body){ return sb.functions.invoke('tg', {body:body}).then(function(r){ if(r.error || (r.data && r.data.error)) return fnErr(r).then(function(m){ throw {message:m}; }); return r.data; }); }
 function tgCard(){
   var chat = tgChat(); var st = S.ui.tg || {};
-  return '<section class="card" aria-labelledby="h-tg"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-tg">Telegram</h2><span class="small muted">Куда бот отправляет отчёты направления «'+esc(dirName(activeDir()))+'». Добавьте бота в нужный чат (или напишите ему /start в личке), затем нажмите «Найти чаты».</span></div>'+
-    (chat?'<span class="chip ok">'+esc(chat.title)+'</span>':'<span class="chip warn">чат не выбран</span>')+'</div>'+
+  return '<section class="card" aria-labelledby="h-tg"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-tg">Telegram</h2><span class="small muted">По умолчанию отчёты уходят руководителю в личку. Если для направления «'+esc(dirName(activeDir()))+'» нужен другой чат — добавьте туда бота и выберите его здесь.</span></div>'+
+    (chat?'<span class="chip ok">'+esc(chat.title)+'</span> <button class="linkbtn small" type="button" data-act="tg-pick" data-id="" data-t="">Вернуть по умолчанию</button>':'<span class="chip ok">руководителю</span>')+'</div>'+
     '<div class="row"><button class="btn" type="button" data-act="tg-find">'+(st.loading?'Ищу…':'Найти чаты')+'</button>'+(st.bot?'<span class="small muted">Бот: @'+esc(st.bot)+'</span>':'')+'</div>'+
     (st.err?'<p class="err" style="margin:0">'+esc(st.err)+'</p>':'')+
     (st.chats ? (st.chats.length ? st.chats.map(function(c){ return '<div class="attn-row"><span><b>'+esc(c.title||String(c.id))+'</b> <span class="small muted">'+(c.type==='private'?'личка':(c.type==='channel'?'канал':'группа'))+'</span></span><button class="btn sm'+(chat&&String(chat.id)===String(c.id)?' primary':'')+'" type="button" data-act="tg-pick" data-id="'+esc(String(c.id))+'" data-t="'+esc(c.title||String(c.id))+'">'+(chat&&String(chat.id)===String(c.id)?'Выбран':'Выбрать')+'</button></div>'; }).join('') : '<p class="small muted" style="margin:0">Бот пока не видит ни одного чата. Добавьте его в чат или напишите ему любое сообщение и нажмите «Найти чаты» ещё раз.</p>') : '')+'</section>';
@@ -1323,7 +1323,7 @@ function tMorning(){
   var dayPick = '<label class="field" style="min-width:200px">День стажировки<select id="mr-day" data-act-change="mr-day">'+ds.map(function(d){ return '<option value="'+d.n+'"'+(d.n===n?' selected':'')+'>'+d.n+'-й день · '+esc(ddmm(d.key))+(d.roll.live?' · идёт перекличка':'')+'</option>'; }).join('')+'</select></label>';
   if(kind==='pm') return tEvening(g, gid, n, kseg, dayPick, xlBtn);
   var msg = mrMessage(g, st);
-  var msgBox = '<section class="card" data-copybox aria-labelledby="h-mrm"><div class="row between"><h2 id="h-mrm">Готовое сообщение</h2><span class="row"><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button><button class="btn" type="button" data-act="tg-send" data-text="'+esc(msg)+'"'+(tgChat()?'':' disabled title="Выберите чат ниже"')+'>Отправить в Telegram</button></span></div>'+
+  var msgBox = '<section class="card" data-copybox aria-labelledby="h-mrm"><div class="row between"><h2 id="h-mrm">Готовое сообщение</h2><span class="row"><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button><button class="btn" type="button" data-act="tg-send" data-text="'+esc(msg)+'">Отправить в Telegram</button></span></div>'+
     '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre>'+
     (st.live?'<span class="small" style="color:var(--amber-ink)">Перекличка ещё идёт — цифры обновятся, когда стажёры отметятся.</span>':'<span class="small muted">Вставьте сообщение в чат. Результаты опросника — лучшая попытка стажёра на текущий момент.</span>')+'</section>';
   var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">Дата потока</span><span class="v num">'+esc(ddmm(g.start)||'—')+'</span><span class="small muted">'+(g.trainer?'тренер '+esc(g.trainer):'тренер не указан')+'</span></div>'+
@@ -1361,7 +1361,7 @@ function tMorning(){
 }
 function tEvening(g, gid, n, kseg, dayPick, xlBtn){
   var st = eveStats(gid, n); var msg = eveMessage(g, st);
-  var msgBox = '<section class="card" data-copybox aria-labelledby="h-evm"><div class="row between"><h2 id="h-evm">Готовое сообщение · итоги дня</h2><span class="row"><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button><button class="btn" type="button" data-act="tg-send" data-text="'+esc(msg)+'"'+(tgChat()?'':' disabled title="Выберите чат ниже"')+'>Отправить в Telegram</button></span></div>'+
+  var msgBox = '<section class="card" data-copybox aria-labelledby="h-evm"><div class="row between"><h2 id="h-evm">Готовое сообщение · итоги дня</h2><span class="row"><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button><button class="btn" type="button" data-act="tg-send" data-text="'+esc(msg)+'">Отправить в Telegram</button></span></div>'+
     '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre><span class="small muted">Отправляйте в конце дня, когда опросник пройден. «Отстают» — отмечено меньше половины открытых тем дня.</span></section>';
   var kpi = '<div class="kpis"><div class="kpi"><span class="small muted">День стажировки</span><span class="v num">'+n+'</span><span class="small muted">'+esc(st.dayTitle||'')+'</span></div>'+
     '<div class="kpi"><span class="small muted">Были на перекличке</span><span class="v num">'+st.present+' / '+st.created+'</span></div>'+
@@ -2612,12 +2612,12 @@ var A = {
   'roll-man': function(el){ var gid = curGid(); var rl = liveOf(gid).roll; if(!rl || !rl.active) return; var p = {roll:{manual:{}}}; p.roll.manual[el.dataset.id] = el.dataset.on==='1' ? Date.now() : null; liveUpdate(gid, p); },
   'roll-fix': function(el){ var r = S.rolls[el.dataset.r]; if(!r) return; var list = clone(r.list||[]); list.forEach(function(x){ if(x.iid===el.dataset.id && !x.at){ x.at = Date.now(); x.manual = true; } });
     S.db.doc('rolls/'+el.dataset.r).update({list:list}).then(function(){ toast('Отмечен присутствующим'); }, writeErr); },
-  'tg-send': function(el){ var c = tgChat(); if(!c){ toast('Сначала выберите чат Telegram'); return; } var rid = el.dataset.r; el.disabled = true;
-    tgCall({action:'send', chat_id:c.id, text:el.dataset.text}).then(function(){ toast('Отправлено в Telegram: '+c.title); if(rid && S.rolls[rid]) S.db.doc('rolls/'+rid).update({sentAt:Date.now()}).catch(function(){}); }, function(e){ el.disabled = false; toast('Не удалось отправить: '+e.message); }); },
+  'tg-send': function(el){ var c = tgChat(); var rid = el.dataset.r; el.disabled = true;
+    tgCall({action:'send', chat_id:c ? c.id : undefined, text:el.dataset.text}).then(function(){ el.disabled = false; toast('Отправлено в Telegram'+(c ? ': '+c.title : '')); if(rid && S.rolls[rid]) S.db.doc('rolls/'+rid).update({sentAt:Date.now()}).catch(function(){}); }, function(e){ el.disabled = false; toast('Не удалось отправить: '+e.message); }); },
   'tg-find': function(){ S.ui.tg = Object.assign({}, S.ui.tg, {loading:true, err:null}); render();
     tgCall({action:'chats'}).then(function(d){ S.ui.tg = {chats:d.chats||[], bot:d.bot}; render(); }, function(e){ S.ui.tg = {err:'Не удалось: '+e.message}; render(); }); },
-  'tg-pick': function(el){ var p = {tgChat:{}}; p.tgChat[activeDir()] = {id:el.dataset.id, title:el.dataset.t};
-    S.db.doc('content/settings').update(p).then(function(){ toast('Отчёты будут уходить в «'+el.dataset.t+'»'); render(); }, writeErr); },
+  'tg-pick': function(el){ var p = {tgChat:{}}; p.tgChat[activeDir()] = el.dataset.id ? {id:el.dataset.id, title:el.dataset.t} : null;
+    S.db.doc('content/settings').update(p).then(function(){ toast(el.dataset.id ? 'Отчёты будут уходить в «'+el.dataset.t+'»' : 'Отчёты снова уходят руководителю'); render(); }, writeErr); },
   'mr-kind': function(el){ S.ui.mrKind = el.dataset.k; render(); },
   'xl-reports': function(){ var gid = curGid(); if(gid) xlReports(gid); },
   'arch-toggle': function(){ S.ui.showArch = !S.ui.showArch; render(); },
