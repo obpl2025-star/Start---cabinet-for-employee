@@ -124,6 +124,18 @@ h3{font-size:16px;font-weight:600}
 .att.yes{background:var(--ok-soft);color:var(--ok-ink);border:1px solid transparent}
 .att.no{background:var(--danger-soft);color:var(--danger);border:1px solid transparent}
 .att:hover{border-color:var(--accent)}
+.nbell{position:fixed;top:14px;right:18px;z-index:60;display:flex;gap:8px;align-items:center}
+.nbell .bb{position:relative;width:46px;height:46px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(43,15,102,.10)}
+.nbell .bb.on{border-color:var(--accent);background:var(--accent-soft)}
+.nbell .cnt{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:11px;background:var(--danger);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+.npanel{position:fixed;top:70px;right:18px;z-index:61;width:420px;max-width:calc(100vw - 24px);max-height:calc(100vh - 90px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.npanel .nh{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--surface)}
+.npanel .ni{display:flex;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line2)}
+.npanel .ni.new{background:var(--amber-soft)}
+.npanel .ic{flex:none;width:34px;height:34px;border-radius:10px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center}
+.npanel .ni:not(.new) .ic{background:var(--line2);color:var(--faint)}
+.mand{background:var(--warn-soft);border:1px solid #F0D29B;border-radius:16px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+@media (max-width:700px){.nbell{top:10px;right:10px}.npanel{top:64px;right:8px}}
 .att.auto{border:1px dashed currentColor;opacity:.85}
 .attn-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line2);flex-wrap:wrap}
 .attn-row .why{display:flex;gap:6px;flex-wrap:wrap}
@@ -616,6 +628,7 @@ var rq = false;
 function schedule(){ if(rq) return; rq = true; requestAnimationFrame(function(){ rq=false; render(); }); }
 function render(){
   MRC = {};
+  try{ checkNotifs(); }catch(e){}
   applyDir();
   var a = document.activeElement; var aid = a && a.id; var ss=null, se=null;
   try{ ss = a.selectionStart; se = a.selectionEnd; }catch(e){}
@@ -754,7 +767,8 @@ function viewShell(){
     '</nav>';
     body = ({'t-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-crit':tCrit, 't-morning':tMorning, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
   }
-  return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>'+(S.role==='intern' ? contactFab() : '');
+  if(S.role==='intern' && (S.view==='home' || S.view==='plan' || !S.view)) body = mandBanner()+body;
+  return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>'+(S.role==='intern' ? contactFab() : '')+bellHtml();
 }
 
 function noContent(){ return '<div class="empty"><h2>Материалы ещё не загружены</h2><p style="margin:0">Как только тренер заполнит программу стажировки, здесь появятся дни, темы и тесты.</p></div>'; }
@@ -1203,6 +1217,69 @@ function rollReportCard(gid){
     '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre>'+
     '<div class="row"><button class="btn primary" type="button" data-act="tg-send" data-r="'+esc(r.id)+'" data-text="'+esc(msg)+'">'+(r.sentAt?'Отправить ещё раз':'Подтвердить и отправить в Telegram')+'</button><button class="btn" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button>'+
       '<span class="small muted">'+(chat ? 'Чат: '+esc(chat.title) : 'Уйдёт в Telegram руководителю')+'</span>'+'</div></section>';
+}
+/* ---------- Уведомления и звуки ---------- */
+var AC = null;
+function audioCtx(){ try{ if(!AC){ var C = window.AudioContext || window.webkitAudioContext; if(!C) return null; AC = new C(); } if(AC.state==='suspended') AC.resume(); return AC; }catch(e){ return null; } }
+['pointerdown','keydown'].forEach(function(ev){ document.addEventListener(ev, function(){ audioCtx(); }, {once:true, capture:true}); });
+function soundOn(){ try{ return localStorage.getItem('start-lk-sound')!=='0'; }catch(e){ return true; } }
+function sndTone(ctx, t0, f, dur, decay, parts, vol){ parts.forEach(function(p){ var o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = f*p[0];
+  var end = t0 + Math.min(dur, 3.07*decay/Math.sqrt(p[0])); g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol*p[1], t0+0.004); g.gain.exponentialRampToValueAtTime(0.0001, end);
+  o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(end+0.02); }); }
+/* «Капля» — все уведомления; «Перекличка» — старт переклички у стажёра */
+function playSound(kind){ if(!soundOn()) return; var ctx = audioCtx(); if(!ctx) return; var t = ctx.currentTime + 0.02;
+  if(kind==='roll'){ var B = [[1,1],[2.76,.45],[5.4,.25],[8.93,.12]]; sndTone(ctx,t,1568,1.0,0.8,B,.12); sndTone(ctx,t+.12,1975.5,1.0,0.8,B,.12); sndTone(ctx,t+.6,1568,1.0,0.8,B,.12); sndTone(ctx,t+.72,1975.5,1.3,1.0,B,.12); }
+  else { var M = [[1,1],[4,.25],[10,.05]]; sndTone(ctx,t,880,0.9,0.35,M,.28); sndTone(ctx,t+.09,1318.5,0.9,0.3,M,.17); } }
+function nKey(){ return 'start-lk-notif-'+(S.uid||''); }
+function nLoad(){ try{ var v = JSON.parse(localStorage.getItem(nKey())||'null'); if(v && v.list) return v; }catch(e){} return {list:[], init:false}; }
+function nSave(st){ try{ localStorage.setItem(nKey(), JSON.stringify(st)); }catch(e){} }
+var NSTATE = null, NUID = null;
+function nState(){ if(!NSTATE || NUID!==S.uid){ NSTATE = nLoad(); NUID = S.uid; } return NSTATE; }
+function mandItems(d, iid){ return (d.items||[]).filter(function(it){ return (it.type==='survey' || it.type==='test') && isOpen(it, iid); }); }
+function mandLabel(it){ return it.type==='survey' ? 'анкета обратной связи' : (/домашн/i.test(it.title||'') ? 'домашнее задание' : 'опросник «'+(it.title||'')+'»'); }
+/* Проверка событий: вызывается перед каждой отрисовкой. Новые события → уведомление + звук */
+function checkNotifs(){
+  if(!S.role || !S.uid || S.role==='applicant' || S.dormant) return;
+  var st = nState(); var first = !st.init; var fresh = []; var have = {}; st.list.forEach(function(n){ have[n.id] = 1; });
+  var add = function(n){ if(have[n.id]) return; have[n.id] = 1; n.at = Date.now(); n.read = first; st.list.unshift(n); if(!first) fresh.push(n); };
+  if(S.role==='intern'){ var m = me(); if(!m) return;
+    if(simAvail()) add({id:'sim-'+m.groupId, t:'Тренер открыл симулятор Inari', x:'Пройдите обучение в симуляторе, затем тестирование.', act:'nav', v:'sim', b:'Перейти в симулятор'});
+    days().forEach(function(d, di){ if(!(d.items||[]).some(function(it){ return isOpen(it); })) return; var mi = mandItems(d);
+      add({id:'day-'+m.groupId+'-'+d.id, t:'Открыт '+(di+1)+'-й день «'+(d.title||'')+'»', x: mi.length ? 'Обязательно: '+mi.map(mandLabel).filter(function(v,i,a){ return a.indexOf(v)===i; }).join(' и ')+'.' : 'Новые материалы уже в плане.', act:'nav', v:'plan', b:'Открыть план'}); });
+    var rl = liveOf(m.groupId).roll; if(rl && rl.active && !rollMarkAt(S.iid, rl.id)) add({id:'roll-'+rl.id, t:'Началась перекличка', x:'Отметьтесь, что вы на месте.', snd:'roll'});
+  } else if(S.role==='trainer'){ var gid = curGid(); var g = gid && S.groups[gid];
+    if(g){ var ds = mrDates(gid); var last = ds[ds.length-1];
+      if(last && last.key===dkey(Date.now()) && !last.roll.live){
+        if(new Date().getDay()===4) add({id:'acc-'+gid+'-'+last.key, t:'Четверг: сделайте запрос доступов', x:'«'+g.name+'»: перекличка прошла, на месте '+accList(gid, last.n).length+'. Скопируйте RDS-запрос и подайте его в Trello.', act:'notif-acc', b:'Открыть «Запрос доступов»'});
+        var pd = days()[last.n-2]; var sv = pd ? (pd.items||[]).filter(function(it){ return it.type==='survey'; })[0] : null;
+        if(sv){ var miss = activeOf(gid).filter(function(i){ return isOpen(sv, i.id) && !isDone(sv, i.id); }).length;
+          if(miss) add({id:'svm-'+gid+'-'+last.key, t:miss+' стажёр(ов) не заполнили анкету '+(last.n-1)+'-го дня', x:'«'+g.name+'»: напомните им до начала занятий.', act:'nav', v:'t-access', b:'Требуют внимания'}); }
+      } }
+    var pend = Object.keys(S.requests||{}).filter(function(k){ return S.requests[k].status==='pending'; }).sort();
+    if(pend.length) add({id:'req-'+pend[pend.length-1], t:'Новые заявки на доступ: '+pend.length, x:'Заявки ждут решения во вкладке «Стажёры и доступы».', act:'nav', v:'t-access', b:'Открыть заявки'});
+  }
+  if(first || fresh.length){ st.init = true; st.list = st.list.slice(0, 40); nSave(st); }
+  if(fresh.length){ playSound(fresh.some(function(n){ return n.snd==='roll'; }) ? 'roll' : 'drop'); }
+}
+function bellHtml(){
+  if(!S.role || S.role==='applicant' || S.dormant) return '';
+  var st = nState(); var n = st.list.filter(function(x){ return !x.read; }).length; var open = !!S.ui.nOpen; var son = soundOn();
+  var bell = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>';
+  var ic = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path></svg>';
+  var h = '<div class="nbell"><button type="button" class="bb'+(open?' on':'')+'" data-act="n-toggle" aria-expanded="'+open+'" aria-label="Уведомления'+(n?', новых '+n:'')+'">'+bell+(n?'<span class="cnt">'+n+'</span>':'')+'</button></div>';
+  if(!open) return h;
+  return h+'<section class="npanel" role="dialog" aria-label="Уведомления"><div class="nh"><b>Уведомления</b><span class="row" style="gap:10px"><button class="linkbtn small" type="button" data-act="n-sound">'+(son?'Звук: вкл':'Звук: выкл')+'</button>'+(n?'<button class="linkbtn small" type="button" data-act="n-readall">Прочитано</button>':'')+'</span></div>'+
+    (st.list.length ? st.list.map(function(x){ return '<div class="ni'+(x.read?'':' new')+'"><div class="ic">'+ic+'</div><div class="stack" style="gap:5px;min-width:0;flex:1"><div class="row between" style="gap:8px;flex-wrap:nowrap"><b>'+esc(x.t)+'</b><span class="small muted" style="flex:none">'+esc(ago(x.at))+'</span></div>'+(x.x?'<span class="small muted">'+esc(x.x)+'</span>':'')+
+      (x.act?'<div><button class="btn sm'+(x.read?'':' primary')+'" type="button" data-act="n-go" data-id="'+esc(x.id)+'">'+esc(x.b||'Открыть')+'</button></div>':'')+'</div></div>'; }).join('')
+     : '<p class="small muted" style="margin:0;padding:16px">Пока уведомлений нет.</p>')+'</section>';
+}
+/* Обязательное на сегодня: опросник/ДЗ и анкета открытых дней, ещё не выполненные */
+function mandBanner(){
+  var ds = days(); var out = [];
+  for(var di = ds.length-1; di >= 0; di--){ var mi = mandItems(ds[di]).filter(function(it){ return !isDone(it); }); if(mi.length){ out = mi.map(function(it){ return {it:it, di:di}; }); break; } }
+  if(!out.length) return '';
+  return '<section class="mand" aria-label="Обязательно сегодня"><div class="stack" style="gap:4px"><b style="color:var(--warn-ink)">Обязательно сегодня, до конца дня</b><span style="color:#5E4100">'+(out[0].di+1)+'-й день «'+esc(ds[out[0].di].title||'')+'»: выполните всё из списка справа.</span></div>'+
+    '<div class="row" style="gap:8px">'+out.map(function(o){ return '<button class="btn sm" type="button" data-act="open-item" data-id="'+esc(o.it.id)+'">'+esc(mandLabel(o.it).replace(/^./, function(c){ return c.toUpperCase(); }))+' — не выполнено</button>'; }).join('')+'</div></section>';
 }
 function tgChat(){ var t = settings().tgChat; var c = t && t[activeDir()]; return c && c.id ? c : null; }
 function fnErr(r){ var e = (r && r.data && r.data.error) || (r && r.error && r.error.message) || 'нет связи'; return Promise.resolve(r && r.error && r.error.context && r.error.context.json ? r.error.context.json().then(function(j){ return (j && j.error) || e; }, function(){ return e; }) : e); }
@@ -2676,6 +2753,12 @@ var A = {
     tgCall({action:'chats'}).then(function(d){ S.ui.tg = {chats:d.chats||[], bot:d.bot}; render(); }, function(e){ S.ui.tg = {err:'Не удалось: '+e.message}; render(); }); },
   'tg-pick': function(el){ var p = {tgChat:{}}; p.tgChat[activeDir()] = el.dataset.id ? {id:el.dataset.id, title:el.dataset.t} : null;
     S.db.doc('content/settings').update(p).then(function(){ toast(el.dataset.id ? 'Отчёты будут уходить в «'+el.dataset.t+'»' : 'Отчёты снова уходят руководителю'); render(); }, writeErr); },
+  'n-toggle': function(){ S.ui.nOpen = !S.ui.nOpen; render(); },
+  'n-sound': function(){ try{ localStorage.setItem('start-lk-sound', soundOn() ? '0' : '1'); }catch(e){} if(soundOn()) playSound('drop'); render(); },
+  'n-readall': function(){ var st = nState(); st.list.forEach(function(x){ x.read = true; }); nSave(st); render(); },
+  'n-go': function(el){ var st = nState(); var x = st.list.filter(function(n){ return n.id===el.dataset.id; })[0]; if(!x) return; x.read = true; nSave(st); S.ui.nOpen = false;
+    if(x.act==='notif-acc'){ S.view = 't-morning'; S.ui.mrKind = 'acc'; } else if(x.act==='nav' && x.v){ S.view = x.v; }
+    render(); window.scrollTo(0,0); },
   'mr-kind': function(el){ S.ui.mrKind = el.dataset.k; render(); },
   'acc-mail-save': function(){ var g = S.groups[curGid()]; if(!g || !g.trainer) return; var v = String(f('acc-mail','')).trim(); var el = document.getElementById('acc-mail'); if(el) v = String(el.value||'').trim();
     if(v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){ toast('Проверьте почту'); return; } var p = {trainerMail:{}}; p.trainerMail[g.trainer] = v || null;
