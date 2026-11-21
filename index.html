@@ -604,7 +604,7 @@ function saveProgress(patch){
   return sb.rpc('progress_patch', {p:p}).then(function(r){
     if(r.error) throw r.error;
     if(seq===PSEQ && iid===S.iid && r.data && !sameJson(r.data, CACHE[path])) setLocal(path, r.data);
-  }).catch(function(){ toast('Не удалось сохранить. Проверьте соединение.'); });
+  }).catch(function(){ var t = function(){ toast('Не удалось сохранить. Проверьте соединение.'); }; withSession(t, t); });
 }
 function writeErr(e){
   if(e && e.code==='quota_exceeded') toast('Хранилище заполнено — удалите старые записи.');
@@ -749,7 +749,7 @@ function viewShell(){
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
     side = '<nav class="side" aria-label="Разделы тренера">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+dirPicker()+
-      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-crit','Критические ошибки')+navItem('t-morning','Утренние отчёты')+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
+      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-crit','Критические ошибки')+navItem('t-morning','Отчёты и доступы')+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
       '<div class="me"><div class="ava amber">Т</div><div class="who"><b>Тренер</b><small>Управление стажировкой</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
     body = ({'t-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-crit':tCrit, 't-morning':tMorning, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess)();
@@ -1312,16 +1312,17 @@ function prevGroupOf(gid){
 }
 function tMorning(){
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
-  if(!g) return head('Утренние отчёты','')+'<div class="empty"><b>Сначала создайте группу</b><button class="btn primary" data-act="nav" data-v="t-access">Перейти к группам</button></div>';
+  if(!g) return head('Отчёты и доступы','')+'<div class="empty"><b>Сначала создайте группу</b><button class="btn primary" data-act="nav" data-v="t-access">Перейти к группам</button></div>';
   var ds = mrDates(gid);
-  if(!ds.length) return head('Утренние отчёты', esc(g.name), groupPicker(false))+'<div class="empty"><b>У группы ещё не было перекличек</b><span>Отчёт строится по утренней перекличке: проведите её во вкладке «Перекличка».</span><button class="btn primary" data-act="nav" data-v="t-roll">Открыть перекличку</button></div>';
+  if(!ds.length) return head('Отчёты и доступы', esc(g.name), groupPicker(false))+'<div class="empty"><b>У группы ещё не было перекличек</b><span>Отчёт строится по утренней перекличке: проведите её во вкладке «Перекличка».</span><button class="btn primary" data-act="nav" data-v="t-roll">Открыть перекличку</button></div>';
   var n = Number(S.ui.mrDay); if(!n || n > ds.length || S.ui.mrGid!==gid){ n = ds.length; S.ui.mrDay = n; S.ui.mrGid = gid; }
-  var kind = S.ui.mrKind==='pm' ? 'pm' : 'am';
-  var kseg = '<div class="seg" role="group" aria-label="Вид отчёта"><button type="button" class="'+(kind==='am'?'on':'')+'" data-act="mr-kind" data-k="am" aria-pressed="'+(kind==='am')+'">Утренний</button><button type="button" class="'+(kind==='pm'?'on':'')+'" data-act="mr-kind" data-k="pm" aria-pressed="'+(kind==='pm')+'">Вечерний</button></div>';
+  var kind = S.ui.mrKind==='pm' || S.ui.mrKind==='acc' ? S.ui.mrKind : 'am';
+  var kseg = '<div class="seg" role="group" aria-label="Вид отчёта"><button type="button" class="'+(kind==='am'?'on':'')+'" data-act="mr-kind" data-k="am" aria-pressed="'+(kind==='am')+'">Утренний</button><button type="button" class="'+(kind==='pm'?'on':'')+'" data-act="mr-kind" data-k="pm" aria-pressed="'+(kind==='pm')+'">Вечерний</button><button type="button" class="'+(kind==='acc'?'on':'')+'" data-act="mr-kind" data-k="acc" aria-pressed="'+(kind==='acc')+'">Запрос доступов</button></div>';
   var xlBtn = '<button class="btn" type="button" data-act="xl-reports">Excel: все дни и потоки</button>';
   var st = mrStats(gid, n);
   var dayPick = '<label class="field" style="min-width:200px">День стажировки<select id="mr-day" data-act-change="mr-day">'+ds.map(function(d){ return '<option value="'+d.n+'"'+(d.n===n?' selected':'')+'>'+d.n+'-й день · '+esc(ddmm(d.key))+(d.roll.live?' · идёт перекличка':'')+'</option>'; }).join('')+'</select></label>';
   if(kind==='pm') return tEvening(g, gid, n, kseg, dayPick, xlBtn);
+  if(kind==='acc') return tAccess2(g, gid, n, kseg, dayPick);
   var msg = mrMessage(g, st);
   var msgBox = '<section class="card" data-copybox aria-labelledby="h-mrm"><div class="row between"><h2 id="h-mrm">Готовое сообщение</h2><span class="row"><button class="btn primary" type="button" data-act="copy" data-text="'+esc(msg)+'">Скопировать</button><button class="btn" type="button" data-act="tg-send" data-text="'+esc(msg)+'">Отправить в Telegram</button></span></div>'+
     '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(msg)+'</pre>'+
@@ -1357,7 +1358,40 @@ function tMorning(){
         (st.quizDay ? row('Средний результат опросника '+st.quizDay+'-го дня', st.avg, ps.avg, '%', true) : '')+
         '</tbody></table></div>' : '<p class="muted" style="margin:0">У потока «'+esc(pg?pg.name:'')+'» нет переклички в '+n+'-й день — сравнивать не с чем.</p>')+'</section>';
   }
-  return head('Утренние отчёты', esc(g.name)+' · '+n+'-й день · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+xlBtn+'</div>')+kpi+msgBox+cmp+table+tgCard();
+  return head('Отчёты и доступы', esc(g.name)+' · '+n+'-й день · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+xlBtn+'</div>')+kpi+msgBox+cmp+table+tgCard();
+}
+/* ---------- Запрос доступов (каждый четверг после утренней переклички) ---------- */
+var ACC_TPL = {
+  rds: 'Просьба сделать доступа стажерам взыска\nУдаленка\nВпн\nРокет чат\nКорпоративная почта @digch.net\nИнструкции\nДоступа скинуть мне на почту - {почта}\n{список}',
+  crm: 'Просьба создать доступ стажерам взыска в инари и микросип, доступа скинуть стажерам на корп почты\n1. username@digch.net - Стажёр {направление} Диги'
+};
+function accTpl(k){ var t = settings().accTpl; return (t && t[k]) || ACC_TPL[k]; }
+function trainerMail(name){ var m = settings().trainerMail; return (m && name && m[name]) || ''; }
+function accList(gid, n){ var ds = mrDates(gid); var d = ds[n-1]; if(!d) return [];
+  return internsOf(gid).filter(function(i){ return !i.suspended && !isRefused(i.id) && rollHas(d.roll, i.id); })
+    .sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'ru'); }); }
+function tAccess2(g, gid, n, kseg, dayPick){
+  var list = accList(gid, n); var mail = trainerMail(g.trainer); var noGeo = list.filter(function(i){ return !prof(i.id).geo; }).length;
+  var lines = list.map(function(i, k){ return (k+1)+') '+i.name+' - '+(prof(i.id).geo || 'гео не указано'); }).join('\n');
+  var rds = accTpl('rds').replace(/\{почта\}/g, mail || '«укажите почту тренера»').replace(/\{список\}/g, lines || '(список пуст)').replace(/\{направление\}/g, dirName(activeDir()));
+  var crm = accTpl('crm').replace(/\{направление\}/g, dirName(activeDir())).replace(/\{почта\}/g, mail).replace(/\{список\}/g, lines);
+  var pre = function(t){ return '<pre style="margin:0;white-space:pre-wrap;font:15px/1.55 var(--f-body,system-ui);background:var(--line2);border-radius:12px;padding:14px 16px;user-select:all">'+esc(t)+'</pre>'; };
+  var thu = new Date().getDay()===4;
+  var top = '<section class="card" aria-labelledby="h-acm"><div class="row between" style="align-items:flex-end"><div class="stack" style="gap:4px"><h2 id="h-acm">Почта тренера</h2><span class="small muted">Сюда RDS пришлёт доступы. Запоминается для тренера «'+esc(g.trainer||'не указан')+'».</span></div>'+(thu?'<span class="chip warn">Сегодня четверг — день запроса доступов</span>':'')+'</div>'+
+    (g.trainer ? '<div class="row" style="align-items:flex-end"><label class="field" style="min-width:280px">Почта<input id="acc-mail" data-keep type="email" placeholder="name@digch.net" value="'+esc(f('acc-mail', mail))+'" autocomplete="off"></label><button class="btn" type="button" data-act="acc-mail-save">Сохранить</button></div>'
+      : '<span class="small" style="color:var(--danger)">У группы не выбран тренер — выберите его во вкладке «Стажёры и доступы».</span>')+'</section>';
+  var rdsCard = '<section class="card" data-copybox aria-labelledby="h-rds" style="border-left:6px solid #7c3aed"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-rds"><span class="chip" style="background:#7c3aed;color:#fff">1</span> RDS доступы</h2><span class="small muted">Стажёры, которые были на утренней перекличке ('+n+'-й день): '+list.length+'. Без отказов и приостановленных.</span></div><button class="btn primary" type="button" data-act="copy" data-text="'+esc(rds)+'"'+(list.length?'':' disabled')+'>Скопировать</button></div>'+
+    (noGeo?'<span class="small" style="color:var(--amber-ink)">У '+noGeo+' стажёров не указано гео — допишите в «Результаты → Стажёр → Гео — страна».</span>':'')+
+    (!mail && g.trainer?'<span class="small" style="color:var(--amber-ink)">Укажите почту тренера выше — она подставится в запрос.</span>':'')+pre(rds)+'</section>';
+  var crmCard = '<section class="card" data-copybox aria-labelledby="h-crm"><div class="row between"><div class="stack" style="gap:4px"><h2 id="h-crm"><span class="chip">2</span> CRM доступы</h2><span class="small muted">Подавайте <b>только после получения RDS доступов</b>. Вместо примера впишите корпоративные почты стажёров.</span></div><button class="btn" type="button" data-act="copy" data-text="'+esc(crm)+'">Скопировать</button></div>'+pre(crm)+'</section>';
+  var ksh = '<section class="card" aria-labelledby="h-ksh"><h2 id="h-ksh">Что делать, если стажёра сразу распределили на КШ</h2><p style="margin:0;line-height:1.55">Запросите ему в RDS корпоративную почту <b>@moneydigi.net</b> и обязательно укажите, что нужен доступ к <b>CRM Inari Диги или КШ</b>.</p></section>';
+  var edit = S.ui.accEdit;
+  var tpl = '<section class="card" aria-labelledby="h-tpl"><div class="row between"><h2 id="h-tpl">Шаблоны запросов</h2><button class="linkbtn small" type="button" data-act="acc-edit">'+(edit?'Свернуть':'Изменить шаблоны')+'</button></div>'+
+    (edit ? '<span class="small muted">Подстановки: {почта} — почта тренера, {список} — стажёры с гео, {направление} — название направления.</span>'+
+      '<label class="field">RDS<textarea id="acc-tpl-rds" data-keep rows="9">'+esc(f('acc-tpl-rds', accTpl('rds')))+'</textarea></label>'+
+      '<label class="field">CRM<textarea id="acc-tpl-crm" data-keep rows="4">'+esc(f('acc-tpl-crm', accTpl('crm')))+'</textarea></label>'+
+      '<div class="row"><button class="btn primary" type="button" data-act="acc-tpl-save">Сохранить шаблоны</button><button class="btn" type="button" data-act="acc-tpl-reset">Вернуть исходные</button></div>' : '<span class="small muted">Тексты общие для всех тренеров.</span>')+'</section>';
+  return head('Отчёты и доступы', esc(g.name)+' · запрос доступов · '+n+'-й день', '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+'</div>')+top+rdsCard+crmCard+ksh+tpl;
 }
 function tEvening(g, gid, n, kseg, dayPick, xlBtn){
   var st = eveStats(gid, n); var msg = eveMessage(g, st);
@@ -1367,7 +1401,7 @@ function tEvening(g, gid, n, kseg, dayPick, xlBtn){
     '<div class="kpi"><span class="small muted">Были на перекличке</span><span class="v num">'+st.present+' / '+st.created+'</span></div>'+
     (st.qt ? '<div class="kpi"><span class="small muted">Опросник дня: сдали</span><span class="v num" style="color:var(--accent-ink)">'+st.passed+'</span><span class="small muted">не сдали '+st.failed+' · не проходили '+st.none+'</span></div><div class="kpi"><span class="small muted">Средний результат</span><span class="v num">'+(st.avg==null?'—':st.avg+'%')+'</span></div>' : '<div class="kpi"><span class="small muted">Опросник дня</span><span class="v num">—</span><span class="small muted">в этот день теста нет</span></div>')+
     '<div class="kpi"><span class="small muted">Отстают по темам</span><span class="v num"'+(st.lag.length?' style="color:var(--danger)"':'')+'>'+st.lag.length+'</span></div></div>';
-  return head('Утренние отчёты', esc(g.name)+' · итоги '+n+'-го дня · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+xlBtn+'</div>')+kpi+msgBox+tgCard();
+  return head('Отчёты и доступы', esc(g.name)+' · итоги '+n+'-го дня · '+esc(ddmm(st.date)), '<div class="row" style="align-items:flex-end">'+kseg+groupPicker(false)+dayPick+xlBtn+'</div>')+kpi+msgBox+tgCard();
 }
 
 /* ---------- trainer: presentation ---------- */
@@ -2463,7 +2497,10 @@ function presencePing(){
   var m = me(); if(!m) return; var lv = liveOf(m.groupId); if(!lv.active) return;
   saveProgress({pres:{deck:presDeckId(), slide:curSlide(), at:Date.now()}, seen:Date.now()});
 }
-setInterval(function(){ if(S.role==='intern' && !S.dormant){ if(S.view==='pres') presencePing(); else if(S.iid) saveProgress({seen:Date.now()}); } }, 60000);
+setInterval(function(){ if(S.role==='intern' && !S.dormant) withSession(function(){ if(S.view==='pres') presencePing(); else if(S.iid) saveProgress({seen:Date.now()}); }); }, 60000);
+/* Вход завершился (вышли в другой вкладке/на другом устройстве или сессия истекла) — возвращаем на экран входа, а не молча ловим отказы базы */
+function sessionEnded(){ if(!S.role) return; closePlayer(); S.role=null; S.iid=null; S.dormant=false; S.ui={dayOpen:{}, edOpen:{}, loginErr:'Сессия входа завершилась. Войдите снова — сохранённый прогресс на месте.'}; S.form={}; CACHE={}; LST.forEach(function(l){ l.fire(); }); render(); }
+function withSession(fn, failed){ if(!sb) return; sb.auth.getSession().then(function(r){ if(!r.error && !(r.data && r.data.session)){ sessionEnded(); return; } fn(); }, function(){ if(failed) failed(); else fn(); }); }
 function liveUpdate(gid, patch){ return upsert('live/'+gid, S.live[gid], patch).catch(writeErr); }
 function curDayDraft(){ var d = draft('program'); var di = Math.min(S.ui.sd||0, Math.max(0,d.days.length-1)); return d.days[di]; }
 function mv(arr, i, dir){ var j = i+dir; if(j<0||j>=arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
@@ -2640,6 +2677,13 @@ var A = {
   'tg-pick': function(el){ var p = {tgChat:{}}; p.tgChat[activeDir()] = el.dataset.id ? {id:el.dataset.id, title:el.dataset.t} : null;
     S.db.doc('content/settings').update(p).then(function(){ toast(el.dataset.id ? 'Отчёты будут уходить в «'+el.dataset.t+'»' : 'Отчёты снова уходят руководителю'); render(); }, writeErr); },
   'mr-kind': function(el){ S.ui.mrKind = el.dataset.k; render(); },
+  'acc-mail-save': function(){ var g = S.groups[curGid()]; if(!g || !g.trainer) return; var v = String(f('acc-mail','')).trim(); var el = document.getElementById('acc-mail'); if(el) v = String(el.value||'').trim();
+    if(v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){ toast('Проверьте почту'); return; } var p = {trainerMail:{}}; p.trainerMail[g.trainer] = v || null;
+    S.db.doc('content/settings').update(p).then(function(){ S.form['acc-mail'] = undefined; toast('Почта сохранена'); render(); }, writeErr); },
+  'acc-edit': function(){ S.ui.accEdit = !S.ui.accEdit; render(); },
+  'acc-tpl-save': function(){ var a = document.getElementById('acc-tpl-rds'), b = document.getElementById('acc-tpl-crm');
+    S.db.doc('content/settings').update({accTpl:{rds: a ? a.value : accTpl('rds'), crm: b ? b.value : accTpl('crm')}}).then(function(){ S.ui.accEdit = false; toast('Шаблоны сохранены'); render(); }, writeErr); },
+  'acc-tpl-reset': function(){ S.db.doc('content/settings').update({accTpl:{rds:null, crm:null}}).then(function(){ S.form['acc-tpl-rds'] = undefined; S.form['acc-tpl-crm'] = undefined; toast('Шаблоны возвращены к исходным'); render(); }, writeErr); },
   'xl-reports': function(){ var gid = curGid(); if(gid) xlReports(gid); },
   'arch-toggle': function(){ S.ui.showArch = !S.ui.showArch; render(); },
   'g-arch': function(){ var gid = curGid(); var g = S.groups[gid]; if(!g) return; var on = !g.archived;
@@ -3009,7 +3053,7 @@ if(!window.supabase || !CFG.url || !CFG.anonKey || /ВСТАВЬТЕ|XXXX/.test(
   });
   S.db.collection('surveys').onSnapshot(function(snap){ S.surveys = snap.docs.map(function(d){ return d.data(); }); schedule(); });
   startRealtime();
-  sb.auth.onAuthStateChange(function(ev){ if(ev==='SIGNED_IN' || ev==='TOKEN_REFRESHED') startRealtime(); });
+  sb.auth.onAuthStateChange(function(ev){ if(ev==='SIGNED_IN' || ev==='TOKEN_REFRESHED') startRealtime(); else if(ev==='SIGNED_OUT') setTimeout(sessionEnded, 0); });
   setInterval(pollLive, 3000);
   /* Полная перезагрузка данных: при возврате на вкладку (не чаще раза в 30 с) и раз в 10 минут */
   document.addEventListener('visibilitychange', function(){ if(!document.hidden && S.role && !S.dormant && Date.now()-(S.lastLoad||0) > 30000){ loadAll().catch(function(){}); startRealtime(); } });
