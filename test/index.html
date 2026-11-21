@@ -604,7 +604,7 @@ function saveProgress(patch){
   return sb.rpc('progress_patch', {p:p}).then(function(r){
     if(r.error) throw r.error;
     if(seq===PSEQ && iid===S.iid && r.data && !sameJson(r.data, CACHE[path])) setLocal(path, r.data);
-  }).catch(function(){ toast('Не удалось сохранить. Проверьте соединение.'); });
+  }).catch(function(){ var t = function(){ toast('Не удалось сохранить. Проверьте соединение.'); }; withSession(t, t); });
 }
 function writeErr(e){
   if(e && e.code==='quota_exceeded') toast('Хранилище заполнено — удалите старые записи.');
@@ -2463,7 +2463,10 @@ function presencePing(){
   var m = me(); if(!m) return; var lv = liveOf(m.groupId); if(!lv.active) return;
   saveProgress({pres:{deck:presDeckId(), slide:curSlide(), at:Date.now()}, seen:Date.now()});
 }
-setInterval(function(){ if(S.role==='intern' && !S.dormant){ if(S.view==='pres') presencePing(); else if(S.iid) saveProgress({seen:Date.now()}); } }, 60000);
+setInterval(function(){ if(S.role==='intern' && !S.dormant) withSession(function(){ if(S.view==='pres') presencePing(); else if(S.iid) saveProgress({seen:Date.now()}); }); }, 60000);
+/* Вход завершился (вышли в другой вкладке/на другом устройстве или сессия истекла) — возвращаем на экран входа, а не молча ловим отказы базы */
+function sessionEnded(){ if(!S.role) return; closePlayer(); S.role=null; S.iid=null; S.dormant=false; S.ui={dayOpen:{}, edOpen:{}, loginErr:'Сессия входа завершилась. Войдите снова — сохранённый прогресс на месте.'}; S.form={}; CACHE={}; LST.forEach(function(l){ l.fire(); }); render(); }
+function withSession(fn, failed){ if(!sb) return; sb.auth.getSession().then(function(r){ if(!r.error && !(r.data && r.data.session)){ sessionEnded(); return; } fn(); }, function(){ if(failed) failed(); else fn(); }); }
 function liveUpdate(gid, patch){ return upsert('live/'+gid, S.live[gid], patch).catch(writeErr); }
 function curDayDraft(){ var d = draft('program'); var di = Math.min(S.ui.sd||0, Math.max(0,d.days.length-1)); return d.days[di]; }
 function mv(arr, i, dir){ var j = i+dir; if(j<0||j>=arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
@@ -3009,7 +3012,7 @@ if(!window.supabase || !CFG.url || !CFG.anonKey || /ВСТАВЬТЕ|XXXX/.test(
   });
   S.db.collection('surveys').onSnapshot(function(snap){ S.surveys = snap.docs.map(function(d){ return d.data(); }); schedule(); });
   startRealtime();
-  sb.auth.onAuthStateChange(function(ev){ if(ev==='SIGNED_IN' || ev==='TOKEN_REFRESHED') startRealtime(); });
+  sb.auth.onAuthStateChange(function(ev){ if(ev==='SIGNED_IN' || ev==='TOKEN_REFRESHED') startRealtime(); else if(ev==='SIGNED_OUT') setTimeout(sessionEnded, 0); });
   setInterval(pollLive, 3000);
   /* Полная перезагрузка данных: при возврате на вкладку (не чаще раза в 30 с) и раз в 10 минут */
   document.addEventListener('visibilitychange', function(){ if(!document.hidden && S.role && !S.dormant && Date.now()-(S.lastLoad||0) > 30000){ loadAll().catch(function(){}); startRealtime(); } });
