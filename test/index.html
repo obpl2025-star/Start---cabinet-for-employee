@@ -476,6 +476,19 @@ tr.rk-r td{background:var(--danger-soft)}
 .rev b{color:inherit}
 .revbar{height:8px;border-radius:5px;background:var(--line2);overflow:hidden}.revbar i{display:block;height:100%;background:var(--accent)}
 .q-opt.ok{border-color:#2E9E5B;background:var(--ok-soft)}.q-opt.bad{border-color:var(--danger);background:var(--danger-soft)}
+
+/* ---------- доска почёта, достижения ---------- */
+.pod{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:end}
+.pod .card{align-items:center;text-align:center;justify-content:flex-end;gap:6px}
+.pod .p1{background:var(--side);color:#fff;border-color:var(--side);min-height:230px}.pod .p2{min-height:190px}.pod .p3{min-height:160px}
+.medal{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:600;font-size:20px;color:#1D1433}
+.m1{background:#F2C14E;width:62px;height:62px;font-size:24px}.m2{background:#D7D3E3}.m3{background:#E8C3A0}
+.dyn-up{color:var(--ok-ink)}.dyn-dn{color:var(--danger);font-weight:600}.dyn-st{color:var(--muted)}
+.cup{display:flex;flex-direction:column;gap:8px}.cup .bar{height:8px;border-radius:4px;background:rgba(255,255,255,.15)}.cup .bar i{display:block;height:100%;border-radius:4px;background:#F2C14E}
+.badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge-a{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:13px;font-weight:600;background:var(--accent-soft);color:var(--accent-ink)}
+.badge-a.off{background:transparent;color:var(--faint);border:1px dashed var(--line);font-weight:500}
+@media (max-width:640px){.pod{grid-template-columns:1fr}}
 </style>
 
 <style>body{margin:0}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
@@ -713,7 +726,7 @@ window.addEventListener('online', function(){ flushProgress(); });
 
 /* ---------- версия сайта: вкладка со старой версией сама перезагружается ----------
    При каждой выкладке BUILD и файл version.txt меняются вместе. */
-var BUILD = '2026-11-24c';
+var BUILD = '2026-11-24d';
 function checkBuild(){
   if(!window.fetch || S.stale) return;
   fetch('version.txt?t='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
@@ -739,6 +752,96 @@ function writeErr(e){
 var rq = false;
 function schedule(){ if(rq) return; rq = true; requestAnimationFrame(function(){ rq=false; render(); }); }
 
+
+
+/* ---------- доска почёта ---------- */
+function hwItems(){ return allItems().filter(function(it){ return /домашн/i.test(it.title||''); }); }
+function hwScore(iid){ var hw = hwItems(); var p = P(iid);
+  if(!hw.length) return avgBest(iid);
+  var v = hw.map(function(it){ if(it.type==='test' && it.test){ var r = (p.tests||{})[it.test]; return r ? (r.best||0) : 0; } return isDone(it, iid) ? 100 : 0; });
+  return Math.round(v.reduce(function(a,b){ return a+b; },0)/v.length); }
+function attPct(iid){ var it = S.interns[iid]; if(!it) return null; var md = mrDates(it.groupId).filter(function(x){ return !x.roll.live; }); if(!md.length) return null;
+  var ds = days(); var y = md.filter(function(x){ var d = ds[x.n-1]; return d ? attOf(iid, d.id)==='yes' : rollHas(x.roll, iid); }).length; return Math.round(y/md.length*100); }
+function dynOf(iid){ var t = P(iid).tests||{}; var v = Object.keys(t).map(function(k){ return t[k]; }).filter(function(r){ return r && typeof r.best==='number'; }).sort(function(a,b){ return (a.at||0)-(b.at||0); }).map(function(r){ return r.best; });
+  if(v.length < 2) return {k:'st', t:'→ стабильно'};
+  var h = Math.floor(v.length/2), a = v.slice(0, h), b = v.slice(h); var av = function(x){ return Math.round(x.reduce(function(s,y){ return s+y; },0)/x.length); };
+  var d = av(b) - av(a); if(d >= 8) return {k:'up', t:'↑ растёт · '+av(a)+' → '+av(b)}; if(d <= -8) return {k:'dn', t:'↓ проседает · '+av(a)+' → '+av(b)}; return {k:'st', t:'→ стабильно'}; }
+function honorRows(gid){
+  return internsOf(gid).filter(function(i){ return finPct(i.id)!=null && !isRefused(i.id); }).map(function(i){
+    var fin = finPct(i.id), hw = hwScore(i.id), at = attPct(i.id);
+    var tot = Math.round(fin*0.5 + (hw==null?fin:hw)*0.3 + (at==null?100:at)*0.2);
+    return {i:i, fin:fin, hw:hw, at:at, tot:tot, dyn:dynOf(i.id)}; }).sort(function(a,b){ return (b.tot-a.tot) || (b.fin-a.fin) || String(a.i.name).localeCompare(String(b.i.name),'ru'); });
+}
+function cupOf(gid){ var g = S.groups[gid]; if(!g || !g.start) return null;
+  var peers = groupList(true, true).filter(function(x){ return x.start===g.start && (x.dir||'soft')===(g.dir||'soft') && !gIsTest(x); });
+  if(peers.length < 2) return null;
+  return peers.map(function(x){ var act = activeOf(x.id).filter(function(i){ return !isRefused(i.id); }); var av = function(f){ var v = act.map(function(i){ return f(i.id); }).filter(function(y){ return y!=null; }); return v.length ? v.reduce(function(a,b){ return a+b; },0)/v.length : 0; };
+    var pts = Math.round((av(attPct) + av(hwScore) + av(avgBest))/3); return {g:x, pts:pts}; }).sort(function(a,b){ return b.pts-a.pts; });
+}
+function honorText(gid){ var g = S.groups[gid]||{}, rows = honorRows(gid); if(!rows.length) return '';
+  var bestHw = rows.slice().sort(function(a,b){ return (b.hw||0)-(a.hw||0); })[0], bestFin = rows.slice().sort(function(a,b){ return b.fin-a.fin; })[0];
+  var dn = rows.slice(2).filter(function(x){ return x.dyn.k==='dn'; }).map(function(x){ return x.i.name; });
+  return 'Доска почёта · '+(g.name||'')+(g.trainer?' ('+g.trainer+')':'')+'\n'+
+    '1 место — '+rows[0].i.name+' · итог '+rows[0].tot+(rows[1]?'\n2 место — '+rows[1].i.name+' · итог '+rows[1].tot:'')+(rows.length>2?'\n3 место — остальные '+(rows.length-2)+' чел.':'')+
+    '\nЛучшая аттестация — '+bestFin.i.name+' · '+bestFin.fin+'%'+(bestHw && bestHw.hw!=null?'\nЛучший по ДЗ — '+bestHw.i.name+' · '+bestHw.hw+'%':'')+
+    (dn.length?'\nПроседают: '+dn.join(', '):'')+'\nУчтены только сдавшие финальное тестирование: '+rows.length+'.'; }
+function tHonor(){
+  var gl = groupList(); var gid = S.ui.hGid && S.groups[S.ui.hGid] ? S.ui.hGid : curGid(); var g = gid ? S.groups[gid] : null;
+  if(!g) return head('Доска почёта','')+'<div class="empty"><b>Групп пока нет</b></div>';
+  var pick = '<label class="field" style="min-width:260px">Поток<select data-act-change="h-gid">'+gl.map(function(x){ return '<option value="'+esc(x.id)+'"'+(x.id===gid?' selected':'')+'>'+esc(x.name)+(x.trainer?' · '+esc(x.trainer):'')+'</option>'; }).join('')+'</select></label>';
+  var rows = honorRows(gid);
+  var right = '<div class="row" style="align-items:flex-end">'+pick+(rows.length?'<button class="btn primary" type="button" data-act="h-tg" data-g="'+esc(gid)+'">Отправить итог в Telegram</button>':'')+'</div>';
+  var top = head('Доска почёта', esc(g.name)+' · только сдавшие финальное тестирование · видят руководитель и тренеры', right);
+  if(!rows.length) return top+'<div class="empty"><b>Пока никто не сдал финальное тестирование</b><span>Доска заполнится, когда тренер внесёт результаты финала в итог стажёра.</span></div>';
+  var p = function(cls, m, x, sub){ return '<div class="card '+cls+'"><span class="medal '+m+'">'+(m==='m1'?1:(m==='m2'?2:3))+'</span><b style="font-size:'+(m==='m1'?20:17)+'px">'+esc(x)+'</b>'+sub+'</div>'; };
+  var rest = rows.slice(2);
+  var pod = '<section class="pod" aria-label="Пьедестал" style="margin-bottom:16px">'+
+    (rows[1]?p('p2','m2',rows[1].i.name,'<span class="muted">итог '+rows[1].tot+' · финал '+rows[1].fin+'%</span><span class="small dyn-'+rows[1].dyn.k+'">'+esc(rows[1].dyn.t)+'</span>'):'<div></div>')+
+    p('p1','m1',rows[0].i.name,'<span style="color:var(--side-muted)">итог '+rows[0].tot+' · финал '+rows[0].fin+'%</span><span class="small" style="color:#C7F0D5">'+esc(rows[0].dyn.t)+'</span>')+
+    (rest.length?p('p3','m3','Все остальные — '+rest.length+' '+plural(rest.length,'человек','человека','человек'),'<span class="muted">итог от '+rest[rest.length-1].tot+' до '+rest[0].tot+'</span>'):'<div></div>')+'</section>';
+  var bestFin = rows.slice().sort(function(a,b){ return b.fin-a.fin; })[0], bestHw = rows.slice().sort(function(a,b){ return (b.hw||0)-(a.hw||0); })[0];
+  var tbl = rest.length ? '<section class="card" style="padding:0;overflow-x:auto;flex:999 1 520px;min-width:0"><h2 style="font-size:17px;padding:18px 20px 0">3-е место · по убыванию итога</h2><table style="width:100%;border-collapse:collapse;min-width:560px"><thead><tr><th scope="col" style="text-align:left;padding:10px 20px">Стажёр</th><th scope="col" style="text-align:left;padding:10px">Итог</th><th scope="col" style="text-align:left;padding:10px">Финал</th><th scope="col" style="text-align:left;padding:10px">ДЗ</th><th scope="col" style="text-align:left;padding:10px">Явка</th><th scope="col" style="text-align:left;padding:10px 20px">Динамика</th></tr></thead><tbody>'+
+    rest.map(function(x){ return '<tr style="border-top:1px solid var(--line2)'+(x.dyn.k==='dn'?';background:var(--danger-soft)':'')+'"><td style="padding:11px 20px"><button class="linkbtn" type="button" data-act="card-open" data-id="'+esc(x.i.id)+'">'+esc(x.i.name)+'</button></td><td style="padding:11px" class="num"><b>'+x.tot+'</b></td><td style="padding:11px" class="num">'+x.fin+'%</td><td style="padding:11px" class="num">'+(x.hw==null?'—':x.hw+'%')+'</td><td style="padding:11px" class="num">'+(x.at==null?'—':x.at+'%')+'</td><td style="padding:11px 20px" class="small dyn-'+x.dyn.k+'">'+esc(x.dyn.t)+'</td></tr>'; }).join('')+'</tbody></table></section>' : '';
+  var cup = cupOf(gid);
+  var side = '<div class="stack" style="flex:1 1 280px;max-width:380px;gap:16px"><section class="card"><h2 style="font-size:17px">Номинации</h2>'+
+      '<div class="stack" style="gap:2px;padding:10px 12px;border-radius:12px;background:var(--accent-soft)"><span class="small muted">Лучшая аттестация</span><b>'+esc(bestFin.i.name)+' · '+bestFin.fin+'%</b></div>'+
+      (bestHw.hw!=null?'<div class="stack" style="gap:2px;padding:10px 12px;border-radius:12px;background:var(--accent-soft)"><span class="small muted">Лучший по домашним заданиям</span><b>'+esc(bestHw.i.name)+' · '+bestHw.hw+'%</b></div>':'')+
+      '<span class="small muted">Итог = финал 50% + ДЗ 30% + явка 20%</span></section>'+
+    (cup?'<section class="card pdark cup"><h2 style="font-size:17px;color:#fff">Кубок потоков '+esc(fmtDay0(g.start))+'</h2>'+cup.map(function(c, k){ return '<div class="row between"><span>'+(k===0?'<b>':'')+esc(c.g.name)+(k===0?'</b>':'')+'</span><b>'+c.pts+' очков</b></div><div class="bar"><i style="width:'+c.pts+'%;'+(k?'background:#C7B0FF':'')+'"></i></div>'; }).join('')+'<span class="small muted">Очки = явка + ДЗ + средний балл тестов</span></section>':'')+'</div>';
+  return top+pod+'<div class="row" style="gap:16px;align-items:flex-start;flex-wrap:wrap">'+tbl+side+'</div>';
+}
+
+/* ---------- достижения и сертификат ---------- */
+function achList(iid){ iid = iid || S.iid; var p = P(iid), t = p.tests||{}, ds = days(), r = riskOf(iid), rv = revStats(iid), fin = finPct(iid);
+  var tk = Object.keys(t).map(function(k){ return t[k]; }).filter(Boolean);
+  return [
+    {id:'d1', t:'Первый день пройден', ok: ds[0] ? dayState(ds[0], iid)==='done' : false},
+    {id:'roll', t:'Все переклички вовремя', ok: (r.held||0) >= 3 && !r.missed},
+    {id:'first', t:'Тест с первой попытки', ok: tk.some(function(x){ return x.passed && x.attempts===1; })},
+    {id:'ace', t:'Отличник · средний балл от 90%', ok: (avgBest(iid)||0) >= 90 && tk.length >= 2},
+    {id:'rev', t:'Исправил 5 ошибок', ok: rv.fixed >= 5},
+    {id:'fin', t:'Финал сдан', ok: fin!=null && prof(iid).outcome==='passed'}
+  ]; }
+function achCard(iid, title){ var a = achList(iid); var n = a.filter(function(x){ return x.ok; }).length;
+  return '<section class="card"><div class="row between"><h2 style="font-size:17px">'+(title||'Мои достижения')+'</h2><span class="small muted num">'+n+' из '+a.length+'</span></div><div class="badges">'+
+    a.map(function(x){ return '<span class="badge-a'+(x.ok?'':' off')+'">'+(x.ok?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>':'')+esc(x.t)+'</span>'; }).join('')+'</div>'+
+    (S.role==='intern' && prof(S.iid).outcome==='passed' ? '<button class="btn primary" type="button" data-act="cert" style="align-self:flex-start">Скачать сертификат</button>' : '')+'</section>'; }
+function certOpen(){
+  var iid = S.iid, it = me(); if(!it) return; var g = S.groups[it.groupId]||{}, pr = prof(iid);
+  var no = ('ST-'+String(g.start||'').replace(/-/g,'').slice(2)+'-'+String(iid).replace(/[^a-z0-9]/gi,'').slice(0,6)).toUpperCase();
+  var e = function(x){ return esc(String(x==null?'':x)); };
+  var html = '<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Сертификат — '+e(it.name)+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">'+
+    '<style>@page{size:A4 landscape;margin:0}body{margin:0;font-family:"Golos Text",sans-serif;color:#1D1433}.c{box-sizing:border-box;width:297mm;height:209mm;padding:22mm 26mm;display:flex;flex-direction:column;justify-content:space-between;background:#fff;border:14px solid #2B0F66}'+
+    'h1{font-family:Unbounded,sans-serif;font-size:44px;margin:0;color:#2B0F66}.n{font-family:Unbounded,sans-serif;font-size:36px;margin:8mm 0 4mm}.m{color:#5E5575;font-size:16px}.row{display:flex;justify-content:space-between;align-items:flex-end;font-size:15px}@media print{.np{display:none}}</style></head><body>'+
+    '<div class="c"><div><div class="m">'+e(brand().name)+' · отдел обучения</div><h1>Сертификат</h1><div class="m" style="margin-top:4mm">подтверждает, что</div><div class="n">'+e(it.name)+'</div>'+
+    '<div style="font-size:18px;line-height:1.5">успешно прошёл(-ла) стажировку по направлению «'+e(dirName(gDir(it.groupId)))+'»'+(g.start?' в потоке от '+e(fmtDay0(g.start)):'')+(finPct(iid)!=null?'<br>Результат финального тестирования: <b>'+finPct(iid)+'%</b>':'')+'</div></div>'+
+    '<div class="row"><div>Тренер: <b>'+e(g.trainer||'')+'</b></div><div class="m">№ '+e(no)+' · '+e(fmtDay0(new Date().toISOString().slice(0,10)))+'</div></div></div>'+
+    '<p class="np" style="text-align:center;font:14px sans-serif;color:#5E5575">Чтобы сохранить PDF: в окне печати выберите «Сохранить как PDF».</p>'+
+    '<scr'+'ipt>setTimeout(function(){ window.print(); }, 700);</scr'+'ipt></body></html>';
+  var w = window.open('', '_blank'); if(!w){ toast('Разрешите всплывающие окна, чтобы открыть сертификат'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
 
 /* ---------- пульт руководителя ---------- */
 function gIsTest(g){ return /тест|test/i.test(g.name||'') || internsOf(g.id).length < 3; }
@@ -895,7 +998,7 @@ function tIntern(){
     '</div><div class="stack" style="flex:1 1 280px;max-width:380px;gap:16px">'+
       '<section class="card"><label class="field" style="color:var(--fg);font-size:17px;font-weight:700">Заметки тренера<textarea id="card-note" data-keep rows="5" class="input" style="padding:10px 12px;min-height:110px">'+esc(f('card-note', pr.tnote||''))+'</textarea></label><button class="btn sm" type="button" data-act="card-note-save" data-id="'+esc(iid)+'" style="align-self:flex-start">Сохранить заметку</button>'+(pr.tnoteAt?'<span class="small muted">сохранено '+esc(fmtTime(pr.tnoteAt))+'</span>':'')+'</section>'+
       '<section class="card"><h2 style="font-size:17px">Итог стажировки</h2><button class="btn sm" type="button" data-act="oc-open" data-id="'+esc(iid)+'" style="align-self:flex-start">'+(pr.outcome?'Изменить итог':'Проставить итог')+'</button></section>'+
-      phCard(iid)+
+      achCard(iid, 'Достижения')+phCard(iid)+
     '</div></div>';
 }
 function rollMarkTime(roll, iid){ var x = (roll.list||[]).filter(function(y){ return y.iid===iid && y.at; })[0]; return x ? kyivHM(x.at) : ''; }
@@ -1114,15 +1217,15 @@ function viewShell(){
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
     side = '<nav class="side" aria-label="Разделы тренера">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+dirPicker()+
-      '<div class="nav">'+navItem('t-pult','Пульт руководителя')+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-risk','Светофор', redCount(curG)?'<span class="live-tag">'+redCount(curG)+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-crit','Критические ошибки')+navItem('t-morning','Отчёты и доступы')+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
+      '<div class="nav">'+navItem('t-pult','Пульт руководителя')+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-risk','Светофор', redCount(curG)?'<span class="live-tag">'+redCount(curG)+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-crit','Критические ошибки')+navItem('t-morning','Отчёты и доступы')+navItem('t-results','Результаты')+navItem('t-honor','Доска почёта')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
       themeSw()+'<div class="me"><div class="ava amber">Т</div><div class="who"><b>Тренер</b><small>Управление стажировкой</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
-    var bodyFn = ({'t-pult':tPult, 't-risk':tRisk, 't-intern':tIntern, 't-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-crit':tCrit, 't-morning':tMorning, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess);
+    var bodyFn = ({'t-honor':tHonor, 't-pult':tPult, 't-risk':tRisk, 't-intern':tIntern, 't-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-crit':tCrit, 't-morning':tMorning, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess);
     body = (/^t-(access|results|roll|morning|risk)$/.test(S.view||'t-access') ? ocReminder() : '')+(S.view==='t-pres' ? brkPickCard() : '')+bodyFn();
   }
   if(S.role==='intern' && S.view==='tests' && S.ui.rev) body = revView();
   else if(S.role==='intern' && S.view==='tests' && !S.ui.test) body = revCard()+body;
-  if(S.role==='intern' && (S.view==='home' || S.view==='plan' || !S.view)) body = mandBanner()+(S.view!=='plan'?revCard():'')+body;
+  if(S.role==='intern' && (S.view==='home' || S.view==='plan' || !S.view)) body = mandBanner()+(S.view!=='plan'?revCard():'')+body+(S.view!=='plan'?'<div style="margin-top:16px">'+achCard(S.iid)+'</div>':'');
   return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>'+(S.role==='intern' ? contactFab() : '')+bellHtml();
 }
 
@@ -2949,6 +3052,8 @@ function curDayDraft(){ var d = draft('program'); var di = Math.min(S.ui.sd||0, 
 function mv(arr, i, dir){ var j = i+dir; if(j<0||j>=arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
 
 var A = {
+  'h-tg': function(el){ var txt = honorText(el.dataset.g); if(!txt) return; el.disabled = true; tgCall({action:'send', text:txt}).then(function(){ el.disabled = false; toast('Итог отправлен в Telegram'); }, function(e){ el.disabled = false; toast('Не удалось отправить: '+(e && e.message || 'ошибка')); }); },
+  cert: function(){ certOpen(); },
   'p-per': function(el){ S.ui.pPer = el.dataset.v==='all' ? 'all' : Number(el.dataset.v); render(); },
   'p-xl': function(){ pultExcel(); },
   'card-open': function(el){ S.ui.cardBack = S.view && S.view!=='t-intern' ? S.view : 't-risk'; S.ui.cardIid = el.dataset.id; delete S.form['card-note']; S.view = 't-intern'; render(); window.scrollTo(0,0); },
@@ -3282,6 +3387,7 @@ function replaceSlideImage(i, file){
 }
 
 var CHANGE = {
+  'h-gid': function(el){ S.ui.hGid = el.value; render(); },
   'p-dir': function(el){ S.ui.pDir = el.value; render(); },
   'g-trainer': function(el){ var gid = curGid(); S.db.doc('groups/'+gid).update({trainer:el.value}).then(function(){ toast(el.value ? 'Тренер группы: '+el.value : 'Тренер не выбран'); }, writeErr); },
   'oc-kind': function(el){ S.form[el.id] = el.value; render(); },
