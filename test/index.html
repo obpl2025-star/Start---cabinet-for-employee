@@ -463,8 +463,15 @@ tr.rk-r td{background:var(--danger-soft)}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px}
 .dgrid div{padding:10px 4px;border-radius:10px;text-align:center;font-size:13px;background:var(--surface2);color:var(--faint)}
 .dgrid .yes{background:var(--ok-soft);color:var(--ok-ink)}.dgrid .no{background:var(--danger-soft);color:var(--danger)}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
-.kpis .card{gap:2px;padding:14px 18px}.kpis b{font-family:var(--f-display);font-size:24px}
+.kpi4{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+.kpi4 .card{gap:2px;padding:14px 18px}.kpi4 b{font-family:var(--f-display);font-size:24px}
+.fnl{display:grid;grid-template-columns:120px 1fr 64px;gap:8px 12px;align-items:center}
+.fnl i{display:block;height:18px;border-radius:6px;background:var(--accent)}
+.fnl i.drop{background:var(--danger)}
+.pdark{background:var(--side);color:#fff;border-color:var(--side)}
+.pdark .muted,.pdark .small.muted{color:var(--side-muted)}
+.pdark input{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.25)}
+.delta-up{color:var(--ok-ink)}.delta-dn{color:var(--danger)}
 .rev{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;border-radius:16px;background:var(--accent-soft);color:var(--accent-ink);margin-bottom:16px}
 .rev b{color:inherit}
 .revbar{height:8px;border-radius:5px;background:var(--line2);overflow:hidden}.revbar i{display:block;height:100%;background:var(--accent)}
@@ -706,7 +713,7 @@ window.addEventListener('online', function(){ flushProgress(); });
 
 /* ---------- версия сайта: вкладка со старой версией сама перезагружается ----------
    При каждой выкладке BUILD и файл version.txt меняются вместе. */
-var BUILD = '2026-11-24b';
+var BUILD = '2026-11-24c';
 function checkBuild(){
   if(!window.fetch || S.stale) return;
   fetch('version.txt?t='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
@@ -731,6 +738,90 @@ function writeErr(e){
 /* ---------- render ---------- */
 var rq = false;
 function schedule(){ if(rq) return; rq = true; requestAnimationFrame(function(){ rq=false; render(); }); }
+
+
+/* ---------- пульт руководителя ---------- */
+function gIsTest(g){ return /тест|test/i.test(g.name||'') || internsOf(g.id).length < 3; }
+function gStartTs(g){ var m = String(g.start||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1], +m[2]-1, +m[3]).getTime() : (g.createdAt||0); }
+function gDone(g){ var all = internsOf(g.id); if(!all.length) return false; if(Date.now()-gStartTs(g) > 10*DAYMS) return true; return all.every(function(i){ return i.suspended || prof(i.id).outcome; }); }
+function gMetrics(g){ var all = internsOf(g.id); var md = mrDates(g.id);
+  var fins = all.map(function(i){ return finPct(i.id); }).filter(function(x){ return x!=null; });
+  return {g:g, created:all.length, days:md.map(function(d){ return all.filter(function(i){ return rollHas(d.roll, i.id); }).length; }),
+    passed:all.filter(function(i){ return prof(i.id).outcome==='passed'; }).length, refused:all.filter(function(i){ return isRefused(i.id); }).length,
+    fin:fins, done:gDone(g)}; }
+function pultGroups(from, to){ var d = S.ui.pDir || 'all';
+  return groupList(true, true).filter(function(g){ var t = gStartTs(g); return t>=from && t<to && !gIsTest(g) && (d==='all' || (g.dir||'soft')===d); }); }
+function pAgg(ms){ var a = {streams:ms.length, created:0, passed:0, refused:0, doneCreated:0, donePassed:0, fin:[]};
+  ms.forEach(function(m){ a.created += m.created; a.passed += m.passed; a.refused += m.refused; a.fin = a.fin.concat(m.fin); if(m.done){ a.doneCreated += m.created; a.donePassed += m.passed; } });
+  a.passPct = a.doneCreated ? Math.round(a.donePassed/a.doneCreated*100) : null;
+  a.avgFin = a.fin.length ? Math.round(a.fin.reduce(function(x,y){ return x+y; },0)/a.fin.length) : null; return a; }
+function survival(ms){ var done = ms.filter(function(m){ return m.done && m.created; }); var cr = 0, ps = 0, byK = [];
+  done.forEach(function(m){ cr += m.created; ps += m.passed; m.days.forEach(function(v, k){ byK[k] = byK[k] || {p:0, c:0}; byK[k].p += v; byK[k].c += m.created; }); });
+  return {fin: cr ? ps/cr : null, k: byK.map(function(x){ return x.c ? x.p/x.c : null; }), n:done.length}; }
+function dlt(cur, prev, unit){ if(cur==null || prev==null) return ''; var d = cur-prev; if(!d) return '<span class="small muted">как в прошлом периоде</span>'; return '<span class="small '+(d>0?'delta-up':'delta-dn')+'">'+(d>0?'+':'−')+Math.abs(d)+(unit||'')+' к прошлому периоду</span>'; }
+function tPult(){
+  var per = S.ui.pPer || 30, now = Date.now(), from = per==='all' ? 0 : now-per*DAYMS;
+  var ms = pultGroups(from, now+DAYMS).map(gMetrics), prev = per==='all' ? [] : pultGroups(from-per*DAYMS, from).map(gMetrics);
+  var A1 = pAgg(ms), A0 = pAgg(prev);
+  var hist = survival(pultGroups(now-120*DAYMS, now+DAYMS).map(gMetrics));
+  var dirsOpt = [['all','Все направления']].concat(dirsList().map(function(d){ return [d.id, d.name]; }));
+  var chip = function(v, l){ return '<button type="button" class="btn sm'+(String(per)===String(v)?' primary':'')+'" data-act="p-per" data-v="'+v+'" aria-pressed="'+(String(per)===String(v))+'">'+l+'</button>'; };
+  var right = '<div class="row" style="align-items:flex-end;gap:8px"><label class="field" style="min-width:200px">Направление<select data-act-change="p-dir">'+dirsOpt.map(function(o){ return '<option value="'+esc(o[0])+'"'+((S.ui.pDir||'all')===o[0]?' selected':'')+'>'+esc(o[1])+'</option>'; }).join('')+'</select></label>'+
+    chip(30,'30 дней')+chip(90,'90 дней')+chip('all','Всё время')+'<button class="btn outline" type="button" data-act="p-xl">Excel по стандарту</button></div>';
+  var kpi = '<div class="kpi4" style="margin-bottom:16px">'+
+    '<div class="card"><span class="small muted">Потоков</span><b>'+A1.streams+'</b>'+dlt(A1.streams, per==='all'?null:A0.streams)+'</div>'+
+    '<div class="card"><span class="small muted">Зарегистрировались</span><b>'+A1.created+'</b>'+dlt(A1.created, per==='all'?null:A0.created)+'</div>'+
+    '<div class="card"><span class="small muted">Прошли стажировку</span><b>'+(A1.passPct==null?'—':A1.passPct+'%')+'</b>'+dlt(A1.passPct, per==='all'?null:A0.passPct, ' п.п.')+'<span class="small muted">по завершённым потокам</span></div>'+
+    '<div class="card"><span class="small muted">Средний балл финала</span><b>'+(A1.avgFin==null?'—':A1.avgFin+'%')+'</b>'+dlt(A1.avgFin, per==='all'?null:A0.avgFin, ' п.п.')+'</div>'+
+    '<div class="card"><span class="small muted">Отказы</span><b>'+A1.refused+'</b>'+(A1.created?'<span class="small muted">'+Math.round(A1.refused/A1.created*100)+'% от зарегистрированных</span>':'')+'</div></div>';
+  // воронка по завершённым потокам
+  var dn = ms.filter(function(m){ return m.done; }); var cr = 0, byK = [], ps = 0;
+  dn.forEach(function(m){ cr += m.created; ps += m.passed; m.days.forEach(function(v,k){ byK[k] = (byK[k]||0)+v; }); });
+  var steps = [['Регистрация', cr]].concat(byK.slice(0,8).map(function(v,k){ return ['День '+(k+1), v]; })).concat([['Прошли', ps]]);
+  var worst = -1, wv = 0; for(var k=1; k<steps.length-1; k++){ var dd = steps[k-1][1]-steps[k][1]; if(dd > wv){ wv = dd; worst = k; } }
+  var funnel = '<section class="card" style="flex:999 1 420px;min-width:0"><div class="row between"><h2 style="font-size:17px">Воронка: где теряем людей</h2><span class="small muted">'+dn.length+' '+plural(dn.length,'завершённый поток','завершённых потока','завершённых потоков')+' · явка на утренней перекличке</span></div>'+
+    (cr ? '<div class="fnl">'+steps.map(function(st, k){ var w = cr ? Math.max(2, Math.round(st[1]/cr*100)) : 0; return '<span'+(k===worst?' style="color:var(--danger);font-weight:700"':'')+'>'+st[0]+'</span><div><i class="'+(k===worst?'drop':'')+'" style="width:'+w+'%"></i></div><b class="num"'+(k===worst?' style="color:var(--danger)"':'')+'>'+st[1]+'</b>'; }).join('')+'</div>'+
+      (worst>0?'<span class="small" style="padding:10px 12px;border-radius:10px;background:var(--warn-soft);color:var(--warn-ink)">Самый большой отвал — '+steps[worst-1][0].toLowerCase()+' → '+steps[worst][0].toLowerCase()+' (−'+wv+' '+plural(wv,'человек','человека','человек')+').</span>':'')
+      : '<span class="muted">Завершённых потоков за период нет.</span>')+'</section>';
+  // прогноз
+  var run = pultGroups(now-20*DAYMS, now+DAYMS).map(gMetrics).filter(function(m){ return !m.done && m.days.length; });
+  var need = Math.max(1, Number(f('p-need', 20))||20);
+  var fc = '<section class="card pdark" style="flex:1 1 300px;max-width:400px" aria-label="Прогноз набора"><h2 style="font-size:17px;color:#fff">Прогноз набора</h2>'+
+    (hist.fin ? run.map(function(m){ var kk = m.days.length-1, pk = m.days[kk], sk = hist.k[kk]; if(!sk) return ''; var est = pk*hist.fin/sk; var lo = Math.max(0, Math.floor(est*0.9)), hi = Math.min(m.created, Math.ceil(est*1.1));
+        return '<div class="stack" style="gap:2px;padding:12px;border-radius:12px;background:rgba(255,255,255,.07)"><span class="small muted">'+esc(m.g.name)+(m.g.trainer?' · '+esc(m.g.trainer):'')+' · день '+(kk+1)+', на перекличке '+pk+'</span><span>Пройдут стажировку: <b style="font-family:var(--f-display);font-size:22px">'+(lo===hi?lo:lo+'–'+hi)+'</b></span></div>'; }).join('') +
+      '<label class="field" style="color:var(--side-muted)">Нужно сотрудников на линию<input id="p-need" data-keep data-live="pult" type="number" min="1" class="input" value="'+esc(String(need))+'"></label>'+
+      '<div class="stack" style="gap:0"><span class="small muted">Нужно набрать кандидатов</span><b style="font-family:var(--f-display);font-size:38px;line-height:1.15">≈ '+Math.ceil(need/hist.fin)+'</b><span class="small muted">по удержанию '+hist.n+' '+plural(hist.n,'завершённого потока','завершённых потоков','завершённых потоков')+' за 120 дней ('+Math.round(hist.fin*100)+'% проходят)</span></div>'
+      : '<span class="muted">Пока мало завершённых потоков с проставленными итогами, чтобы строить прогноз.</span>')+'</section>';
+  // тренеры
+  var tr = {}; ms.forEach(function(m){ var k = m.g.trainer||'Без тренера'; tr[k] = tr[k] || []; tr[k].push(m); });
+  var trp = {}; prev.forEach(function(m){ var k = m.g.trainer||'Без тренера'; trp[k] = trp[k] || []; trp[k].push(m); });
+  var trows = Object.keys(tr).map(function(k){ var a = pAgg(tr[k]), b = trp[k] ? pAgg(trp[k]) : null; return {k:k, a:a, b:b}; }).sort(function(x,y){ return (y.a.passPct||0)-(x.a.passPct||0); });
+  var tbl = '<section class="card" style="padding:0;overflow-x:auto;margin-top:16px"><h2 style="font-size:17px;padding:18px 20px 0">Тренеры</h2><table style="width:100%;border-collapse:collapse;min-width:680px"><thead><tr><th scope="col" style="text-align:left;padding:10px 20px">Тренер</th><th scope="col" style="text-align:left;padding:10px">Потоков</th><th scope="col" style="text-align:left;padding:10px">Стажёров</th><th scope="col" style="text-align:left;padding:10px">Прошли</th><th scope="col" style="text-align:left;padding:10px">Ср. балл финала</th><th scope="col" style="text-align:left;padding:10px">Отказы</th><th scope="col" style="text-align:left;padding:10px 20px">Динамика</th></tr></thead><tbody>'+
+    (trows.length ? trows.map(function(x){ var d = (x.b && x.b.passPct!=null && x.a.passPct!=null) ? x.a.passPct - x.b.passPct : null;
+      return '<tr style="border-top:1px solid var(--line2)"><td style="padding:12px 20px"><b>'+esc(x.k)+'</b></td><td style="padding:12px" class="num">'+x.a.streams+'</td><td style="padding:12px" class="num">'+x.a.created+'</td><td style="padding:12px" class="num"><b>'+(x.a.passPct==null?'—':x.a.passPct+'%')+'</b></td><td style="padding:12px" class="num">'+(x.a.avgFin==null?'—':x.a.avgFin+'%')+'</td><td style="padding:12px" class="num">'+x.a.refused+'</td><td style="padding:12px 20px" class="'+(d==null?'muted':(d>=3?'delta-up':(d<=-3?'delta-dn':'muted')))+'">'+(d==null?'—':(d>=3?'↑ растёт':(d<=-3?'↓ проседает':'→ стабильно')))+'</td></tr>'; }).join('') : '<tr><td colspan="7" style="padding:14px 20px" class="muted">За период потоков нет</td></tr>')+'</tbody></table></section>';
+  return head('Пульт руководителя', esc(per==='all'?'За всё время':'Последние '+per+' дней')+' · тестовые группы не учитываются', right)+kpi+'<div class="row" style="gap:16px;align-items:stretch;flex-wrap:wrap">'+funnel+fc+'</div>'+tbl;
+}
+function pultExcel(){
+  var per = S.ui.pPer || 30, now = Date.now(), from = per==='all' ? 0 : now-per*DAYMS;
+  var gl = pultGroups(from, now+DAYMS), ms = gl.map(gMetrics), A1 = pAgg(ms);
+  var mx = Math.min(10, Math.max.apply(null, [0].concat(ms.map(function(m){ return m.days.length; }))));
+  var kpiStyle = function(v){ if(typeof v!=='number') return null; return {fill:{patternType:'solid', fgColor:{rgb: v>=80?'D9F2E3':(v>=60?'FFF1CC':'FDE0E0')}}}; };
+  var pctCol = function(cols){ return function(r, c, v){ return cols.indexOf(c)>=0 ? kpiStyle(v) : null; }; };
+  var sum = [['Показатель','Значение'],['Период', per==='all'?'Всё время':'Последние '+per+' дней'],['Направление', S.ui.pDir && S.ui.pDir!=='all' ? dirName(S.ui.pDir) : 'Все'],['Потоков', A1.streams],['Зарегистрировались', A1.created],['Прошли стажировку, %', A1.passPct],['Средний балл финала, %', A1.avgFin],['Отказы', A1.refused]];
+  var str = [['Поток','Направление','Тренер','Старт','Создано'].concat(Array.apply(null, Array(mx)).map(function(_,k){ return 'День '+(k+1); })).concat(['Прошли','Отказ','Прошли, %','Ср. финал, %'])];
+  ms.forEach(function(m){ var avg = m.fin.length ? Math.round(m.fin.reduce(function(a,b){ return a+b; },0)/m.fin.length) : ''; str.push([m.g.name, dirName(m.g.dir||'soft'), m.g.trainer||'', fmtDay0(m.g.start), m.created].concat(Array.apply(null, Array(mx)).map(function(_,k){ return k<m.days.length ? m.days[k] : ''; })).concat([m.passed, m.refused, m.created && m.done ? Math.round(m.passed/m.created*100) : '', avg])); });
+  var tr = {}; ms.forEach(function(m){ var k = m.g.trainer||'Без тренера'; (tr[k] = tr[k]||[]).push(m); });
+  var trs = [['Тренер','Потоков','Стажёров','Прошли, %','Ср. финал, %','Отказы']]; Object.keys(tr).forEach(function(k){ var a = pAgg(tr[k]); trs.push([k, a.streams, a.created, a.passPct==null?'':a.passPct, a.avgFin==null?'':a.avgFin, a.refused]); });
+  var reg = [['ФИО','Поток','Направление','Тренер','Гео'].concat(Array.apply(null, Array(mx)).map(function(_,k){ return 'День '+(k+1); })).concat(['Ср. балл тестов, %','Финал, %','Итог'])];
+  gl.forEach(function(g){ var md = mrDates(g.id); internsOf(g.id).forEach(function(i){ var pr = prof(i.id); reg.push([i.name, g.name, dirName(g.dir||'soft'), g.trainer||'', pr.geo||''].concat(Array.apply(null, Array(mx)).map(function(_,k){ var d = md[k]; if(!d) return ''; return rollHas(d.roll, i.id) ? 'Да' : 'Нет'; })).concat([avgBest(i.id)==null?'':avgBest(i.id), finPct(i.id)==null?'':finPct(i.id), i.suspended?'приостановлен':(pr.outcome?OC[pr.outcome]:'')])); }); });
+  var nStr = str[0].length;
+  xlSave('Пульт руководителя '+fileSafe(fmtDay0(new Date().toISOString().slice(0,10)))+'.xlsx', [
+    {name:'Сводка', rows:sum, filter:1, std:true, cellStyle:function(r,c,v){ return (c===1 && (r===5||r===6)) ? kpiStyle(v) : null; }},
+    {name:'Потоки', rows:str, filter:1, std:true, cellStyle:pctCol([nStr-2, nStr-1])},
+    {name:'Тренеры', rows:trs, filter:1, std:true, cellStyle:pctCol([3,4])},
+    {name:'Стажёры', rows:reg, filter:1, std:true, cellStyle:function(r,c,v){ var n = reg[0].length; if(c===n-3 || c===n-2) return kpiStyle(v); if(v==='Нет') return {fill:{patternType:'solid', fgColor:{rgb:'FDE0E0'}}}; return null; }}
+  ]);
+}
 
 /* ---------- светофор риска отвала ---------- */
 var DAYMS = 86400000;
@@ -793,7 +884,7 @@ function tIntern(){
   return '<button class="linkbtn" type="button" data-act="nav" data-v="'+esc(back)+'" style="margin-bottom:10px">← Назад</button>'+
     '<section class="card" style="margin-bottom:16px"><div class="row between" style="align-items:center"><div class="row" style="gap:14px;flex-wrap:nowrap"><div class="ava" style="width:56px;height:56px;font-size:18px">'+esc(initials(it.name))+'</div><div class="stack" style="gap:2px"><h1 style="margin:0;font-family:var(--f-display);font-size:24px">'+esc(it.name)+'</h1><span class="muted">'+esc(g.name||'')+(g.trainer?' · тренер '+esc(g.trainer):'')+(pr.geo?' · '+esc(pr.geo):'')+(pr.tg?' · '+esc(pr.tg):'')+'</span></div></div>'+
       '<div class="stack" style="gap:4px;align-items:flex-end">'+rkChip(r.lvl)+(r.reasons.length?'<span class="small muted" style="text-align:right;max-width:420px">'+esc(r.reasons.join(' · '))+'</span>':'')+(pr.outcome?'<span class="chip">'+esc(OC[pr.outcome]||pr.outcome)+'</span>':'')+'</div></div></section>'+
-    '<div class="kpis" style="margin-bottom:16px"><div class="card"><span class="small muted">Явка</span><b>'+(r.held?(r.held-(r.missed||0))+' / '+r.held:'—')+'</b></div><div class="card"><span class="small muted">Средний балл</span><b>'+(r.avg!=null?r.avg+'%':'—')+'</b></div><div class="card"><span class="small muted">Анкеты дня</span><b>'+svDone+' из '+svs.length+'</b></div><div class="card"><span class="small muted">Симулятор Inari</span><b>'+(sr.length?(sr[0].pct!=null?sr[0].pct+'%':(sr[0].pass?'сдан':'не сдан')):'—')+'</b></div>'+(finPct(iid)!=null?'<div class="card"><span class="small muted">Финальное тестирование</span><b>'+finPct(iid)+'%</b></div>':'')+'</div>'+
+    '<div class="kpi4" style="margin-bottom:16px"><div class="card"><span class="small muted">Явка</span><b>'+(r.held?(r.held-(r.missed||0))+' / '+r.held:'—')+'</b></div><div class="card"><span class="small muted">Средний балл</span><b>'+(r.avg!=null?r.avg+'%':'—')+'</b></div><div class="card"><span class="small muted">Анкеты дня</span><b>'+svDone+' из '+svs.length+'</b></div><div class="card"><span class="small muted">Симулятор Inari</span><b>'+(sr.length?(sr[0].pct!=null?sr[0].pct+'%':(sr[0].pass?'сдан':'не сдан')):'—')+'</b></div>'+(finPct(iid)!=null?'<div class="card"><span class="small muted">Финальное тестирование</span><b>'+finPct(iid)+'%</b></div>':'')+'</div>'+
     '<div class="cols" style="align-items:flex-start"><div class="stack" style="flex:999 1 520px;min-width:0;gap:16px">'+
       '<section class="card"><h2 style="font-size:17px">Посещаемость по дням</h2><div class="dgrid">'+att+'</div></section>'+
       '<section class="card" style="padding:0;overflow-x:auto"><h2 style="font-size:17px;padding:18px 20px 0">Тесты</h2><table style="width:100%;border-collapse:collapse;min-width:480px"><thead><tr><th scope="col" style="text-align:left;padding:10px 20px">Тест</th><th scope="col" style="text-align:left;padding:10px">Попытки</th><th scope="col" style="text-align:left;padding:10px">Лучший</th><th scope="col" style="text-align:left;padding:10px 20px">Ошибся в</th></tr></thead><tbody>'+
@@ -1023,10 +1114,10 @@ function viewShell(){
     var anyDirty = Object.keys(S.dirty).some(function(k){ return S.dirty[k]; });
     side = '<nav class="side" aria-label="Разделы тренера">'+
       '<div class="brand"><div class="mark">'+esc(b.name[0]||'С')+'</div><div><b>'+esc(b.name)+'</b><small>Кабинет тренера</small></div></div>'+dirPicker()+
-      '<div class="nav">'+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-risk','Светофор', redCount(curG)?'<span class="live-tag">'+redCount(curG)+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-crit','Критические ошибки')+navItem('t-morning','Отчёты и доступы')+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
+      '<div class="nav">'+navItem('t-pult','Пульт руководителя')+navItem('t-access','Стажёры и доступы', pendingCount()?'<span class="live-tag">'+pendingCount()+'</span>':null)+navItem('t-risk','Светофор', redCount(curG)?'<span class="live-tag">'+redCount(curG)+'</span>':null)+navItem('t-pres','Ведение презентации', anyLive?'<span class="live-tag">идёт</span>':null)+navItem('t-roll','Перекличка', Object.keys(S.live).some(function(k){ return inDir(k) && S.live[k] && S.live[k].roll && S.live[k].roll.active; })?'<span class="live-tag">идёт</span>':null)+navItem('t-sim','Симулятор', Object.keys(S.interns).some(function(k){ return inDir(S.interns[k].groupId) && simTestActive(k); })?'<span class="live-tag">тест</span>':null)+navItem('t-crit','Критические ошибки')+navItem('t-morning','Отчёты и доступы')+navItem('t-results','Результаты')+navItem('t-settings','Настройка', anyDirty?'<span class="live-tag">не сохранено</span>':null)+'</div>'+
       themeSw()+'<div class="me"><div class="ava amber">Т</div><div class="who"><b>Тренер</b><small>Управление стажировкой</small></div><button type="button" data-act="logout">Выйти</button></div>'+
     '</nav>';
-    var bodyFn = ({'t-risk':tRisk, 't-intern':tIntern, 't-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-crit':tCrit, 't-morning':tMorning, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess);
+    var bodyFn = ({'t-pult':tPult, 't-risk':tRisk, 't-intern':tIntern, 't-access':tAccess, 't-pres':tPres, 't-roll':tRoll, 't-sim':tSim, 't-crit':tCrit, 't-morning':tMorning, 't-results':tResults, 't-settings':tSettings}[S.view] || tAccess);
     body = (/^t-(access|results|roll|morning|risk)$/.test(S.view||'t-access') ? ocReminder() : '')+(S.view==='t-pres' ? brkPickCard() : '')+bodyFn();
   }
   if(S.role==='intern' && S.view==='tests' && S.ui.rev) body = revView();
@@ -2077,7 +2168,8 @@ function xlSave(filename, sheets){
       var w = sh.cols || []; if(!w.length && sh.rows.length){ var nc = Math.max.apply(null, sh.rows.map(function(r){ return r.length; })); for(var c=0;c<nc;c++){ var mx = 8; sh.rows.forEach(function(r){ var v = r[c]; if(v!=null) mx = Math.max(mx, Math.min(60, String(v).length+2)); }); w.push(mx); } }
       ws['!cols'] = w.map(function(x){ return {wch:x}; });
       if(sh.filter){ var hr = sh.filter-1, ncol = Math.max.apply(null, sh.rows.map(function(r){ return r.length; })); var thin = {style:'thin', color:{rgb:'D9D2E9'}};
-        for(var cc=0; cc<ncol; cc++){ var ad = X.utils.encode_cell({r:hr, c:cc}); if(ws[ad]) ws[ad].s = {fill:{patternType:'solid', fgColor:{rgb:sh.headFill||'5B3F8F'}}, font:{bold:true, color:{rgb:'FFFFFF'}}, alignment:{wrapText:true, vertical:'center'}, border:{bottom:thin, right:thin}}; }
+        for(var cc=0; cc<ncol; cc++){ var ad = X.utils.encode_cell({r:hr, c:cc}); if(ws[ad]) ws[ad].s = sh.std ? {fill:{patternType:'solid', fgColor:{rgb:'DCD0F5'}}, font:{name:'Arial', sz:10, bold:true, color:{rgb:'1D1433'}}, alignment:{wrapText:true, vertical:'center', horizontal:'center'}, border:{top:thin, bottom:thin, left:thin, right:thin}} : {fill:{patternType:'solid', fgColor:{rgb:sh.headFill||'5B3F8F'}}, font:{bold:true, color:{rgb:'FFFFFF'}}, alignment:{wrapText:true, vertical:'center'}, border:{bottom:thin, right:thin}}; }
+        if(sh.std){ var thinG = {style:'thin', color:{rgb:'BFBFBF'}}; for(var rs=hr+1; rs<sh.rows.length; rs++){ for(var cs=0; cs<ncol; cs++){ var as = X.utils.encode_cell({r:rs, c:cs}); if(!ws[as]) ws[as] = {t:'s', v:''}; ws[as].s = {font:{name:'Arial', sz:10}, alignment:{horizontal: cs===0?'left':'center', vertical:'center', wrapText:true}, border:{top:thinG, bottom:thinG, left:thinG, right:thinG}}; } } }
         if(sh.wrap){ for(var rr2=hr+1; rr2<sh.rows.length; rr2++){ for(var c2=0; c2<ncol; c2++){ var a2 = X.utils.encode_cell({r:rr2, c:c2}); if(ws[a2]) ws[a2].s = {alignment:{wrapText:true, vertical:'center'}, border:{bottom:thin}}; } } }
         if(sh.cellStyle){ for(var r3=hr+1; r3<sh.rows.length; r3++){ for(var c3=0; c3<ncol; c3++){ var a3 = X.utils.encode_cell({r:r3, c:c3}); var st3 = sh.cellStyle(r3-hr, c3, sh.rows[r3][c3]); if(st3){ if(!ws[a3]) ws[a3] = {t:'s', v:''}; ws[a3].s = Object.assign({}, ws[a3].s||{}, st3, {border:{bottom:thin, right:thin}}); } } } }
         ws['!rows'] = []; ws['!rows'][hr] = {hpt: sh.wrap ? 72 : 30}; }
@@ -2857,6 +2949,8 @@ function curDayDraft(){ var d = draft('program'); var di = Math.min(S.ui.sd||0, 
 function mv(arr, i, dir){ var j = i+dir; if(j<0||j>=arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
 
 var A = {
+  'p-per': function(el){ S.ui.pPer = el.dataset.v==='all' ? 'all' : Number(el.dataset.v); render(); },
+  'p-xl': function(){ pultExcel(); },
   'card-open': function(el){ S.ui.cardBack = S.view && S.view!=='t-intern' ? S.view : 't-risk'; S.ui.cardIid = el.dataset.id; delete S.form['card-note']; S.view = 't-intern'; render(); window.scrollTo(0,0); },
   'card-note-save': function(el){ var iid = el.dataset.id; var v = String(f('card-note', prof(iid).tnote||'')); saveProfile(iid, {tnote:v, tnoteAt:Date.now()}).then(function(){ toast('Заметка сохранена'); }); },
   'rev-start': function(){ var st = revStats(); if(!st.due.length) return; S.view='tests'; S.ui.test=null; S.ui.rev = {list:st.due.slice(0,10), idx:0, pick:null, checked:false, res:{}}; render(); window.scrollTo(0,0); },
@@ -3188,6 +3282,7 @@ function replaceSlideImage(i, file){
 }
 
 var CHANGE = {
+  'p-dir': function(el){ S.ui.pDir = el.value; render(); },
   'g-trainer': function(el){ var gid = curGid(); S.db.doc('groups/'+gid).update({trainer:el.value}).then(function(){ toast(el.value ? 'Тренер группы: '+el.value : 'Тренер не выбран'); }, writeErr); },
   'oc-kind': function(el){ S.form[el.id] = el.value; render(); },
   'dir-pick': function(el){ if(Object.keys(S.dirty).some(function(k){ return S.dirty[k]; })){ el.value = activeDir(); toast('Сначала сохраните или отмените изменения в настройке'); return; } S.ui.dir = el.value; dirRemember(el.value); S.draft = {}; S.dirty = {}; S.ui.gid = null; S.ui.rsel = null; applyDir(); render(); toast('Направление: '+dirName(el.value)); },
@@ -3237,7 +3332,7 @@ document.addEventListener('input', function(e){
   if(el.dataset && el.dataset.d && el.tagName!=='SELECT' && el.type!=='checkbox'){ setPath(draft(el.dataset.d), el.dataset.p, parseVal(el)); markDirty(el.dataset.d); }
   if(el.dataset && el.dataset.note){ S.form['note-'+el.dataset.note] = el.value; }
   if(el.id==='r-find'){ var v = String(el.value||'').trim().toLowerCase(); var hit = v && internsOf(curGid()).filter(function(i){ return String(i.name).toLowerCase()===v; })[0]; if(hit){ S.ui.rsel = hit.id; S.form['fb-text']=''; S.form['r-find']=''; render(); } }
-  if(el.dataset && (el.dataset.live==='kb' || el.dataset.live==='ni' || el.dataset.live==='crit')) render();
+  if(el.dataset && (el.dataset.live==='kb' || el.dataset.live==='ni' || el.dataset.live==='crit' || el.dataset.live==='pult')) render();
 });
 function onDecksScreen(){ return S.role==='trainer' && S.view==='t-settings' && S.ui.st==='decks'; }
 document.addEventListener('paste', function(e){
