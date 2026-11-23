@@ -489,6 +489,26 @@ tr.rk-r td{background:var(--danger-soft)}
 .badge-a{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:13px;font-weight:600;background:var(--accent-soft);color:var(--accent-ink)}
 .badge-a.off{background:transparent;color:var(--faint);border:1px dashed var(--line);font-weight:500}
 @media (max-width:640px){.pod{grid-template-columns:1fr}}
+
+/* ---------- итоги стажировки и карта ---------- */
+.wr{position:fixed;inset:0;z-index:85;background:rgba(10,4,26,.86);display:flex;align-items:center;justify-content:center;padding:16px}
+.wr-card{position:relative;width:min(400px,100%);height:min(760px,calc(100vh - 32px));border-radius:26px;background:#2B0F66;color:#fff;padding:22px 24px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;overflow:hidden}
+.wr-bars{display:grid;gap:4px}.wr-bars span{height:4px;border-radius:2px;background:#5B3BB0}.wr-bars span.on{background:#fff}
+.wr-k{font-size:13px;font-weight:700;letter-spacing:.08em;color:#C9BDEB}
+.wr-big{font-family:var(--f-display);line-height:1;letter-spacing:-.02em}
+.wr-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.wr-g div{padding:12px 14px;border-radius:14px;background:#3A1A85;display:flex;flex-direction:column}
+.wr-g b{font-family:var(--f-display);font-size:22px}
+.wr .btn{background:transparent;color:#fff;border-color:#8F75DB}.wr .btn.primary{background:#fff;color:#2B0F66;border-color:#fff}
+.wr-x{position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.1);color:#fff;font-size:20px;cursor:pointer}
+.wr-ban{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 20px;border-radius:18px;background:var(--side);color:#fff;margin-bottom:16px}
+.qmap{display:flex;flex-direction:column;gap:10px;max-width:720px;margin:0 auto}
+.qn{display:flex;align-items:center;gap:14px;background:none;border:0;padding:0;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.qn .dot{flex:none;width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:600;font-size:20px;background:var(--line2);color:var(--faint)}
+.qn.done .dot{background:#2E9E5B;color:#fff}.qn.cur .dot{background:var(--accent);color:#fff;box-shadow:0 0 0 7px var(--accent-soft)}
+.qn:nth-child(4n+2){align-self:center}.qn:nth-child(4n+3){align-self:flex-end;flex-direction:row-reverse;text-align:right}.qn:nth-child(4n){align-self:center}
+.qcur{border:2px solid var(--accent)}
+.qend{align-self:center;display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:16px;border:1px dashed var(--accent);color:var(--accent-ink);background:var(--surface)}
 </style>
 
 <style>body{margin:0}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
@@ -726,7 +746,7 @@ window.addEventListener('online', function(){ flushProgress(); });
 
 /* ---------- версия сайта: вкладка со старой версией сама перезагружается ----------
    При каждой выкладке BUILD и файл version.txt меняются вместе. */
-var BUILD = '2026-11-24d';
+var BUILD = '2026-11-24e';
 function checkBuild(){
   if(!window.fetch || S.stale) return;
   fetch('version.txt?t='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
@@ -753,6 +773,89 @@ var rq = false;
 function schedule(){ if(rq) return; rq = true; requestAnimationFrame(function(){ rq=false; render(); }); }
 
 
+
+
+/* ---------- итоги стажировки (стажёр) ---------- */
+function wrReady(){ var pr = prof(S.iid); return pr.outcome==='passed' || finPct(S.iid)!=null; }
+function wrData(){ var iid = S.iid, it = me()||{}, g = S.groups[it.groupId]||{}, p = P(iid), t = p.tests||{};
+  var recs = Object.keys(t).map(function(k){ var r = t[k]; var ti = allItems().filter(function(x){ return x.test===k; })[0]; return r ? {k:k, r:r, title:(ti&&ti.title)||(test(k)||{}).title||'тест', first:(r.hist&&r.hist[0]&&r.hist[0].pct!=null)?r.hist[0].pct:r.best} : null; }).filter(Boolean).sort(function(a,b){ return (a.r.at||0)-(b.r.at||0); });
+  var start = recs.length ? recs[0].first : null, end = finPct(iid)!=null ? finPct(iid) : (recs.length ? recs[recs.length-1].r.best : null);
+  var hard = recs.filter(function(x){ return x.r.passed && (x.r.best||0) > x.first; }).sort(function(a,b){ return a.first-b.first; })[0];
+  var slides = 0; allItems().forEach(function(x){ if(x.deck && isDone(x, iid)) slides += Math.max(1, (Number(x.slideTo)||Number(x.slide)||1)-(Number(x.slide)||1)+1); });
+  var rk = riskOf(iid); var rv = revStats(iid);
+  return {name:it.name, dir:dirName(gDir(it.groupId)), start:g.start, n:days().length, s0:start, s1:end, hard:hard, slides:slides, passed:recs.filter(function(x){ return x.r.passed; }).length, tests:recs.length,
+    held:rk.held||0, onTime:(rk.held||0)-(rk.missed||0), fixed:rv.fixed, ach:achList(iid).filter(function(x){ return x.ok; }).map(function(x){ return x.t; })}; }
+function wrBanner(){ if(S.role!=='intern' || !wrReady()) return ''; return '<section class="wr-ban" aria-label="Итоги стажировки"><div class="stack" style="gap:2px"><b style="font-size:17px">Твои итоги стажировки готовы</b><span style="color:var(--side-muted)">Стажировка в цифрах — посмотри, каким был твой путь</span></div><button class="btn amber" type="button" data-act="wr-open">Смотреть</button></section>'; }
+function wrView(){
+  var k = S.ui.wr; if(k==null) return ''; var d = wrData(); var N = 5; k = Math.max(0, Math.min(N-1, k));
+  var bars = '<div class="wr-bars" style="grid-template-columns:repeat('+N+',minmax(0,1fr))" aria-label="Карточка '+(k+1)+' из '+N+'">'+Array.apply(null, Array(N)).map(function(_, i){ return '<span class="'+(i<=k?'on':'')+'"></span>'; }).join('')+'</div>';
+  var top = bars+'<span class="wr-k">ТВОЯ СТАЖИРОВКА · '+esc(String(d.dir).toUpperCase())+(d.start?' · С '+esc(fmtDay0(d.start)):'')+'</span>';
+  var body;
+  if(k===0) body = '<div class="stack" style="gap:10px;margin-top:20px"><span style="font-size:22px;color:#E4DCFA">'+esc(firstName(d.name))+', это было</span><b class="wr-big" style="font-size:96px;color:#F2C14E">'+d.n+'</b><span style="font-size:22px;color:#E4DCFA">'+plural(d.n,'день','дня','дней')+' стажировки</span><span style="font-size:17px;color:#C9BDEB;margin-top:10px">Листай дальше — покажем, как ты вырос.</span></div>';
+  else if(k===1) body = (d.s0!=null && d.s1!=null) ? '<div class="stack" style="gap:6px;margin-top:20px"><span style="font-size:20px;color:#E4DCFA">Ты начал с</span><b class="wr-big" style="font-size:64px;color:#C7B0FF">'+d.s0+'%</b><span style="font-size:20px;color:#E4DCFA">а закончил на</span><b class="wr-big" style="font-size:92px;color:#F2C14E">'+d.s1+'%</b><span style="font-size:17px;color:#E4DCFA">'+(d.s1>d.s0?'Это +'+(d.s1-d.s0)+' '+plural(d.s1-d.s0,'пункт','пункта','пунктов')+' роста.':'Ты держал высокий уровень всю стажировку.')+'</span></div>' : '<div class="stack" style="margin-top:20px"><b class="wr-big" style="font-size:48px">Ты прошёл весь путь</b></div>';
+  else if(k===2) body = '<div class="wr-g" style="margin-top:12px"><div><b>'+d.slides+'</b><span class="small" style="color:#C9BDEB">слайдов изучено</span></div><div><b>'+d.passed+' / '+d.tests+'</b><span class="small" style="color:#C9BDEB">тестов сдано</span></div><div><b>'+d.onTime+' / '+d.held+'</b><span class="small" style="color:#C9BDEB">перекличек вовремя</span></div><div><b>'+d.fixed+'</b><span class="small" style="color:#C9BDEB">ошибок исправлено</span></div></div>';
+  else if(k===3) body = d.hard ? '<div class="stack" style="gap:10px;margin-top:20px"><span style="font-size:20px;color:#E4DCFA">Самая трудная тема</span><b class="wr-big" style="font-size:40px;line-height:1.15">«'+esc(d.hard.title)+'»</b><span style="font-size:20px;color:#E4DCFA">и ты её взял:</span><b class="wr-big" style="font-size:54px;color:#F2C14E">'+d.hard.first+'% → '+d.hard.r.best+'%</b></div>' : '<div class="stack" style="margin-top:20px"><b class="wr-big" style="font-size:40px">Ни одна тема не устояла</b></div>';
+  else body = '<div class="stack" style="gap:12px;margin-top:12px"><b class="wr-big" style="font-size:38px;line-height:1.15">Поздравляем!</b><span style="font-size:17px;color:#E4DCFA">Достижения:</span><div class="badges">'+(d.ach.length?d.ach.map(function(a){ return '<span class="badge-a" style="background:#3A1A85;color:#fff">'+esc(a)+'</span>'; }).join(''):'<span style="color:#C9BDEB">впереди — на линии</span>')+'</div></div>';
+  var nav = '<div class="row" style="gap:10px;margin-top:auto;flex-wrap:nowrap">'+(k>0?'<button class="btn" type="button" data-act="wr-go" data-k="'+(k-1)+'" style="flex:1">Назад</button>':'<button class="btn" type="button" data-act="wr-img" style="flex:1">Сохранить картинку</button>')+
+    (k<N-1?'<button class="btn primary" type="button" data-act="wr-go" data-k="'+(k+1)+'" style="flex:1">Дальше</button>':(prof(S.iid).outcome==='passed'?'<button class="btn primary" type="button" data-act="cert" style="flex:1">Сертификат</button>':'<button class="btn primary" type="button" data-act="wr-close" style="flex:1">Готово</button>'))+'</div>';
+  return '<div class="wr" role="dialog" aria-modal="true" aria-label="Итоги стажировки"><div class="wr-card" id="wr-card"><button class="wr-x" type="button" data-act="wr-close" aria-label="Закрыть">×</button>'+top+body+(k===N-1?'<button class="btn" type="button" data-act="wr-img">Сохранить картинку</button>':'')+nav+'</div></div>';
+}
+function loadJS(src, glob){ if(window[glob]) return Promise.resolve(window[glob]); return new Promise(function(res, rej){ var sc = document.createElement('script'); sc.src = src; sc.onload = function(){ window[glob] ? res(window[glob]) : rej(); }; sc.onerror = rej; document.head.appendChild(sc); }); }
+function wrImage(){ var el = document.getElementById('wr-card'); if(!el) return; toast('Готовлю картинку…');
+  loadJS('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js', 'html2canvas').then(function(h2c){ return h2c(el, {backgroundColor:'#2B0F66', scale:2, ignoreElements:function(n){ return n.classList && (n.classList.contains('wr-x') || n.tagName==='BUTTON'); }}); }).then(function(cv){
+    var a = document.createElement('a'); a.href = cv.toDataURL('image/png'); a.download = 'Итоги стажировки.png'; document.body.appendChild(a); a.click(); a.remove(); }, function(){ toast('Не удалось сохранить картинку — сделайте скриншот экрана'); }); }
+
+/* ---------- итоги потока → презентация (руководитель) ---------- */
+function streamDeck(gid){
+  if(!S.groups[gid]) return; var g = Object.assign({id:gid}, S.groups[gid]); var m = gMetrics(g), rows = honorRows(gid);
+  var prev = groupList(true, true).filter(function(x){ return x.id!==gid && (x.dir||'soft')===(g.dir||'soft') && !gIsTest(x) && gStartTs(x) < gStartTs(g) && gDone(x); }).sort(function(a,b){ return gStartTs(b)-gStartTs(a); })[0];
+  var pm = prev ? gMetrics(prev) : null;
+  var wrong = {}; internsOf(gid).forEach(function(i){ var t = P(i.id).tests||{}; Object.keys(t).forEach(function(k){ var tt = test(k), ans = t[k] && t[k].ans; if(!tt || !ans) return; (tt.questions||[]).forEach(function(q, qi){ if(ans[qi]!=null && ans[qi]!==q.correct){ var key = k+'~'+qi; wrong[key] = wrong[key] || {q:q.q, n:0}; wrong[key].n++; } }); }); });
+  var topW = Object.keys(wrong).map(function(k){ return wrong[k]; }).sort(function(a,b){ return b.n-a.n; }).slice(0,5);
+  var avgF = m.fin.length ? Math.round(m.fin.reduce(function(a,b){ return a+b; },0)/m.fin.length) : null;
+  toast('Собираю презентацию…');
+  loadJS('https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js', 'PptxGenJS').then(function(PG){
+    var pr = new PG(); pr.layout = 'LAYOUT_WIDE'; var V = '2B0F66', A = '6B2FE0', F = 'Arial';
+    var title = function(sl, t, sub){ sl.addText(t, {x:0.6, y:0.4, w:12, h:0.8, fontFace:F, fontSize:30, bold:true, color:V}); if(sub) sl.addText(sub, {x:0.6, y:1.1, w:12, h:0.5, fontFace:F, fontSize:14, color:'5E5575'}); };
+    var s1 = pr.addSlide(); s1.background = {color:V};
+    s1.addText('Итоги потока', {x:0.8, y:2.0, w:11.5, h:0.6, fontFace:F, fontSize:20, color:'C9BDEB'});
+    s1.addText(g.name||'', {x:0.8, y:2.6, w:11.5, h:1.2, fontFace:F, fontSize:44, bold:true, color:'FFFFFF'});
+    s1.addText(dirName(g.dir||'soft')+(g.trainer?' · тренер '+g.trainer:'')+(g.start?' · старт '+fmtDay0(g.start):''), {x:0.8, y:3.9, w:11.5, h:0.5, fontFace:F, fontSize:18, color:'E4DCFA'});
+    var s2 = pr.addSlide(); title(s2, 'Ключевые цифры', pm ? 'В сравнении с потоком «'+prev.name+'»' : '');
+    var kp = [['Зарегистрировались', m.created, pm?pm.created:null, ''], ['Прошли стажировку', m.passed, pm?pm.passed:null, ''], ['Отказы', m.refused, pm?pm.refused:null, ''], ['Средний балл финала', avgF==null?'—':avgF+'%', null, '']];
+    kp.forEach(function(x, i){ var xx = 0.6 + i*3.1; s2.addShape(pr.ShapeType.roundRect, {x:xx, y:2.0, w:2.9, h:2.4, fill:{color:'F2ECFF'}, line:{color:'E4DDF3'}, rectRadius:0.15});
+      s2.addText(String(x[1]), {x:xx, y:2.3, w:2.9, h:1.0, align:'center', fontFace:F, fontSize:40, bold:true, color:V});
+      s2.addText(x[0]+(x[2]!=null?'\n(прошлый поток: '+x[2]+')':''), {x:xx+0.1, y:3.3, w:2.7, h:0.9, align:'center', fontFace:F, fontSize:13, color:'5E5575'}); });
+    var s3 = pr.addSlide(); title(s3, 'Удержание по дням', 'Явка на утренней перекличке');
+    var labels = ['Регистрация'].concat(m.days.map(function(_, k){ return 'День '+(k+1); })).concat(['Прошли']), vals = [m.created].concat(m.days).concat([m.passed]);
+    s3.addChart(pr.ChartType.bar, [{name:'Стажёров', labels:labels, values:vals}], {x:0.6, y:1.7, w:12, h:5.2, barDir:'col', chartColors:[A], showValue:true, dataLabelFontFace:F, catAxisLabelFontFace:F, valAxisLabelFontFace:F, valGridLine:{style:'none'}});
+    var s4 = pr.addSlide(); title(s4, 'Доска почёта', 'Учтены только сдавшие финальное тестирование: '+rows.length);
+    if(rows.length){ [[rows[1], '2 место', 'D7D3E3', 0.9, 2.6], [rows[0], '1 место', 'F2C14E', 4.9, 2.0], [rows.length>2?{i:{name:'Остальные — '+(rows.length-2)+' чел.'}, tot:'', fin:''}:null, '3 место', 'E8C3A0', 8.9, 3.0]].forEach(function(x){ if(!x[0]) return;
+      s4.addShape(pr.ShapeType.roundRect, {x:x[3], y:x[4], w:3.6, h:6.6-x[4], fill:{color:x[2]}, rectRadius:0.15});
+      s4.addText(x[1], {x:x[3], y:x[4]+0.2, w:3.6, h:0.5, align:'center', fontFace:F, fontSize:16, bold:true, color:'1D1433'});
+      s4.addText(x[0].i.name+(x[0].tot!==''?'\nитог '+x[0].tot+' · финал '+x[0].fin+'%':''), {x:x[3]+0.15, y:x[4]+0.8, w:3.3, h:1.4, align:'center', fontFace:F, fontSize:15, color:'1D1433'}); }); }
+    else s4.addText('Финальное тестирование ещё никто не сдал', {x:0.6, y:2.5, w:12, h:0.8, fontFace:F, fontSize:20, color:'5E5575'});
+    var s5 = pr.addSlide(); title(s5, 'Где ошибались чаще всего', 'По ответам стажёров в тестах');
+    if(topW.length) s5.addTable([[{text:'Вопрос', options:{bold:true, fill:{color:'DCD0F5'}}}, {text:'Ошибок', options:{bold:true, fill:{color:'DCD0F5'}, align:'center'}}]].concat(topW.map(function(w){ return [String(w.q).slice(0,140), {text:String(w.n), options:{align:'center'}}]; })), {x:0.6, y:1.8, w:12, colW:[10.6, 1.4], fontFace:F, fontSize:14, border:{type:'solid', color:'D9D2E9', pt:1}});
+    else s5.addText('Данных об ошибках пока нет', {x:0.6, y:2.5, w:12, h:0.8, fontFace:F, fontSize:20, color:'5E5575'});
+    return pr.writeFile({fileName:'Итоги потока — '+fileSafe(g.name)+'.pptx'});
+  }).then(function(){ toast('Презентация скачана'); }, function(){ toast('Не удалось собрать презентацию — проверьте интернет'); });
+}
+
+/* ---------- карта-квест (план стажёра) ---------- */
+function vQuest(){
+  var ds = days(), cur = currentDayIdx(); var done = ds.filter(function(x){ return dayState(x)==='done'; }).length;
+  var sel = S.ui.qDay != null ? S.ui.qDay : cur;
+  var nodes = ds.map(function(d, i){ var st = dayState(d); var cls = st==='done'?'done':(st==='cur'?'cur':'');
+    var items = d.items||[], dn = items.filter(function(x){ return isDone(x); }).length;
+    var node = '<button type="button" class="qn '+cls+'" data-act="q-day" data-i="'+i+'" aria-expanded="'+(i===sel)+'"><span class="dot">'+(st==='done'?'✓':(i+1))+'</span><span class="stack" style="gap:0"><b>'+esc(d.title||('День '+(i+1)))+'</b><span class="small muted">'+(st==='locked'?'откроет тренер':(st==='done'?'пройден':dn+' из '+items.length+' шагов'))+'</span></span></button>';
+    if(i!==sel || st==='locked') return node;
+    return node+'<section class="card qcur"><div class="stack" style="gap:8px">'+items.map(function(it){ var o = isOpen(it), dd = isDone(it); var mand = (it.type==='survey'||it.type==='test');
+      return '<div class="row between" style="gap:10px;flex-wrap:nowrap"><span style="display:inline-flex;align-items:center;gap:8px;min-width:0"><span class="chip'+(dd?' ok':(mand&&o?' warn':''))+'">'+(dd?'✓':(o?'•':'—'))+'</span><span style="min-width:0">'+esc(it.title||'')+(mand&&o&&!dd?' <b style="color:var(--warn-ink)">· обязательно</b>':'')+'</span></span>'+(o?'<button class="btn sm" type="button" data-act="open-item" data-id="'+esc(it.id)+'">'+(dd?'Открыть':'Начать')+'</button>':'<span class="small muted">закрыто</span>')+'</div>'; }).join('')+'</div></section>'; }).join('');
+  return head('Мой путь', 'Пройдено '+done+' из '+ds.length+' дней', '<div class="row" style="gap:8px"><button class="btn sm primary" type="button" aria-pressed="true">Карта</button><button class="btn sm" type="button" data-act="plan-mode" data-m="list">Списком</button></div>')+
+    '<div class="meter" style="max-width:720px;margin:0 auto 18px"><i style="width:'+Math.round(done/Math.max(1,ds.length)*100)+'%"></i></div>'+
+    '<div class="qmap">'+nodes+'<div class="qend"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V9l3 2V7l4 3 4-3v4l3-2v12"/></svg><span class="stack" style="gap:0"><b>Финальная аттестация</b><span class="small muted">в конце пути — итоги стажировки и сертификат</span></span></div></div>';
+}
 
 /* ---------- доска почёта ---------- */
 function hwItems(){ return allItems().filter(function(it){ return /домашн/i.test(it.title||''); }); }
@@ -790,7 +893,7 @@ function tHonor(){
   if(!g) return head('Доска почёта','')+'<div class="empty"><b>Групп пока нет</b></div>';
   var pick = '<label class="field" style="min-width:260px">Поток<select data-act-change="h-gid">'+gl.map(function(x){ return '<option value="'+esc(x.id)+'"'+(x.id===gid?' selected':'')+'>'+esc(x.name)+(x.trainer?' · '+esc(x.trainer):'')+'</option>'; }).join('')+'</select></label>';
   var rows = honorRows(gid);
-  var right = '<div class="row" style="align-items:flex-end">'+pick+(rows.length?'<button class="btn primary" type="button" data-act="h-tg" data-g="'+esc(gid)+'">Отправить итог в Telegram</button>':'')+'</div>';
+  var right = '<div class="row" style="align-items:flex-end">'+pick+'<button class="btn outline" type="button" data-act="h-deck" data-g="'+esc(gid)+'">Итоги потока → презентация</button>'+(rows.length?'<button class="btn primary" type="button" data-act="h-tg" data-g="'+esc(gid)+'">Отправить итог в Telegram</button>':'')+'</div>';
   var top = head('Доска почёта', esc(g.name)+' · только сдавшие финальное тестирование · видят руководитель и тренеры', right);
   if(!rows.length) return top+'<div class="empty"><b>Пока никто не сдал финальное тестирование</b><span>Доска заполнится, когда тренер внесёт результаты финала в итог стажёра.</span></div>';
   var p = function(cls, m, x, sub){ return '<div class="card '+cls+'"><span class="medal '+m+'">'+(m==='m1'?1:(m==='m2'?2:3))+'</span><b style="font-size:'+(m==='m1'?20:17)+'px">'+esc(x)+'</b>'+sub+'</div>'; };
@@ -1088,6 +1191,7 @@ function render(){
   document.body.classList.toggle('trainer', S.role==='trainer');
   var html = S.role==='applicant' ? viewApplicant() : (S.role ? viewShell() : viewLogin());
   if(S.role && S.role!=='applicant') html += brkOverlay();
+  if(S.role==='intern' && S.ui.wr!=null) html += wrView();
   if(S.ui.modal) html += viewModal();
   if(S.ui.toast) html += '<div class="toast" role="status">'+esc(S.ui.toast)+'</div>';
   if(S.stale && S.role) html += '<div class="toast" role="status" style="bottom:72px">Вышла новая версия кабинета. <button class="btn primary" type="button" data-act="app-reload" style="margin-left:8px">Обновить</button></div>';
@@ -1225,7 +1329,7 @@ function viewShell(){
   }
   if(S.role==='intern' && S.view==='tests' && S.ui.rev) body = revView();
   else if(S.role==='intern' && S.view==='tests' && !S.ui.test) body = revCard()+body;
-  if(S.role==='intern' && (S.view==='home' || S.view==='plan' || !S.view)) body = mandBanner()+(S.view!=='plan'?revCard():'')+body+(S.view!=='plan'?'<div style="margin-top:16px">'+achCard(S.iid)+'</div>':'');
+  if(S.role==='intern' && (S.view==='home' || S.view==='plan' || !S.view)) body = (S.view!=='plan'?wrBanner():'')+mandBanner()+(S.view!=='plan'?revCard():'')+body+(S.view!=='plan'?'<div style="margin-top:16px">'+achCard(S.iid)+'</div>':'');
   return '<div class="shell">'+side+'<main class="main"><div class="wrap">'+body+'</div></main></div>'+(S.role==='intern' ? contactFab() : '')+bellHtml();
 }
 
@@ -1299,9 +1403,10 @@ function vHome(){
 
 function vPlan(){
   if(!days().length) return head(tabTitle('plan'),'')+noContent();
+  if((S.ui.planMode||'map')==='map') return vQuest();
   var doneDays = days().filter(function(x){ return dayState(x)==='done'; }).length;
   var curIdx = currentDayIdx();
-  return head(tabTitle('plan'),days().length+' рабочих дней · по дням','<div class="card tight" style="flex-direction:row;align-items:center;gap:12px"><span class="muted">Пройдено</span><b class="num" style="font-family:var(--f-display);font-size:22px">'+doneDays+' / '+days().length+'</b><span class="muted">дней</span></div>')+
+  return head(tabTitle('plan'),days().length+' рабочих дней · по дням','<div class="row" style="gap:8px;align-items:center"><button class="btn sm" type="button" data-act="plan-mode" data-m="map">Карта</button><button class="btn sm primary" type="button" aria-pressed="true">Списком</button></div><div class="card tight" style="flex-direction:row;align-items:center;gap:12px"><span class="muted">Пройдено</span><b class="num" style="font-family:var(--f-display);font-size:22px">'+doneDays+' / '+days().length+'</b><span class="muted">дней</span></div>')+
     toneLegend(allItems())+
     days().map(function(d, i){
       var st = dayState(d);
@@ -3052,6 +3157,13 @@ function curDayDraft(){ var d = draft('program'); var di = Math.min(S.ui.sd||0, 
 function mv(arr, i, dir){ var j = i+dir; if(j<0||j>=arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
 
 var A = {
+  'wr-open': function(){ S.ui.wr = 0; render(); },
+  'wr-go': function(el){ S.ui.wr = Number(el.dataset.k)||0; render(); },
+  'wr-close': function(){ S.ui.wr = null; render(); },
+  'wr-img': function(){ wrImage(); },
+  'h-deck': function(el){ streamDeck(el.dataset.g); },
+  'plan-mode': function(el){ S.ui.planMode = el.dataset.m; render(); },
+  'q-day': function(el){ var i = Number(el.dataset.i); S.ui.qDay = (S.ui.qDay===i ? -1 : i); render(); },
   'h-tg': function(el){ var txt = honorText(el.dataset.g); if(!txt) return; el.disabled = true; tgCall({action:'send', text:txt}).then(function(){ el.disabled = false; toast('Итог отправлен в Telegram'); }, function(e){ el.disabled = false; toast('Не удалось отправить: '+(e && e.message || 'ошибка')); }); },
   cert: function(){ certOpen(); },
   'p-per': function(el){ S.ui.pPer = el.dataset.v==='all' ? 'all' : Number(el.dataset.v); render(); },
