@@ -447,7 +447,11 @@ function colOf(p){ return String(p).split('/')[0]; }
 function idOf(p){ return String(p).split('/')[1]; }
 function snapDoc(p){ var v = CACHE[p]; return {id:idOf(p), exists:v!==undefined, data:function(){ return v; }, metadata:{}}; }
 function notify(p){ LST.forEach(function(l){ if(l.path===p || (l.col && l.col===colOf(p))) l.fire(); }); }
-function setLocal(p, v){ if(v===undefined) delete CACHE[p]; else CACHE[p] = v; notify(p); }
+function setLocal(p, v){
+  /* Свой прогресс: поверх данных с сервера всегда накладываем ещё не отправленные изменения, чтобы они не «пропадали» с экрана */
+  if(v!==undefined && S.iid && p==='progress/'+S.iid && PEND.iid===S.iid && (PFLY || pendHas())) v = deepMerge(deepMerge(clone(v), clone(PFLY||{})), clone(PEND.p));
+  if(v===undefined) delete CACHE[p]; else CACHE[p] = v; notify(p);
+}
 function deepMerge(t, s){ Object.keys(s).forEach(function(k){ var v = s[k]; if(v && typeof v==='object' && !Array.isArray(v)){ if(!t[k] || typeof t[k]!=='object' || Array.isArray(t[k])) t[k] = {}; deepMerge(t[k], v); } else t[k] = v; }); return t; }
 function dbErr(e){ var m = (e && e.message) || ''; return {code: /row-level security|permission|violates/i.test(m) ? 'invalid_argument' : 'unavailable', message:m}; }
 function docRef(p){
@@ -605,19 +609,74 @@ function upsert(path, cached, patch){
     throw e;
   });
 }
-var PSEQ = 0;
+/* ---------- сохранение прогресса: очередь неотправленного ----------
+   Изменения копятся в PEND и хранятся на устройстве (localStorage), пока база их не примет.
+   Если вход «протух» — обновляем его и отправляем снова; если нет сети — повторим позже. Ничего не теряется. */
+var PSEQ = 0, PEND = {iid:null, p:{}}, PFLY = null, PBUSY = false, PFAILS = 0, PTOAST = 0;
+function pendKey(iid){ return 'start-lk-pend-'+iid; }
+function pendHas(){ return !!(PEND.iid && PEND.iid===S.iid && Object.keys(PEND.p).length); }
+function pendStore(){ try{ if(!PEND.iid) return; if(Object.keys(PEND.p).length) localStorage.setItem(pendKey(PEND.iid), JSON.stringify(PEND.p)); else localStorage.removeItem(pendKey(PEND.iid)); }catch(e){} }
+function pendLoad(iid){ if(PEND.iid===iid) return; var v = null; try{ v = JSON.parse(localStorage.getItem(pendKey(iid))||'null'); }catch(e){} PEND = {iid:iid, p:(v && typeof v==='object') ? v : {}}; }
+function isAuthErr(e){ var m = String((e && (e.message||e.msg)) || ''), c = String((e && (e.code||e.status)) || ''); return /jwt|token|expired|401|unauthor|not authenticated|PGRST30/i.test(m+' '+c); }
 function saveProgress(patch){
-  /* Отправляем в базу только изменение — база сама объединяет его с сохранённым прогрессом.
-     Так вкладка с устаревшими данными не может затереть прогресс целиком. */
+  /* Отправляем в базу только изменение — база сама объединяет его с сохранённым прогрессом. */
   var iid = S.iid; if(!iid || !sb) return Promise.resolve();
-  var path = 'progress/'+iid; var p = clone(patch);
-  setLocal(path, deepMerge(CACHE[path] ? clone(CACHE[path]) : {items:{}, tests:{}, notes:{}}, clone(p)));
-  var seq = ++PSEQ;
-  return sb.rpc('progress_patch', {p:p}).then(function(r){
-    if(r.error) throw r.error;
-    if(seq===PSEQ && iid===S.iid && r.data && !sameJson(r.data, CACHE[path])) setLocal(path, r.data);
-  }).catch(function(){ var t = function(){ toast('Не удалось сохранить. Проверьте соединение.'); }; withSession(t, t); });
+  pendLoad(iid);
+  deepMerge(PEND.p, clone(patch)); pendStore();
+  var path = 'progress/'+iid;
+  setLocal(path, deepMerge(CACHE[path] ? clone(CACHE[path]) : {items:{}, tests:{}, notes:{}}, clone(patch)));
+  return flushProgress();
 }
+function flushProgress(){
+  var iid = S.iid; if(!iid || !sb || S.dormant) return Promise.resolve();
+  pendLoad(iid);
+  if(PBUSY || !pendHas()) return Promise.resolve();
+  PBUSY = true;
+  var sent = PEND.p; PEND.p = {}; PFLY = sent; pendStore();
+  var seq = ++PSEQ, path = 'progress/'+iid;
+  /* пока запрос в пути, неотправленное держим и на устройстве — на случай закрытия вкладки */
+  try{ localStorage.setItem(pendKey(iid), JSON.stringify(deepMerge(clone(sent), clone(PEND.p)))); }catch(e){}
+  var back = function(){ PFLY = null; if(PEND.iid===iid){ PEND.p = deepMerge(clone(sent), PEND.p); pendStore(); } };
+  var send = function(){ return sb.rpc('progress_patch', {p:sent}).then(function(r){ if(r.error) throw r.error; return r; }); };
+  return send().catch(function(e){
+    if(!isAuthErr(e)) throw e;
+    /* вход протух — обновляем и пробуем ещё раз */
+    return sb.auth.refreshSession().then(function(rr){
+      if(rr.error || !(rr.data && rr.data.session)) throw {auth:true};
+      return send();
+    });
+  }).then(function(r){
+    PBUSY = false; PFAILS = 0; PFLY = null; pendStore();
+    if(seq===PSEQ && iid===S.iid && r.data && !sameJson(r.data, CACHE[path])) setLocal(path, r.data);
+    if(pendHas()) setTimeout(flushProgress, 0);
+  }, function(e){
+    PBUSY = false; back(); PFAILS++;
+    if(e && e.auth){ sessionEnded(); return; }
+    if(Date.now()-PTOAST > 60000){ PTOAST = Date.now(); toast('Нет связи с базой — ответы сохранены на устройстве и отправятся автоматически.'); }
+    setTimeout(flushProgress, Math.min(60000, 3000*PFAILS));
+  });
+}
+window.addEventListener('online', function(){ flushProgress(); });
+
+/* ---------- версия сайта: вкладка со старой версией сама перезагружается ----------
+   При каждой выкладке BUILD и файл version.txt меняются вместе. */
+var BUILD = '2026-11-23a';
+function checkBuild(){
+  if(!window.fetch || S.stale) return;
+  fetch('version.txt?t='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
+    t = String(t||'').trim();
+    if(t && t!==BUILD && /^[0-9a-z-]{6,30}$/i.test(t)){ S.stale = true; maybeReload(); render(); }
+  }).catch(function(){});
+}
+function maybeReload(){
+  if(!S.stale) return;
+  if(PBUSY || pendHas()){ flushProgress(); setTimeout(maybeReload, 4000); return; }
+  /* перезагружаем, когда стажёр не смотрит на вкладку или ещё не вошёл; иначе — плашка с кнопкой */
+  if(document.hidden || S.dormant || (!S.role && !Object.keys(S.form||{}).length)) location.reload();
+}
+document.addEventListener('visibilitychange', function(){ if(document.hidden) maybeReload(); else checkBuild(); });
+setInterval(checkBuild, 300000);
+setTimeout(checkBuild, 20000);
 function writeErr(e){
   if(e && e.code==='quota_exceeded') toast('Хранилище заполнено — удалите старые записи.');
   else toast('Не удалось сохранить. Попробуйте ещё раз.');
@@ -636,6 +695,7 @@ function render(){
   var html = S.role==='applicant' ? viewApplicant() : (S.role ? viewShell() : viewLogin());
   if(S.ui.modal) html += viewModal();
   if(S.ui.toast) html += '<div class="toast" role="status">'+esc(S.ui.toast)+'</div>';
+  if(S.stale && S.role) html += '<div class="toast" role="status" style="bottom:72px">Вышла новая версия кабинета. <button class="btn primary" type="button" data-act="app-reload" style="margin-left:8px">Обновить</button></div>';
   app.innerHTML = html;
   if(S.fs) fsUpdate();
   if(aid){ var n = document.getElementById(aid); if(n && n !== document.body){ try{ n.focus({preventScroll:true}); if(ss!=null && n.setSelectionRange) n.setSelectionRange(ss,se); }catch(e){} } }
@@ -2576,15 +2636,16 @@ function presencePing(){
 }
 setInterval(function(){ if(S.role==='intern' && !S.dormant) withSession(function(){ if(S.view==='pres') presencePing(); else if(S.iid) saveProgress({seen:Date.now()}); }); }, 60000);
 /* Вход завершился (вышли в другой вкладке/на другом устройстве или сессия истекла) — возвращаем на экран входа, а не молча ловим отказы базы */
-function sessionEnded(){ if(!S.role) return; closePlayer(); S.role=null; S.iid=null; S.dormant=false; S.ui={dayOpen:{}, edOpen:{}, loginErr:'Сессия входа завершилась. Войдите снова — сохранённый прогресс на месте.'}; S.form={}; CACHE={}; LST.forEach(function(l){ l.fire(); }); render(); }
+function sessionEnded(){ if(!S.role) return; pendStore(); PEND = {iid:null, p:{}}; closePlayer(); S.role=null; S.iid=null; S.dormant=false; S.ui={dayOpen:{}, edOpen:{}, loginErr:'Сессия входа завершилась. Войдите снова — сохранённый прогресс на месте.'}; S.form={}; CACHE={}; LST.forEach(function(l){ l.fire(); }); render(); }
 function withSession(fn, failed){ if(!sb) return; sb.auth.getSession().then(function(r){ if(!r.error && !(r.data && r.data.session)){ sessionEnded(); return; } fn(); }, function(){ if(failed) failed(); else fn(); }); }
 function liveUpdate(gid, patch){ return upsert('live/'+gid, S.live[gid], patch).catch(writeErr); }
 function curDayDraft(){ var d = draft('program'); var di = Math.min(S.ui.sd||0, Math.max(0,d.days.length-1)); return d.days[di]; }
 function mv(arr, i, dir){ var j = i+dir; if(j<0||j>=arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
 
 var A = {
+  'app-reload': function(){ if(PBUSY || pendHas()){ flushProgress(); toast('Сохраняем ответы… нажмите ещё раз через пару секунд.'); return; } location.reload(); },
   nav: function(el){ S.view = el.dataset.v; S.ui.modal=null; if(S.view==='pres'){ S.ui.unsynced=false; S.ui.freeDeck=null; S.ui.slide=1; presencePing(); } render(); window.scrollTo(0,0); },
-  logout: function(){ closePlayer(); S.role=null; S.iid=null; S.ui={dayOpen:{}, edOpen:{}}; S.form={}; if(sb) sb.auth.signOut(); CACHE={}; LST.forEach(function(l){ l.fire(); }); render(); },
+  logout: function(){ pendStore(); PEND = {iid:null, p:{}}; closePlayer(); S.role=null; S.iid=null; S.ui={dayOpen:{}, edOpen:{}}; S.form={}; if(sb) sb.auth.signOut(); CACHE={}; LST.forEach(function(l){ l.fire(); }); render(); },
   'as-trainer': function(){ if(!S.canEdit) return; S.ui.trainerForm = true; S.ui.trErr = null; render(); setTimeout(function(){ var n = document.getElementById('tr-login'); if(n) n.focus(); }, 0); },
   'intern-suspend': function(el){
     var id = el.dataset.id; var on = el.dataset.on==='1'; var it = S.interns[id];
@@ -3139,7 +3200,7 @@ if(!window.supabase || !CFG.url || !CFG.anonKey || /ВСТАВЬТЕ|XXXX/.test(
   sb.auth.onAuthStateChange(function(ev){ if(ev==='SIGNED_IN' || ev==='TOKEN_REFRESHED') startRealtime(); else if(ev==='SIGNED_OUT') setTimeout(sessionEnded, 0); });
   setInterval(pollLive, 3000);
   /* Полная перезагрузка данных: при возврате на вкладку (не чаще раза в 30 с) и раз в 10 минут */
-  document.addEventListener('visibilitychange', function(){ if(!document.hidden && S.role && !S.dormant && Date.now()-(S.lastLoad||0) > 30000){ loadAll().catch(function(){}); startRealtime(); } });
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden && S.iid) flushProgress(); if(!document.hidden && S.role && !S.dormant && Date.now()-(S.lastLoad||0) > 30000){ loadAll().catch(function(){}); startRealtime(); } });
   setInterval(function(){ if(S.role && !document.hidden && !S.dormant) loadAll().catch(function(){}); }, 600000);
   sb.from('docs').select('path,data').eq('path','content/settings').maybeSingle().then(function(r){ if(r.data) setLocal('content/settings', r.data.data); });
   S.ui.busy = true;
