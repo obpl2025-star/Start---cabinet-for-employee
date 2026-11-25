@@ -750,7 +750,7 @@ window.addEventListener('online', function(){ flushProgress(); });
 
 /* ---------- версия сайта: вкладка со старой версией сама перезагружается ----------
    При каждой выкладке BUILD и файл version.txt меняются вместе. */
-var BUILD = '2026-11-25a';
+var BUILD = '2026-11-25b';
 function checkBuild(){
   if(!window.fetch || S.stale) return;
   fetch('version.txt?t='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
@@ -1057,7 +1057,7 @@ function riskOf(iid){
 }
 function avgBest(iid){ var t = P(iid).tests||{}; var v = Object.keys(t).map(function(k){ return t[k] && t[k].best; }).filter(function(x){ return typeof x==='number'; }); return v.length ? Math.round(v.reduce(function(a,b){ return a+b; },0)/v.length) : null; }
 function rkChip(lvl){ var c = lvl===2?'r':(lvl===1?'y':(lvl===0?'g':'x')); var t = lvl===2?'Риск отвала':(lvl===1?'Внимание':(lvl===0?'В норме':'Не учитывается')); return '<span class="rk '+c+'"><i aria-hidden="true"></i>'+t+'</span>'; }
-function seenTxt(ts){ if(!ts) return 'не заходил'; var d = Date.now()-ts; if(d < 3600000) return 'только что'; if(d < DAYMS && dkey(ts)===dkey(Date.now())) return 'сегодня '+kyivHM(ts); if(d < 2*DAYMS) return 'вчера '+kyivHM(ts); return Math.floor(d/DAYMS)+' дн. назад'; }
+function seenTxt(ts){ if(!ts) return 'не заходил'; var d = Date.now()-ts; if(d < 3600000) return 'только что'; if(d < DAYMS && dkey(ts)===dkey(Date.now())) return 'сегодня '+mskHM(ts); if(d < 2*DAYMS) return 'вчера '+mskHM(ts); return Math.floor(d/DAYMS)+' дн. назад'; }
 function riskList(gid){ return internsOf(gid).map(function(i){ return {i:i, r:riskOf(i.id)}; }); }
 function redCount(gid){ return gid ? riskList(gid).filter(function(x){ return x.r.lvl===2; }).length : 0; }
 function tRisk(){
@@ -1108,7 +1108,7 @@ function tIntern(){
       achCard(iid, 'Достижения')+phCard(iid)+
     '</div></div>';
 }
-function rollMarkTime(roll, iid){ var x = (roll.list||[]).filter(function(y){ return y.iid===iid && y.at; })[0]; return x ? kyivHM(x.at) : ''; }
+function rollMarkTime(roll, iid){ var x = (roll.list||[]).filter(function(y){ return y.iid===iid && y.at; })[0]; return x ? mskHM(x.at) : ''; }
 
 /* ---------- работа над ошибками ---------- */
 function revAll(iid){ var rv = P(iid).rev || {}; var out = [];
@@ -1148,13 +1148,13 @@ function themeSw(){ var t = themeGet(); var b = function(k, l){ return '<button 
 /* ---------- перерыв ---------- */
 function brkOf(gid){ var b = gid && liveOf(gid).brk; return (b && b.until && b.until > Date.now()) ? b : null; }
 function mmss(ms){ var t = Math.max(0, Math.ceil(ms/1000)); var m = Math.floor(t/60), sec = t%60; return m+':'+(sec<10?'0':'')+sec; }
-function kyivHM(ts){ try{ return new Date(ts).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:TZ}); }catch(e){ return ''; } }
+function mskHM(ts){ try{ return new Date(ts).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:TZ}); }catch(e){ return ''; } }
 function brkOverlay(){
   var gid = S.role==='intern' ? (me()||{}).groupId : curGid(); var b = brkOf(gid); if(!b) return '';
   if(S.role==='trainer' && (S.view!=='t-pres' || S.ui.brkHide)) return '';
   return '<div class="brk" role="dialog" aria-modal="true" aria-label="Перерыв"><div class="brk-in"><span class="lbl">ПЕРЕРЫВ'+(b.label?' · '+esc(b.label):'')+'</span>'+
     '<b class="brk-t" id="brk-left" data-until="'+b.until+'">'+mmss(b.until-Date.now())+'</b>'+
-    '<span style="font-size:18px">Вернёмся в '+kyivHM(b.until)+' по МСК</span>'+
+    '<span style="font-size:18px">Вернёмся в '+mskHM(b.until)+' по МСК</span>'+
     (S.role==='trainer' ? '<div class="row" style="gap:10px;justify-content:center;margin-top:8px"><button class="btn" type="button" data-act="brk-add">+5 минут</button><button class="btn primary" type="button" data-act="brk-stop">Закончить перерыв</button><button class="btn" type="button" data-act="brk-hide">Свернуть</button></div>' : '')+
   '</div></div>';
 }
@@ -1880,7 +1880,7 @@ function xlRolls(gid){
 /* ---------- trainer: morning reports ---------- */
 /* День стажировки = порядковый номер даты, в которую у группы была перекличка (выходные не считаются).
    «Утренняя перекличка» дня — самая ранняя перекличка в эту дату (идущая сейчас тоже учитывается). */
-function dkey(ts){ var d = new Date(ts); function z(n){ return (n<10?'0':'')+n; } return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
+function dkey(ts){ var d = mskD(ts); function z(n){ return (n<10?'0':'')+n; } return d.getUTCFullYear()+'-'+z(d.getUTCMonth()+1)+'-'+z(d.getUTCDate()); }
 function ddmm(s){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||'')); return m ? m[3]+'.'+m[2] : String(s||''); }
 var MRC = {};
 /* Одна активная вкладка стажёра: новая вкладка «забирает» кабинет, старая засыпает (меньше путаницы и нагрузки) */
