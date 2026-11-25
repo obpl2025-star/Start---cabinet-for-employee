@@ -604,8 +604,11 @@ function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(
 function f(id, def){ return (S.form[id] != null) ? S.form[id] : (def == null ? '' : def); }
 function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function initials(n){ var p = String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'').toUpperCase() + ((p[1]||'')[0]||'').toUpperCase(); }
-function fmtDay(ts){ try{ return new Date(ts).toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); }catch(e){ return ''; } }
-function fmtTime(ts){ try{ return new Date(ts).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+/* Всё время на сайте показываем по Москве (МСК, UTC+3) */
+var TZ = 'Europe/Moscow';
+function mskD(t){ return new Date(new Date(t).getTime() + 3*3600000); }
+function fmtDay(ts){ try{ return new Date(ts).toLocaleDateString('ru-RU',{day:'numeric',month:'long',timeZone:TZ}); }catch(e){ return ''; } }
+function fmtTime(ts){ try{ return new Date(ts).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:TZ})+' МСК'; }catch(e){ return ''; } }
 function ago(ts){ if(!ts) return 'не входил'; var m = Math.round((Date.now()-ts)/60000); if(m<2) return 'онлайн'; if(m<60) return m+' мин назад'; var h=Math.round(m/60); if(h<24) return h+' ч назад'; return fmtDay(ts); }
 function toast(t){ S.ui.toast = t; render(); clearTimeout(toast.t); toast.t = setTimeout(function(){ S.ui.toast=null; render(); }, 2800); }
 var TR = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'};
@@ -747,7 +750,7 @@ window.addEventListener('online', function(){ flushProgress(); });
 
 /* ---------- версия сайта: вкладка со старой версией сама перезагружается ----------
    При каждой выкладке BUILD и файл version.txt меняются вместе. */
-var BUILD = '2026-11-24f';
+var BUILD = '2026-11-25a';
 function checkBuild(){
   if(!window.fetch || S.stale) return;
   fetch('version.txt?t='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(t){
@@ -1145,13 +1148,13 @@ function themeSw(){ var t = themeGet(); var b = function(k, l){ return '<button 
 /* ---------- перерыв ---------- */
 function brkOf(gid){ var b = gid && liveOf(gid).brk; return (b && b.until && b.until > Date.now()) ? b : null; }
 function mmss(ms){ var t = Math.max(0, Math.ceil(ms/1000)); var m = Math.floor(t/60), sec = t%60; return m+':'+(sec<10?'0':'')+sec; }
-function kyivHM(ts){ try{ return new Date(ts).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Kiev'}); }catch(e){ return ''; } }
+function kyivHM(ts){ try{ return new Date(ts).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:TZ}); }catch(e){ return ''; } }
 function brkOverlay(){
   var gid = S.role==='intern' ? (me()||{}).groupId : curGid(); var b = brkOf(gid); if(!b) return '';
   if(S.role==='trainer' && (S.view!=='t-pres' || S.ui.brkHide)) return '';
   return '<div class="brk" role="dialog" aria-modal="true" aria-label="Перерыв"><div class="brk-in"><span class="lbl">ПЕРЕРЫВ'+(b.label?' · '+esc(b.label):'')+'</span>'+
     '<b class="brk-t" id="brk-left" data-until="'+b.until+'">'+mmss(b.until-Date.now())+'</b>'+
-    '<span style="font-size:18px">Вернёмся в '+kyivHM(b.until)+' по Киеву</span>'+
+    '<span style="font-size:18px">Вернёмся в '+kyivHM(b.until)+' по МСК</span>'+
     (S.role==='trainer' ? '<div class="row" style="gap:10px;justify-content:center;margin-top:8px"><button class="btn" type="button" data-act="brk-add">+5 минут</button><button class="btn primary" type="button" data-act="brk-stop">Закончить перерыв</button><button class="btn" type="button" data-act="brk-hide">Свернуть</button></div>' : '')+
   '</div></div>';
 }
@@ -1233,7 +1236,7 @@ function rollScreen(m, rl){
   var b = brand(); var mine = P().roll; var done = mine && mine.id===rl.id;
   return '<div class="login" role="dialog" aria-modal="true" aria-labelledby="h-roll"><div class="login-card roll-card">'+
     '<div class="brand" style="align-self:stretch"><div class="mark">'+esc(b.name[0]||'С')+'</div><div style="text-align:left"><b>'+esc(b.name)+'</b><small>'+esc(m.name)+'</small></div></div>'+
-    (done ? '<div class="roll-ico ok" aria-hidden="true">✓</div><h1 id="h-roll">Вы отмечены</h1><p class="muted" style="margin:0;line-height:1.55">Отметка в '+esc(new Date(mine.at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}))+'. Кабинет снова откроется, как только тренер завершит перекличку.</p><span class="chip warn"><span class="pulse" aria-hidden="true"></span>Перекличка идёт</span>'
+    (done ? '<div class="roll-ico ok" aria-hidden="true">✓</div><h1 id="h-roll">Вы отмечены</h1><p class="muted" style="margin:0;line-height:1.55">Отметка в '+esc(hhmm(mine.at))+' МСК. Кабинет снова откроется, как только тренер завершит перекличку.</p><span class="chip warn"><span class="pulse" aria-hidden="true"></span>Перекличка идёт</span>'
       : '<div class="roll-ico" aria-hidden="true">✋</div><h1 id="h-roll">Перекличка</h1><p style="margin:0;line-height:1.55">Тренер проверяет, кто на месте. Нажмите кнопку, чтобы отметиться.</p><button class="btn primary roll-btn" type="button" data-act="roll-here">Я на месте</button><span class="small muted">Остальные разделы кабинета откроются после переклички.</span>')+
   '<button class="linkbtn small" type="button" data-act="logout">Выйти из кабинета</button></div></div>';
 }
@@ -1751,7 +1754,7 @@ function rollMarkAt(iid, rid){ var r = P(iid).roll; if(r && r.id===rid && r.at) 
 /* Отметка, поставленная тренером вручную во время переклички (live/<группа>.roll.manual) */
 function rollManAt(iid, rid){ var it = S.interns[iid]; var rl = it ? liveOf(it.groupId).roll : null; return rl && rl.id===rid && rl.manual && rl.manual[iid] ? rl.manual[iid] : null; }
 function rollSelfAt(iid, rid){ var r = P(iid).roll; return r && r.id===rid ? r.at : null; }
-function hhmm(t){ return t ? new Date(t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : ''; }
+function hhmm(t){ return t ? new Date(t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:TZ}) : ''; }
 function tRoll(){
   var gid = curGid(); var g = gid ? S.groups[gid] : null;
   if(!g) return head('Перекличка','')+'<div class="empty"><b>Сначала создайте группу</b><button class="btn primary" data-act="nav" data-v="t-access">Перейти к группам</button></div>';
@@ -2103,7 +2106,7 @@ function saveProfile(iid, patch){ return upsert('profiles/'+iid, S.profiles[iid]
 function attBtn(iid, d, di, big){ var v = attOf(iid, d.id); var auto = v && !manAtt(iid, d.id); var lbl = v==='yes'?'✓':(v==='no'?'✕':'—');
   return '<button type="button" class="att '+v+(auto?' auto':'')+'" data-act="att-cycle" data-i="'+esc(iid)+'" data-d="'+esc(d.id)+'" title="'+esc('День '+(di+1)+': '+(v==='yes'?'присутствовал':(v==='no'?'отсутствовал':'не отмечено'))+(auto?' (по утренней перекличке)':'')+' — нажмите, чтобы изменить')+'" aria-label="'+esc('День '+(di+1)+': '+(v==='yes'?'присутствовал':(v==='no'?'отсутствовал':'не отмечено')))+'">'+(big?'<small>День '+(di+1)+'</small>':'')+lbl+'</button>'; }
 function attText(v){ return v==='yes'?'присутствовал':(v==='no'?'отсутствовал':''); }
-function fmtDT(t){ if(!t) return ''; var d = new Date(t); function z(n){ return (n<10?'0':'')+n; } return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear()+' '+z(d.getHours())+':'+z(d.getMinutes()); }
+function fmtDT(t){ if(!t) return ''; var d = mskD(t); function z(n){ return (n<10?'0':'')+n; } return z(d.getUTCDate())+'.'+z(d.getUTCMonth()+1)+'.'+d.getUTCFullYear()+' '+z(d.getUTCHours())+':'+z(d.getUTCMinutes()); }
 function testRec(iid, tid){ return P(iid).tests && P(iid).tests[tid]; }
 function internStatus(iid){
   var ti = testItems(); var rs = ti.map(function(i){ return testRec(iid, i.test); });
@@ -2430,7 +2433,7 @@ function sheetTopics(list){
   list.forEach(function(i){ allItems().forEach(function(it){ rows.push([i.name, it.dayIdx+1, it.title, TYPE[it.type]||'', itemStatusText(it, i.id), doneAt(it, i.id)]); }); });
   return {name:'Темы плана', rows:rows, filter:1};
 }
-function fmtStamp(t){ if(!t) return ''; var d = new Date(t); function z(n){ return (n<10?'0':'')+n; } return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear()+' '+d.getHours()+':'+z(d.getMinutes())+':'+z(d.getSeconds()); }
+function fmtStamp(t){ if(!t) return ''; var d = mskD(t); function z(n){ return (n<10?'0':'')+n; } return z(d.getUTCDate())+'.'+z(d.getUTCMonth()+1)+'.'+d.getUTCFullYear()+' '+d.getUTCHours()+':'+z(d.getUTCMinutes())+':'+z(d.getUTCSeconds()); }
 function surveySheets(gid){
   var groups = svGroups(gid); var sumRows = [['Опрос','Вопрос','Тип','Ответов','Среднее','Распределение']];
   var sheets = [];
